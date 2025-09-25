@@ -5,7 +5,7 @@ import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import CompactCalendar from "@/components/CompactCalendar";
 import TurnoDialog from "@/components/CreateTurnoDialog";
-import type { Doc } from "../../convex/_generated/dataModel";
+import type { Id } from "../../convex/_generated/dataModel";
 import {
   Table,
   TableBody,
@@ -25,19 +25,32 @@ import {
   endOfDay,
 } from "date-fns";
 
+// 🔹 Definimos el tipo enriquecido que devuelve la query
+type TurnoConJoin = {
+  _id: Id<"turnos">;
+  paciente: string;
+  tipo: string;
+  estado: "Confirmado" | "Pendiente" | "Cancelado";
+  start: number;
+  end: number;
+  profesionalNombre: string;
+  especialidadNombre: string;
+  obraSocialNombre: string;
+};
+
 export default function TurnosPage() {
   const [view, setView] = useState<"day" | "week" | "month">("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // 🔹 Query Convex: traer todos los turnos (ajustá el rango si querés optimizar)
+  // 🔹 Query Convex ya devuelve nombres resueltos
   const turnos =
-    useQuery(api.turnos.listarRango, {
+    (useQuery(api.turnos.listarRango, {
       from: new Date(2025, 0, 1).getTime(), // desde enero 2025
       to: new Date(2025, 11, 31).getTime(), // hasta diciembre 2025
-    }) ?? [];
+    }) as TurnoConJoin[]) ?? [];
 
   // 🔹 Filtrar turnos según vista
-  let turnosFiltrados: Doc<"turnos">[] = [];
+  let turnosFiltrados: TurnoConJoin[] = [];
   if (selectedDate) {
     if (view === "day") {
       const start = startOfDay(selectedDate);
@@ -93,11 +106,10 @@ export default function TurnosPage() {
 
       {/* Calendario compacto */}
       <CompactCalendar
-  mode={view}
-  selected={selectedDate}
-  onSelect={(d) => d && setSelectedDate(d)}
-/>
-
+        mode={view}
+        selected={selectedDate}
+        onSelect={(d) => d && setSelectedDate(d)}
+      />
 
       {/* Tabla de turnos */}
       <div className="mt-8">
@@ -128,7 +140,9 @@ export default function TurnosPage() {
               <TableHead>Hora</TableHead>
               <TableHead>Paciente</TableHead>
               <TableHead>Profesional</TableHead>
-              <TableHead>Tipo de Consulta</TableHead>
+              <TableHead>Especialidad</TableHead>
+              <TableHead>Obra Social</TableHead>
+              <TableHead>Tipo</TableHead>
               <TableHead>Estado</TableHead>
               <TableHead>Acciones</TableHead>
             </TableRow>
@@ -155,21 +169,24 @@ export default function TurnosPage() {
                     })}
                   </TableCell>
                   <TableCell>{t.paciente}</TableCell>
-                  <TableCell className="text-blue-600">{t.profesional}</TableCell>
+                  <TableCell className="text-blue-600">
+                    {t.profesionalNombre}
+                  </TableCell>
+                  <TableCell>{t.especialidadNombre}</TableCell>
+                  <TableCell>{t.obraSocialNombre}</TableCell>
                   <TableCell>{t.tipo}</TableCell>
                   <TableCell>
                     <Badge
-  className={
-    t.estado === "Confirmado"
-      ? "bg-green-500 text-white hover:bg-green-600"
-      : t.estado === "Pendiente"
-      ? "bg-yellow-500 text-black hover:bg-yellow-600"
-      : "bg-red-500 text-white hover:bg-red-600"
-  }
->
-  {t.estado}
-</Badge>
-
+                      className={
+                        t.estado === "Confirmado"
+                          ? "bg-green-500 text-white hover:bg-green-600"
+                          : t.estado === "Pendiente"
+                          ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                          : "bg-red-500 text-white hover:bg-red-600"
+                      }
+                    >
+                      {t.estado}
+                    </Badge>
                   </TableCell>
                   <TableCell>
                     <TurnoDialog
@@ -181,7 +198,7 @@ export default function TurnosPage() {
               ))
             ) : (
               <TableRow>
-                <TableCell colSpan={7} className="text-center text-gray-400">
+                <TableCell colSpan={9} className="text-center text-gray-400">
                   No hay turnos para esta vista.
                 </TableCell>
               </TableRow>

@@ -16,7 +16,6 @@ export type Profesional = {
 
   especialidadNombre?: string;
   obraSocialNombre?: string;
-
 };
 
 export default function ProfesionalesPage() {
@@ -61,17 +60,20 @@ export default function ProfesionalesPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-black">Gestión de Profesionales</h1>
+        <h1 className="text-2xl font-bold">Gestión de Profesionales</h1>
         <button
           onClick={() => setModalOpen(true)}
-          className="px-4 py-2 rounded bg-zinc-300 text-black hover:bg-zinc-400"
+          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
         >
-          Añadir Profesional
+          + Añadir Profesional
         </button>
       </div>
+      <p className="text-gray-500">
+        Administra los profesionales de tu institución: especialidad, obra social y estado.
+      </p>
 
       {/* Tabla */}
       <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm bg-white">
@@ -95,8 +97,10 @@ export default function ProfesionalesPage() {
                 <td className="p-3 text-center">{prof.obraSocialNombre}</td>
                 <td className="p-3 text-center">
                   <span
-                    className={`px-2 py-1 rounded text-white text-xs font-medium  ${
-                      prof.estado === "Activo" ? "bg-green-500" : "bg-red-500"
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      prof.estado === "Activo"
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
                     }`}
                   >
                     {prof.estado}
@@ -120,7 +124,10 @@ export default function ProfesionalesPage() {
             ))}
             {profesionales.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-4 text-center text-gray-400 italic">
+                <td
+                  colSpan={6}
+                  className="p-4 text-center text-gray-400 italic"
+                >
                   No hay profesionales registrados
                 </td>
               </tr>
