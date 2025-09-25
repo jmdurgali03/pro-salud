@@ -2,10 +2,9 @@
 
 import { useState } from "react";
 import { useQuery } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import CompactCalendar from "@/components/CompactCalendar";
-import TurnoDialog from "@/components/CreateTurnoDialog";
-import type { Id } from "../../convex/_generated/dataModel";
+import CompactCalendar from "@/components/calendario/CompactCalendar";
+import TurnoDialog from "@/components/calendario/CreateTurnoDialog";
+
 import {
   Table,
   TableBody,
@@ -24,6 +23,8 @@ import {
   startOfDay,
   endOfDay,
 } from "date-fns";
+import { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/convex/_generated/api";
 
 // 🔹 Definimos el tipo enriquecido que devuelve la query
 type TurnoConJoin = {
@@ -94,11 +95,10 @@ export default function TurnosPage() {
           <button
             key={tab}
             onClick={() => setView(tab)}
-            className={`pb-2 capitalize ${
-              view === tab
-                ? "border-b-2 border-blue-500 text-blue-500"
-                : "text-gray-500 hover:text-gray-700"
-            }`}
+            className={`pb-2 capitalize ${view === tab
+              ? "border-b-2 border-blue-500 text-blue-500"
+              : "text-gray-500 hover:text-gray-700"
+              }`}
           >
             {tab === "day" ? "Día" : tab === "week" ? "Semana" : "Mes"}
           </button>
@@ -176,8 +176,8 @@ export default function TurnosPage() {
                     {t.profesionalNombre}
                   </TableCell>
                   <TableCell>{t.especialidadNombre}</TableCell>
-                 
-<TableCell>{t.obrasSocialesPaciente.join(", ") || "—"}</TableCell>
+
+                  <TableCell>{t.obrasSocialesPaciente.join(", ") || "—"}</TableCell>
 
                   <TableCell>{t.tipo}</TableCell>
                   <TableCell>
@@ -186,8 +186,8 @@ export default function TurnosPage() {
                         t.estado === "Confirmado"
                           ? "bg-green-500 text-white hover:bg-green-600"
                           : t.estado === "Pendiente"
-                          ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                          : "bg-red-500 text-white hover:bg-red-600"
+                            ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                            : "bg-red-500 text-white hover:bg-red-600"
                       }
                     >
                       {t.estado}

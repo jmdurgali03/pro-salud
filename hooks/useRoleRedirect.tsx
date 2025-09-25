@@ -13,7 +13,7 @@ export function useRoleRedirect() {
                 router.push("/profesional");
                 break;
             case "recepcionista":
-                router.push("/recepcion");
+                router.push("/recepcion/cal-turnos");
                 break;
             case "gerente":
                 router.push("/gerente/dashboard");

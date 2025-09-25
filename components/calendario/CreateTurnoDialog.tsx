@@ -3,8 +3,8 @@
 
 import { useEffect, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
-import { api } from "../convex/_generated/api";
-import type { Id } from "../convex/_generated/dataModel";
+import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 import {
   Dialog,
@@ -34,8 +34,8 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const crearTurno = useMutation(api.turnos.crear);
   const editarTurno = useMutation(api.turnos.editar);
   const eliminarTurno = useMutation(api.turnos.eliminar);
-const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
-const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
+  const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
+  const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
 
   const [open, setOpen] = useState(false);
 
