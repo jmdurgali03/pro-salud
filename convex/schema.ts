@@ -8,8 +8,7 @@ export default defineSchema({
     telefono: v.optional(v.string()),
     dni: v.string(),
     obraSocial: v.string(),
-    fechaNacimiento: v.optional(v.string()), // 👈 agregado
-
+    fechaNacimiento: v.optional(v.string()),
     creadoEn: v.number(),
     actualizadoEn: v.number(),
   })
@@ -17,12 +16,25 @@ export default defineSchema({
     .index("por_nombre", ["nombreCompleto"])
     .index("por_obraSocial", ["obraSocial"]),
 
-
-    observaciones: defineTable({
+  observaciones: defineTable({
     pacienteId: v.id("pacientes"),
     autor: v.string(),
     texto: v.string(),
     creadoEn: v.number(),
   }).index("por_paciente", ["pacienteId"]),
 
+  consultas: defineTable({
+    pacienteId: v.id("pacientes"),
+    motivo: v.string(),
+    profesional: v.string(),
+    notas: v.optional(v.string()),
+    fecha: v.number(),
+  }).index("por_paciente", ["pacienteId"]),
+
+  diagnosticos: defineTable({
+    pacienteId: v.id("pacientes"),
+    descripcion: v.string(),
+    profesional: v.string(),
+    fecha: v.number(),
+  }).index("por_paciente", ["pacienteId"]),
 });
