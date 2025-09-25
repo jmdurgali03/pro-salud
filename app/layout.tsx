@@ -2,20 +2,13 @@ import "./globals.css";
 import type { Metadata } from "next";
 import { Inter, Roboto_Mono } from "next/font/google";
 import "./globals.css";
+import { ConvexClientProvider } from "./ConvexClientProvider";
 
-// Cargar Inter (sans) y Roboto Mono directamente desde Google Fonts
-const inter = Inter({
-  variable: "--font-inter",
-  subsets: ["latin"],
-});
-
-const robotoMono = Roboto_Mono({
-  variable: "--font-roboto-mono",
-  subsets: ["latin"],
-});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const robotoMono = Roboto_Mono({ subsets: ["latin"], variable: "--font-roboto-mono" });
 import { ReactNode } from "react";
 import Header from "@/components/Header";
-import ConvexClientProvider from "@/components/convex-client-provider";
+
 
 export const metadata: Metadata = {
   title: "ProSalud",

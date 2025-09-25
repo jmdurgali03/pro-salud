@@ -16,4 +16,14 @@ export default defineSchema({
     end: v.number(),
     notas: v.optional(v.string()),
   }).index("byStart", ["start"]),
+
+  profesionales: defineTable({
+    nombre: v.string(),
+    especialidad: v.string(),
+    contacto: v.string(), // email o teléfono
+    obrasSociales: v.array(v.string()),
+    estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
+  })
+    .index("byNombre", ["nombre"])
+    .index("byEspecialidad", ["especialidad"]),
 });
