@@ -209,7 +209,6 @@ const router = useRouter();
   );
 }
 
-/* Modal genérico */
 function Modal({
   children,
   onClose,
@@ -231,6 +230,42 @@ function Modal({
     </div>
   );
 }
+const emailRe = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const digits = (nMin: number, nMax: number) => new RegExp(`^\\d{${nMin},${nMax}}$`);
+
+type FormErrors = Partial<Record<keyof FormState, string>>;
+
+function validate(form: FormState): FormErrors {
+  const e: FormErrors = {};
+
+  // nombre: requerido, min 3
+  if (!form.nombreCompleto?.trim() || form.nombreCompleto.trim().length < 3) {
+    e.nombreCompleto = "Ingrese nombre completo (mínimo 3 caracteres).";
+  }
+
+  if (!digits(7, 8).test(form.dni || "")) {
+    e.dni = "DNI debe tener 7 u 8 dígitos numéricos.";
+  }
+
+  if (form.email && !emailRe.test(form.email)) {
+    e.email = "Email inválido.";
+  }
+
+  if (form.telefono) {
+    const tel = form.telefono.replace(/\s|-/g, "");
+    if (!/^\+?\d{8,15}$/.test(tel)) {
+      e.telefono = "Teléfono: 8 a 15 dígitos (puede iniciar con +).";
+    }
+  }
+  if (form.fechaNacimiento) {
+    const hoy = new Date();
+    const fn = new Date(form.fechaNacimiento);
+    if (fn > hoy) e.fechaNacimiento = "Fecha invalida.";
+  }
+
+
+  return e;
+}
 
 /* Formulario de paciente */
 function PacienteForm({
@@ -247,9 +282,24 @@ function PacienteForm({
   onCancel: () => void;
 }) {
   const [form, setForm] = useState<FormState>(initial);
+  const [errors, setErrors] = useState<FormErrors>({});
 
   const handleChange = (field: keyof FormState, value: any) =>
     setForm((f) => ({ ...f, [field]: value }));
+
+  const setField =
+    (k: keyof FormState) =>
+    (v: any) => {
+      handleChange(k, v);
+      // validación por-campo
+      const all = validate({ ...form, [k]: v });
+      setErrors((prev) => {
+        const next = { ...prev };
+        delete next[k];
+        if (all[k]) next[k] = all[k];
+        return next;
+      });
+    };
 
   const toggleObraSocial = (id: Id<"obrasSociales">) => {
     setForm((f) => ({
@@ -260,62 +310,102 @@ function PacienteForm({
     }));
   };
 
+  const inputCls = (key: keyof FormState) =>
+    `w-full border rounded-lg p-2 ${
+      errors[key] ? "border-red-500 focus:outline-red-500" : "border-gray-300"
+    }`;
+
+  const handleSubmitLocal = (e: React.FormEvent) => {
+    e.preventDefault();
+    const v = validate(form);
+    setErrors(v);
+    if (Object.keys(v).length > 0) return;
+    onSubmit(form);
+  };
+
   return (
-    <form
-      onSubmit={(e) => {
-        e.preventDefault();
-        onSubmit(form);
-      }}
-      className="space-y-4"
-    >
+    <form onSubmit={handleSubmitLocal} className="space-y-4">
       <h2 className="text-xl font-bold">{titulo}</h2>
+
+      {/* Nombre */}
       <input
         value={form.nombreCompleto}
-        onChange={(e) => handleChange("nombreCompleto", e.target.value)}
+        onChange={(e) => setField("nombreCompleto")(e.target.value)}
         placeholder="Nombre completo"
-        className="w-full border rounded-lg p-2"
+        className={inputCls("nombreCompleto")}
         required
+        minLength={3}
+        autoComplete="name"
+        aria-invalid={!!errors.nombreCompleto}
       />
+      {errors.nombreCompleto && (
+        <p className="text-sm text-red-600">{errors.nombreCompleto}</p>
+      )}
+
+      {/* DNI */}
       <input
         value={form.dni}
-        onChange={(e) => handleChange("dni", e.target.value)}
+        onChange={(e) => setField("dni")(e.target.value)}
         placeholder="DNI"
-        className="w-full border rounded-lg p-2"
+        className={inputCls("dni")}
         required
+        inputMode="numeric"
+        pattern="\d{7,8}"
+        aria-invalid={!!errors.dni}
       />
+      {errors.dni && <p className="text-sm text-red-600">{errors.dni}</p>}
+
+      {/* Email (opcional) */}
       <input
         type="email"
         value={form.email}
-        onChange={(e) => handleChange("email", e.target.value)}
-        placeholder="Email"
-        className="w-full border rounded-lg p-2"
+        onChange={(e) => setField("email")(e.target.value)}
+        placeholder="Email (opcional)"
+        className={inputCls("email")}
+        aria-invalid={!!errors.email}
       />
+      {errors.email && <p className="text-sm text-red-600">{errors.email}</p>}
+
+      {/* Teléfono (opcional) */}
       <input
         value={form.telefono}
-        onChange={(e) => handleChange("telefono", e.target.value)}
-        placeholder="Teléfono"
-        className="w-full border rounded-lg p-2"
+        onChange={(e) => setField("telefono")(e.target.value)}
+        placeholder="Teléfono (opcional)"
+        className={inputCls("telefono")}
+        inputMode="tel"
+        aria-invalid={!!errors.telefono}
       />
+      {errors.telefono && (
+        <p className="text-sm text-red-600">{errors.telefono}</p>
+      )}
+
+      {/* Fecha de nacimiento (opcional) */}
       <input
         type="date"
         value={form.fechaNacimiento || ""}
-        onChange={(e) => handleChange("fechaNacimiento", e.target.value)}
-        className="w-full border rounded-lg p-2"
+        onChange={(e) => setField("fechaNacimiento")(e.target.value)}
+        className={inputCls("fechaNacimiento")}
+        aria-invalid={!!errors.fechaNacimiento}
       />
+      {errors.fechaNacimiento && (
+        <p className="text-sm text-red-600">{errors.fechaNacimiento}</p>
+      )}
 
-      {/* Selección de obras sociales */}
+      {/* Obras sociales (opcional) */}
       <div>
-        <label className="block font-medium mb-1">Obras Sociales</label>
-        {obrasSociales.map((os) => (
-          <label key={os._id} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={form.obrasSociales.includes(os._id)}
-              onChange={() => toggleObraSocial(os._id)}
-            />
-            {os.nombre}
-          </label>
-        ))}
+        <label className="block font-medium mb-1">Obras Sociales (opcional)</label>
+        <div className="max-h-40 overflow-auto pr-1 space-y-1">
+          {obrasSociales.map((os) => (
+            <label key={os._id} className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={form.obrasSociales.includes(os._id)}
+                onChange={() => toggleObraSocial(os._id)}
+              />
+              {os.nombre}
+            </label>
+          ))}
+        </div>
       </div>
 
       <div className="flex justify-end gap-2">
@@ -328,7 +418,8 @@ function PacienteForm({
         </button>
         <button
           type="submit"
-          className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700"
+          className="px-4 py-2 bg-cyan-600 text-white rounded-lg hover:bg-cyan-700 disabled:opacity-50"
+          disabled={Object.keys(errors).length > 0}
         >
           Guardar
         </button>

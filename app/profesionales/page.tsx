@@ -10,6 +10,8 @@ import ProfesionalModal from "./ProfesionalModal";
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
+  dni: string; //MODIFICADO: agregué dni VERIFICAR CON BDD SI ES INT O STRING
+  matricula: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
   obrasSociales: Id<"obrasSociales">[];
@@ -22,6 +24,8 @@ export type Profesional = {
 // Tipo para input (crear/editar)
 export type ProfesionalInput = {
   nombre: string;
+  dni: string;
+  matricula: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
   obrasSociales: Id<"obrasSociales">[];
