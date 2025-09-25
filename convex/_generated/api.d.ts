@@ -13,7 +13,10 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as especialidades from "../especialidades.js";
+import type * as obrasSociales from "../obrasSociales.js";
 import type * as profesionales from "../profesionales.js";
+import type * as seed from "../seed.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -24,7 +27,10 @@ import type * as profesionales from "../profesionales.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  especialidades: typeof especialidades;
+  obrasSociales: typeof obrasSociales;
   profesionales: typeof profesionales;
+  seed: typeof seed;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
