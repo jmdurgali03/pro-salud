@@ -39,7 +39,9 @@ function Table({ headers, children }: { headers: string[]; children: React.React
         <thead className="bg-gray-50 text-gray-600">
           <tr>
             {headers.map((h) => (
-              <th key={h} className="px-4 py-3 text-left font-medium">{h}</th>
+              <th key={h} className="px-4 py-3 text-left font-medium">
+                {h}
+              </th>
             ))}
           </tr>
         </thead>
@@ -48,6 +50,20 @@ function Table({ headers, children }: { headers: string[]; children: React.React
     </div>
   );
 }
+
+export type PacienteExtendido = {
+  _id: Id<"pacientes">;
+  _creationTime: number;
+  nombreCompleto: string;
+  email?: string;
+  telefono?: string;
+  dni: string;
+  fechaNacimiento?: string;
+  creadoEn: number;
+  actualizadoEn: number;
+  obrasSociales: Id<"obrasSociales">[];
+  obrasSocialesNombres: string[];
+};
 
 function Modal({
   open,
@@ -66,7 +82,10 @@ function Modal({
       <div className="w-full max-w-lg rounded-xl bg-white shadow-xl">
         <div className="flex items-center justify-between border-b px-5 py-3">
           <h3 className="text-base font-semibold text-gray-900">{title}</h3>
-          <button onClick={onClose} className="rounded-md px-2 py-1 text-gray-600 hover:bg-gray-100">
+          <button
+            onClick={onClose}
+            className="rounded-md px-2 py-1 text-gray-600 hover:bg-gray-100"
+          >
             ✕
           </button>
         </div>
@@ -106,26 +125,28 @@ export default function HistorialPacientePage() {
   const pacienteId = id as Id<"pacientes">;
 
   // Datos
-  const paciente = useQuery(api.pacientes.getById, { id: pacienteId });
+  const paciente = useQuery(api.pacientes.getById, { id: pacienteId }) as PacienteExtendido | null;
   const observaciones = useQuery(api.observaciones.listarPorPaciente, { pacienteId });
-
   const consultas = useQuery(api.consultas.listarPorPaciente, { pacienteId });
   const crearConsulta = useMutation(api.consultas.crear);
-
   const diagnosticos = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId });
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
+  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+  const profesionales = useQuery(api.profesionales.listar) ?? [];
+  const actualizarPaciente = useMutation(api.pacientes.actualizar);
 
   // Modales
   const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
+  const [openEditar, setOpenEditar] = useState(false);
 
   // Formularios
   const [motivo, setMotivo] = useState("");
-  const [profConsulta, setProfConsulta] = useState("Dra. Ejemplo");
+  const [profConsulta, setProfConsulta] = useState("");
   const [notas, setNotas] = useState("");
-
   const [dxDesc, setDxDesc] = useState("");
-  const [dxProf, setDxProf] = useState("Dra. Ejemplo");
+  const [dxProf, setDxProf] = useState("");
+  const [editForm, setEditForm] = useState<Partial<PacienteExtendido>>({});
 
   const resumenRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -137,7 +158,7 @@ export default function HistorialPacientePage() {
   // Handlers
   const handleCrearConsulta = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!motivo.trim()) return;
+    if (!motivo.trim() || !profConsulta) return;
     await crearConsulta({
       pacienteId,
       motivo,
@@ -146,29 +167,36 @@ export default function HistorialPacientePage() {
     });
     setMotivo("");
     setNotas("");
+    setProfConsulta("");
     setOpenConsulta(false);
   };
 
   const handleCrearDiagnostico = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!dxDesc.trim()) return;
-
-    await crearDiagnostico(
-      {
-        pacienteId,
-        descripcion: dxDesc,
-        profesional: dxProf,
-      } as any
-    );
-
+    if (!dxDesc.trim() || !dxProf) return;
+    await crearDiagnostico({ pacienteId, descripcion: dxDesc, profesional: dxProf } as any);
     setDxDesc("");
+    setDxProf("");
     setOpenDx(false);
+  };
+
+  const handleActualizar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await actualizarPaciente({
+      id: paciente._id,
+      nombreCompleto: editForm.nombreCompleto ?? paciente.nombreCompleto,
+      email: editForm.email ?? paciente.email,
+      telefono: editForm.telefono ?? paciente.telefono,
+      dni: editForm.dni ?? paciente.dni,
+      fechaNacimiento: editForm.fechaNacimiento ?? paciente.fechaNacimiento,
+      obrasSociales: editForm.obrasSociales ?? paciente.obrasSociales,
+    });
+    setOpenEditar(false);
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto grid max-w-6xl grid-cols-[220px,1fr] gap-6 p-6 sm:grid-cols-[240px,1fr] md:grid-cols-[260px,1fr]">
-        
         {/* Sidebar */}
         <aside className="sticky top-4 h-fit rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-4">
@@ -176,98 +204,70 @@ export default function HistorialPacientePage() {
             <div className="font-semibold text-gray-900">{paciente.nombreCompleto}</div>
           </div>
           <nav className="space-y-1">
-            <a
-              href="#resumen"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              <FileText className="h-4 w-4 text-gray-600" aria-hidden="true" />
-              <span>Resumen</span>
+            <a href="#resumen" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <FileText className="h-4 w-4" />Resumen
             </a>
-            <a
-              href="#consultas"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              <Stethoscope className="h-4 w-4 text-gray-600" aria-hidden="true" />
-              <span>Consultas</span>
+            <a href="#consultas" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <Stethoscope className="h-4 w-4" />Consultas
             </a>
-            <a
-              href="#diagnosticos"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              <FlaskConical className="h-4 w-4 text-gray-600" aria-hidden="true" />
-              <span>Diagnósticos</span>
+            <a href="#diagnosticos" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <FlaskConical className="h-4 w-4" />Diagnósticos
             </a>
-            <a
-              href="#tratamientos"
-              className="pointer-events-none flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-400"
-            >
-              <Pill className="h-4 w-4" aria-hidden="true" />
-              <span>Tratamientos</span>
+            <a href="#tratamientos" className="pointer-events-none flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-400">
+              <Pill className="h-4 w-4" />Tratamientos
             </a>
-            <a
-              href="#notas"
-              className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100"
-            >
-              <StickyNote className="h-4 w-4 text-gray-600" aria-hidden="true" />
-              <span>Notas</span>
+            <a href="#notas" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
+              <StickyNote className="h-4 w-4" />Notas
             </a>
           </nav>
         </aside>
 
         {/* Main */}
         <main className="min-w-0 space-y-6">
-          {/* Resumen del paciente + Volver */}
-          <section
-            ref={resumenRef}
-            id="resumen"
-            className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-          >
+          {/* Resumen */}
+          <section ref={resumenRef} id="resumen" className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              {/* Título */}
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
                   Historial Médico de {paciente.nombreCompleto}
                 </h1>
-                <p className="text-sm text-gray-500">
-                  Información básica del paciente
-                </p>
+                <p className="text-sm text-gray-500">Información básica del paciente</p>
               </div>
-
-              {/* Botón volver */}
-              <button
-                onClick={() => router.push("/pacientes")}
-                className="inline-flex items-center gap-2 self-start rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                aria-label="Volver a la lista"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Volver
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setEditForm(paciente);
+                    setOpenEditar(true);
+                  }}
+                  className="inline-flex items-center gap-2 self-start rounded-lg border border-cyan-600 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50"
+                >
+                  ✏️ Editar
+                </button>
+                <button
+                  onClick={() => router.push("/pacientes")}
+                  className="inline-flex items-center gap-2 self-start rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
+                >
+                  <ArrowLeft className="h-4 w-4" />Volver
+                </button>
+              </div>
             </div>
 
-            {/* Grid de datos */}
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <DataItem icon={<User className="h-4 w-4" />} label="Nombre completo" value={paciente.nombreCompleto} />
               <DataItem icon={<IdCard className="h-4 w-4" />} label="DNI" value={paciente.dni} />
               <DataItem icon={<Phone className="h-4 w-4" />} label="Teléfono" value={paciente.telefono ?? "—"} />
               <DataItem icon={<Mail className="h-4 w-4" />} label="Email" value={paciente.email ?? "—"} />
-              <DataItem icon={<Stethoscope className="h-4 w-4" />} label="Obra social" value={paciente.obraSocial ?? "Particular"} />
+              <DataItem icon={<Stethoscope className="h-4 w-4" />} label="Obras sociales" value={paciente.obrasSocialesNombres?.join(", ") || "Particular"} />
               <DataItem icon={<Calendar className="h-4 w-4" />} label="Fecha de nacimiento" value={paciente.fechaNacimiento ?? "—"} />
             </div>
           </section>
 
           {/* Consultas */}
-          <Section
-            id="consultas"
-            title="Consultas"
-            right={
-              <button
-                onClick={() => setOpenConsulta(true)}
-                className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700"
-              >
-                Agregar consulta
-              </button>
-            }
-          >
+          <Section id="consultas" title="Consultas" right={
+            <button onClick={() => setOpenConsulta(true)} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700">
+              Agregar consulta
+            </button>
+          }>
             <Table headers={["Fecha", "Motivo", "Médico", "Notas"]}>
               {(consultas ?? []).map((c) => (
                 <tr key={c._id} className="text-gray-800">
@@ -278,28 +278,17 @@ export default function HistorialPacientePage() {
                 </tr>
               ))}
               {(consultas?.length ?? 0) === 0 && (
-                <tr>
-                  <td className="px-4 py-4 text-gray-600" colSpan={4}>
-                    No hay consultas registradas.
-                  </td>
-                </tr>
+                <tr><td className="px-4 py-4 text-gray-600" colSpan={4}>No hay consultas registradas.</td></tr>
               )}
             </Table>
           </Section>
 
           {/* Diagnósticos */}
-          <Section
-            id="diagnosticos"
-            title="Diagnósticos"
-            right={
-              <button
-                onClick={() => setOpenDx(true)}
-                className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700"
-              >
-                Agregar diagnóstico
-              </button>
-            }
-          >
+          <Section id="diagnosticos" title="Diagnósticos" right={
+            <button onClick={() => setOpenDx(true)} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700">
+              Agregar diagnóstico
+            </button>
+          }>
             <Table headers={["Fecha", "Diagnóstico", "Médico"]}>
               {(diagnosticos ?? []).map((d) => (
                 <tr key={d._id} className="text-gray-800">
@@ -309,41 +298,9 @@ export default function HistorialPacientePage() {
                 </tr>
               ))}
               {(diagnosticos?.length ?? 0) === 0 && (
-                <tr>
-                  <td className="px-4 py-4 text-gray-600" colSpan={3}>
-                    No hay diagnósticos registrados.
-                  </td>
-                </tr>
+                <tr><td className="px-4 py-4 text-gray-600" colSpan={3}>No hay diagnósticos registrados.</td></tr>
               )}
             </Table>
-          </Section>
-
-          {/* Tratamientos */}
-          <Section id="tratamientos" title="Tratamientos">
-            <Table headers={["Fecha de inicio", "Fecha de fin", "Tratamiento", "Dosis"]}>
-              <tr>
-                <td className="px-4 py-3 text-gray-600" colSpan={4}>
-                  (Pendiente de implementar)
-                </td>
-              </tr>
-            </Table>
-          </Section>
-
-          {/* Notas */}
-          <Section id="notas" title="Notas">
-            <div className="space-y-2">
-              {(observaciones ?? []).map((o) => (
-                <div key={o._id} className="rounded-lg border border-gray-200 bg-gray-50 p-3">
-                  <div className="mb-1 text-xs text-gray-500">
-                    {o.autor} — {new Date(o.creadoEn).toLocaleDateString()}
-                  </div>
-                  <div className="text-sm text-gray-800">{o.texto}</div>
-                </div>
-              ))}
-              {(observaciones?.length ?? 0) === 0 && (
-                <div className="text-sm text-gray-600">Sin notas por ahora.</div>
-              )}
-            </div>
           </Section>
         </main>
       </div>
@@ -353,48 +310,28 @@ export default function HistorialPacientePage() {
         <form onSubmit={handleCrearConsulta} className="space-y-3">
           <div>
             <label className="mb-1 block text-sm text-gray-700">Motivo</label>
-            <input
-              value={motivo}
-              onChange={(e) => setMotivo(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-              placeholder="Motivo de la consulta"
-              required
-            />
+            <input value={motivo} onChange={(e) => setMotivo(e.target.value)} className="w-full rounded-lg border border-gray-300 p-2 text-gray-900" placeholder="Motivo de la consulta" required />
           </div>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <div>
               <label className="mb-1 block text-sm text-gray-700">Profesional</label>
-              <input
-                value={profConsulta}
-                onChange={(e) => setProfConsulta(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 p-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                placeholder="Dr/a. Apellido"
-              />
+              <select value={profConsulta} onChange={(e) => setProfConsulta(e.target.value)} className="w-full rounded-lg border border-gray-300 p-2 text-gray-900">
+                <option value="">Seleccione un profesional</option>
+                {profesionales.map((p) => (
+                  <option key={p._id} value={p.nombre}>
+                    {p.nombre} {p.especialidadNombre ? `— ${p.especialidadNombre}` : ""}
+                  </option>
+                ))}
+              </select>
             </div>
             <div>
               <label className="mb-1 block text-sm text-gray-700">Notas (opcional)</label>
-              <input
-                value={notas}
-                onChange={(e) => setNotas(e.target.value)}
-                className="w-full rounded-lg border border-gray-300 p-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-                placeholder="Observaciones"
-              />
+              <input value={notas} onChange={(e) => setNotas(e.target.value)} className="w-full rounded-lg border border-gray-300 p-2 text-gray-900" placeholder="Observaciones" />
             </div>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setOpenConsulta(false)}
-              className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700"
-            >
-              Guardar
-            </button>
+            <button type="button" onClick={() => setOpenConsulta(false)} className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100">Cancelar</button>
+            <button type="submit" className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700">Guardar</button>
           </div>
         </form>
       </Modal>
@@ -404,37 +341,57 @@ export default function HistorialPacientePage() {
         <form onSubmit={handleCrearDiagnostico} className="space-y-3">
           <div>
             <label className="mb-1 block text-sm text-gray-700">Diagnóstico</label>
-            <input
-              value={dxDesc}
-              onChange={(e) => setDxDesc(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-2 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-cyan-400"
-              placeholder="Descripción del diagnóstico"
-              required
-            />
+            <input value={dxDesc} onChange={(e) => setDxDesc(e.target.value)} className="w-full rounded-lg border border-gray-300 p-2 text-gray-900" placeholder="Descripción del diagnóstico" required />
           </div>
           <div>
             <label className="mb-1 block text-sm text-gray-700">Profesional</label>
-            <input
-              value={dxProf}
-              onChange={(e) => setDxProf(e.target.value)}
-              className="w-full rounded-lg border border-gray-300 p-2 text-gray-900 placeholder-gray-400"
-              placeholder="Dr/a. Apellido"
-            />
+            <select value={dxProf} onChange={(e) => setDxProf(e.target.value)} className="w-full rounded-lg border border-gray-300 p-2 text-gray-900">
+              <option value="">Seleccione un profesional</option>
+              {profesionales.map((p) => (
+                <option key={p._id} value={p.nombre}>
+                  {p.nombre} {p.especialidadNombre ? `— ${p.especialidadNombre}` : ""}
+                </option>
+              ))}
+            </select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
-            <button
-              type="button"
-              onClick={() => setOpenDx(false)}
-              className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100"
-            >
-              Cancelar
-            </button>
-            <button
-              type="submit"
-              className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700"
-            >
-              Guardar
-            </button>
+            <button type="button" onClick={() => setOpenDx(false)} className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100">Cancelar</button>
+            <button type="submit" className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700">Guardar</button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* Modal: Editar paciente */}
+      <Modal open={openEditar} onClose={() => setOpenEditar(false)} title="Editar paciente">
+        <form onSubmit={handleActualizar} className="space-y-3">
+          <input defaultValue={paciente.nombreCompleto} onChange={(e) => setEditForm((f) => ({ ...f, nombreCompleto: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="Nombre completo" required />
+          <input defaultValue={paciente.dni} onChange={(e) => setEditForm((f) => ({ ...f, dni: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="DNI" required />
+          <input type="email" defaultValue={paciente.email ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="Email" />
+          <input defaultValue={paciente.telefono ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, telefono: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="Teléfono" />
+          <input type="date" defaultValue={paciente.fechaNacimiento ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, fechaNacimiento: e.target.value }))} className="w-full border rounded-lg p-2" />
+
+          {/* Obras sociales */}
+          <div>
+            <label className="block text-sm font-medium mb-1">Obras Sociales</label>
+            {obrasSociales.map((os) => (
+              <label key={os._id} className="flex items-center gap-2">
+                <input type="checkbox" defaultChecked={paciente.obrasSociales.includes(os._id)} onChange={(e) =>
+                  setEditForm((f) => {
+                    const current = f.obrasSociales ?? paciente.obrasSociales;
+                    return {
+                      ...f,
+                      obrasSociales: e.target.checked ? [...current, os._id] : current.filter((id) => id !== os._id),
+                    };
+                  })
+                }/>
+                {os.nombre}
+              </label>
+            ))}
+          </div>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button type="button" onClick={() => setOpenEditar(false)} className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100">Cancelar</button>
+            <button type="submit" className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700">Guardar cambios</button>
           </div>
         </form>
       </Modal>

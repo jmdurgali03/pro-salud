@@ -13,11 +13,11 @@ import type {
   FilterApi,
   FunctionReference,
 } from "convex/server";
+import type * as consultas from "../consultas.js";
+import type * as diagnosticos from "../diagnosticos.js";
 import type * as especialidades from "../especialidades.js";
 import type * as helpers_checkSolapamiento from "../helpers/checkSolapamiento.js";
 import type * as obrasSociales from "../obrasSociales.js";
-import type * as consultas from "../consultas.js";
-import type * as diagnosticos from "../diagnosticos.js";
 import type * as observaciones from "../observaciones.js";
 import type * as pacientes from "../pacientes.js";
 import type * as profesionales from "../profesionales.js";
@@ -33,11 +33,11 @@ import type * as turnos from "../turnos.js";
  * ```
  */
 declare const fullApi: ApiFromModules<{
+  consultas: typeof consultas;
+  diagnosticos: typeof diagnosticos;
   especialidades: typeof especialidades;
   "helpers/checkSolapamiento": typeof helpers_checkSolapamiento;
   obrasSociales: typeof obrasSociales;
-  consultas: typeof consultas;
-  diagnosticos: typeof diagnosticos;
   observaciones: typeof observaciones;
   pacientes: typeof pacientes;
   profesionales: typeof profesionales;

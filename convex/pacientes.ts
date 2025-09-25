@@ -156,4 +156,30 @@ export const getByIdConObras = query({
     };
   },
 });
+export const getById = query({
+  args: { id: v.id("pacientes") },
+  handler: async (ctx, args) => {
+    const paciente = await ctx.db.get(args.id);
+    if (!paciente) return null;
 
+    // Buscar relaciones paciente ↔ obras sociales
+    const relaciones = await ctx.db
+      .query("pacientes_obrasSociales")
+      .withIndex("por_paciente", (q) => q.eq("pacienteId", args.id))
+      .collect();
+
+    const obrasIds = relaciones.map((r) => r.obraSocialId);
+
+    const obras = await Promise.all(
+      obrasIds.map((id) => ctx.db.get(id))
+    );
+
+    return {
+      ...paciente,
+      obrasSociales: obrasIds, // los IDs
+      obrasSocialesNombres: obras
+        .filter((o) => o !== null)
+        .map((o) => o!.nombre), // los nombres
+    };
+  },
+});

@@ -4,6 +4,8 @@ import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { useRouter } from "next/navigation"; // ⬅️ cambiar
+
 
 // Tipo para el form
 type FormState = {
@@ -16,10 +18,11 @@ type FormState = {
 };
 
 export default function PacientesPage() {
+
   const [search, setSearch] = useState("");
   const [seleccionado, setSeleccionado] = useState<any | null>(null);
   const [modo, setModo] = useState<"editar" | "crear" | null>(null);
-
+const router = useRouter();
   // Queries
   const pacientes = useQuery(api.pacientes.listar, { search }) ?? [];
   const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
@@ -133,6 +136,13 @@ export default function PacientesPage() {
                 </td>
 
                 <td className="px-4 py-3 text-right space-x-2">
+                
+                  <button
+  onClick={() => router.push(`/pacientes/${p._id}`)}
+  className="rounded-md px-3 py-1 text-sm text-cyan-600 hover:bg-cyan-50"
+>
+  👁 Ver
+</button>
                   <button
                     onClick={() => {
                       setSeleccionado(p);
