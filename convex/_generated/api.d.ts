@@ -18,6 +18,8 @@ import type * as obrasSociales from "../obrasSociales.js";
 import type * as profesionales from "../profesionales.js";
 import type * as seed from "../seed.js";
 import type * as turnos from "../turnos.js";
+import type * as observaciones from "../observaciones.js";
+import type * as pacientes from "../pacientes.js";
 
 /**
  * A utility for referencing Convex functions in your app's API.
@@ -33,6 +35,8 @@ declare const fullApi: ApiFromModules<{
   profesionales: typeof profesionales;
   seed: typeof seed;
   turnos: typeof turnos;
+  observaciones: typeof observaciones;
+  pacientes: typeof pacientes;
 }>;
 export declare const api: FilterApi<
   typeof fullApi,
