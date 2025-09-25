@@ -4,6 +4,19 @@ import { v } from "convex/values";
 
 export default defineSchema({
   // -------------------------
+  // Usuarios
+  // -------------------------
+  users: defineTable({
+    clerkId: v.string(),
+    nombre: v.string(),
+    apellido: v.string(),
+    email: v.string(),
+    dni: v.string(),
+    telefono: v.optional(v.string()),
+    role: v.string(), // "profesional", "recepcionista", "gerente", "paciente"
+  }).index("by_clerkId", ["clerkId"]),
+
+  // -------------------------
   // Turnos médicos
   // -------------------------
   turnos: defineTable({
