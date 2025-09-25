@@ -72,7 +72,7 @@ export default function ProfesionalesPage() {
         </h1>
         <button
           onClick={() => setModalOpen(true)}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-500"
+          className="px-4 py-2 rounded bg-zinc-300 text-black font-bold hover:bg-zinc-400"
         >
           Añadir Profesional
         </button>
