@@ -6,8 +6,9 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import ProfesionalModal from "./ProfesionalModal";
 
+// Tipo con _id (lo que viene de la BD)
 export type Profesional = {
-  _id?: Id<"profesionales">;
+  _id: Id<"profesionales">;
   nombre: string;
   especialidadId: Id<"especialidades">;   // ✅
   contacto: string;
@@ -20,11 +21,17 @@ export type Profesional = {
 
 
 export default function ProfesionalesPage() {
+  // Queries
   const profesionales = useQuery(api.profesionales.listar) ?? [];
+  const especialidades = useQuery(api.especialidades.listar) ?? [];
+  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+
+  // Mutations
   const crear = useMutation(api.profesionales.crear);
   const editar = useMutation(api.profesionales.editar);
   const eliminar = useMutation(api.profesionales.eliminar);
 
+  // Estado modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
 
@@ -59,6 +66,16 @@ const handleEditar = async (data: Profesional) => {
     await eliminar({ id });
   };
 
+  // Helpers para mostrar nombres
+  const getEspecialidadNombre = (id: Id<"especialidades">) =>
+    especialidades.find((e) => e._id === id)?.nombre || "—";
+
+  const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
+    ids
+      .map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
+      .filter((n) => n !== "")
+      .join(", ");
+
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
       {/* Header */}
@@ -83,16 +100,21 @@ const handleEditar = async (data: Profesional) => {
               <th className="p-3 text-center">Nombre</th>
               <th className="p-3 text-center">Especialidad</th>
               <th className="p-3 text-center">Contacto</th>
-              <th className="p-3 text-center">Obra Social</th>
+              <th className="p-3 text-center">Obras Sociales</th>
               <th className="p-3 text-center">Estado</th>
               <th className="p-3 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {profesionales.map((prof: Profesional) => (
-              <tr key={prof._id?.toString()} className="border-t hover:bg-gray-50">
+            {profesionales.map((prof) => (
+              <tr
+                key={prof._id.toString()}
+                className="border-t hover:bg-gray-50"
+              >
                 <td className="p-3 text-center">{prof.nombre}</td>
-                <td className="p-3 text-center">{prof.especialidadNombre}</td>
+                <td className="p-3 text-center">
+                  {getEspecialidadNombre(prof.especialidad)}
+                </td>
                 <td className="p-3 text-center">{prof.contacto}</td>
                 <td className="p-3 text-center">
   {prof.obrasSocialesNombres?.join(", ") || "—"}
@@ -127,6 +149,10 @@ const handleEditar = async (data: Profesional) => {
             ))}
             {profesionales.length === 0 && (
               <tr>
+                <td
+                  colSpan={6}
+                  className="p-4 text-center text-gray-400 italic"
+                >
                 <td
                   colSpan={6}
                   className="p-4 text-center text-gray-400 italic"

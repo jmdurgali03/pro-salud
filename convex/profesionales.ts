@@ -1,4 +1,5 @@
-import { mutation, query } from "./_generated/server";
+// convex/profesionales.ts
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 // Listar profesionales con join a especialidad y obras sociales
@@ -41,7 +42,9 @@ export const crear = mutation({
   },
 });
 
-// Editar profesional
+/**
+ * Edita un profesional existente.
+ */
 export const editar = mutation({
   args: {
     id: v.id("profesionales"),
@@ -52,14 +55,17 @@ export const editar = mutation({
     estado: v.optional(v.union(v.literal("Activo"), v.literal("Inactivo"))),
   },
   handler: async (ctx, { id, ...data }) => {
-    return await ctx.db.patch(id, data);
+    await ctx.db.patch(id, data);
+    return id;
   },
 });
 
-// Eliminar profesional
+/**
+ * Elimina un profesional.
+ */
 export const eliminar = mutation({
   args: { id: v.id("profesionales") },
   handler: async (ctx, { id }) => {
-    return await ctx.db.delete(id);
+    await ctx.db.delete(id);
   },
 });

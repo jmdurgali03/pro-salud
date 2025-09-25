@@ -1,109 +1,105 @@
 "use client";
 
 import { useState } from "react";
-import { useMutation } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 export default function AddProfesional() {
   const crear = useMutation(api.profesionales.crear);
+  const especialidades = useQuery(api.especialidades.listar) ?? [];
+  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+
   const [open, setOpen] = useState(false);
 
   const [nombre, setNombre] = useState("");
-  const [especialidad, setEspecialidad] = useState("");
+  const [especialidad, setEspecialidad] = useState<Id<"especialidades"> | "">("");
   const [contacto, setContacto] = useState("");
-  const [obrasSociales, setObrasSociales] = useState("");
+  const [obrasSeleccionadas, setObrasSeleccionadas] = useState<Id<"obrasSociales">[]>([]);
   const [estado, setEstado] = useState<"Activo" | "Inactivo">("Activo");
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!especialidad || obrasSeleccionadas.length === 0) {
+      alert("Debe seleccionar especialidad y al menos una obra social");
+      return;
+    }
+
     await crear({
       nombre,
-      especialidad,
+      especialidad: especialidad as Id<"especialidades">,
       contacto,
-      obrasSociales: obrasSociales.split(",").map((s) => s.trim()),
+      obrasSociales: obrasSeleccionadas,
       estado,
     });
+
     setOpen(false);
     setNombre("");
     setEspecialidad("");
     setContacto("");
-    setObrasSociales("");
+    setObrasSeleccionadas([]);
     setEstado("Activo");
   };
 
   return (
-    <div>
-      <button
-        onClick={() => setOpen(true)}
-        className="px-3 py-2 rounded bg-slate-300 text-black hover:bg-slate-500 font-semibold"
+    <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Nombre */}
+      <input
+        value={nombre}
+        onChange={(e) => setNombre(e.target.value)}
+        placeholder="Nombre"
+        className="w-full border rounded px-3 py-2"
+      />
+
+      {/* Especialidad */}
+      <select
+        value={especialidad}
+        onChange={(e) => setEspecialidad(e.target.value as Id<"especialidades">)}
+        className="w-full border rounded px-3 py-2"
       >
-        Añadir Profesional
+        <option value="">Seleccionar especialidad</option>
+        {especialidades.map((esp) => (
+          <option key={esp._id} value={esp._id}>
+            {esp.nombre}
+          </option>
+        ))}
+      </select>
+
+      {/* Obras Sociales (múltiple) */}
+      <select
+        multiple
+        value={obrasSeleccionadas as string[]}
+        onChange={(e) =>
+          setObrasSeleccionadas(
+            Array.from(e.target.selectedOptions, (opt) => opt.value as Id<"obrasSociales">)
+          )
+        }
+        className="w-full border rounded px-3 py-2"
+      >
+        {obrasSociales.map((os) => (
+          <option key={os._id} value={os._id}>
+            {os.nombre}
+          </option>
+        ))}
+      </select>
+
+      {/* Estado */}
+      <select
+        value={estado}
+        onChange={(e) => setEstado(e.target.value as "Activo" | "Inactivo")}
+        className="w-full border rounded px-3 py-2"
+      >
+        <option value="Activo">Activo</option>
+        <option value="Inactivo">Inactivo</option>
+      </select>
+
+      <button
+        type="submit"
+        className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-500"
+      >
+        Guardar
       </button>
-
-      {open && (
-        <div className="fixed inset-0 bg-gray-500/40 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-lg p-6 w-96 space-y-4">
-            <h2 className="text-lg font-bold text-gray-800">
-              Nuevo Profesional
-            </h2>
-            <form onSubmit={handleSubmit} className="space-y-3">
-              <input
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
-                placeholder="Nombre"
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
-                required
-              />
-              <input
-                value={especialidad}
-                onChange={(e) => setEspecialidad(e.target.value)}
-                placeholder="Especialidad"
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
-                required
-              />
-              <input
-                value={contacto}
-                onChange={(e) => setContacto(e.target.value)}
-                placeholder="Contacto (email o tel)"
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
-                required
-              />
-              <input
-                value={obrasSociales}
-                onChange={(e) => setObrasSociales(e.target.value)}
-                placeholder="Obras sociales (coma)"
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-700 placeholder-gray-400 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
-              />
-              <select
-                value={estado}
-                onChange={(e) =>
-                  setEstado(e.target.value as "Activo" | "Inactivo")
-                }
-                className="w-full border border-gray-300 rounded px-3 py-2 bg-white text-gray-700 focus:ring-2 focus:ring-sky-200 focus:border-sky-500"
-              >
-                <option value="Activo">Activo</option>
-                <option value="Inactivo">Inactivo</option>
-              </select>
-
-              <div className="flex justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setOpen(false)}
-                  className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 text-gray-700"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  className="px-3 py-2 rounded bg-sky-600 text-white hover:bg-sky-500"
-                >
-                  Guardar
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-    </div>
+    </form>
   );
 }
