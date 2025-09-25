@@ -26,7 +26,7 @@ export const createUserIfNotExists = mutation({
       apellido: args.apellido ?? "",
       dni: args.dni ?? "",
       telefono: args.telefono ?? "",
-      role: "usuario",
+      role: "paciente",
     });
   },
 });

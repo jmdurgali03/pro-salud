@@ -6,14 +6,14 @@ export function useRoleRedirect() {
 
     const goToRolePage = useCallback((role: string) => {
         switch (role) {
-            case "usuario":
-                router.push("/usuario");
+            case "pacientes":
+                router.push("/pacientes");
                 break;
             case "profesional":
                 router.push("/profesional");
                 break;
             case "recepcionista":
-                router.push("/recepcion/cal-turnos");
+                router.push("/recepcionista/cal-turnos");
                 break;
             case "gerente":
                 router.push("/gerente/dashboard");
