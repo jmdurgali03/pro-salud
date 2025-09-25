@@ -83,7 +83,7 @@ const handleEditar = async (data: Profesional) => {
         <h1 className="text-2xl font-bold">Gestión de Profesionales</h1>
         <button
           onClick={() => setModalOpen(true)}
-          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-700"
+          className="px-4 py-2 rounded bg-zinc-300 text-black font-bold hover:bg-zinc-400"
         >
           + Añadir Profesional
         </button>
