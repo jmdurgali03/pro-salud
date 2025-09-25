@@ -28,14 +28,15 @@ import {
 // 🔹 Definimos el tipo enriquecido que devuelve la query
 type TurnoConJoin = {
   _id: Id<"turnos">;
-  paciente: string;
-  tipo: string;
-  estado: "Confirmado" | "Pendiente" | "Cancelado";
   start: number;
   end: number;
+  tipo: string;
+  estado: "Confirmado" | "Pendiente" | "Cancelado";
+
+  pacienteNombre: string;
   profesionalNombre: string;
   especialidadNombre: string;
-  obraSocialNombre: string;
+  obrasSocialesPaciente: string[]; // ⚡ array de obras sociales
 };
 
 export default function TurnosPage() {
@@ -168,12 +169,16 @@ export default function TurnosPage() {
                       minute: "2-digit",
                     })}
                   </TableCell>
-                  <TableCell>{t.paciente}</TableCell>
+                  <TableCell>{t.pacienteNombre}</TableCell>
+
+
                   <TableCell className="text-blue-600">
                     {t.profesionalNombre}
                   </TableCell>
                   <TableCell>{t.especialidadNombre}</TableCell>
-                  <TableCell>{t.obraSocialNombre}</TableCell>
+                 
+<TableCell>{t.obrasSocialesPaciente.join(", ") || "—"}</TableCell>
+
                   <TableCell>{t.tipo}</TableCell>
                   <TableCell>
                     <Badge

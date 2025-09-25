@@ -27,27 +27,19 @@ export const crear = mutation({
     email: v.optional(v.string()),
     telefono: v.optional(v.string()),
     dni: v.string(),
-    obraSocial: v.string(),
-    fechaNacimiento: v.optional(v.string()), // 👈 agregado
+    obraSocialId: v.id("obrasSociales"),   // 👈 ahora referencia
+    fechaNacimiento: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const existente = await ctx.db
-      .query("pacientes")
-      .withIndex("por_dni", (q) => q.eq("dni", args.dni))
-      .unique();
-
-    if (existente) {
-      throw new Error("Ya existe un paciente con ese DNI");
-    }
-
-    const id = await ctx.db.insert("pacientes", {
+    const ahora = Date.now();
+    return await ctx.db.insert("pacientes", {
       ...args,
-      creadoEn: Date.now(),
-      actualizadoEn: Date.now(),
+      creadoEn: ahora,
+      actualizadoEn: ahora,
     });
-    return id;
   },
 });
+
 
 // Actualizar paciente
 export const actualizar = mutation({
@@ -99,3 +91,4 @@ export const getById = query({
     return await ctx.db.get(args.id);
   },
 });
+

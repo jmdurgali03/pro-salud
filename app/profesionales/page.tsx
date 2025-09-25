@@ -9,14 +9,15 @@ import ProfesionalModal from "./ProfesionalModal";
 export type Profesional = {
   _id?: Id<"profesionales">;
   nombre: string;
-  especialidad: Id<"especialidades">;
+  especialidadId: Id<"especialidades">;   // ✅
   contacto: string;
-  obraSocial: Id<"obrasSociales">;
+  obrasSociales: Id<"obrasSociales">[];   // ✅ array
   estado: "Activo" | "Inactivo";
 
   especialidadNombre?: string;
-  obraSocialNombre?: string;
+  obrasSocialesNombres?: string[];        // ✅ array de nombres
 };
+
 
 export default function ProfesionalesPage() {
   const profesionales = useQuery(api.profesionales.listar) ?? [];
@@ -28,31 +29,30 @@ export default function ProfesionalesPage() {
   const [editando, setEditando] = useState<Profesional | null>(null);
 
   // Crear
-  const handleCrear = async (data: Profesional) => {
-    await crear({
-      nombre: data.nombre,
-      especialidad: data.especialidad,
-      contacto: data.contacto,
-      obraSocial: data.obraSocial,
-      estado: data.estado,
-    });
-    setModalOpen(false);
-  };
+const handleCrear = async (data: Profesional) => {
+  await crear({
+    nombre: data.nombre,
+    especialidadId: data.especialidadId,   // ✅
+    contacto: data.contacto,
+    obrasSociales: data.obrasSociales,     // ✅ array
+    estado: data.estado,
+  });
+  setModalOpen(false);
+};
 
   // Editar
-  const handleEditar = async (data: Profesional) => {
-    if (!editando?._id) return;
-    await editar({
-      id: editando._id,
-      nombre: data.nombre,
-      especialidad: data.especialidad,
-      contacto: data.contacto,
-      obraSocial: data.obraSocial,
-      estado: data.estado,
-    });
-    setEditando(null);
-  };
-
+const handleEditar = async (data: Profesional) => {
+  if (!editando?._id) return;
+  await editar({
+    id: editando._id,
+    nombre: data.nombre,
+    especialidadId: data.especialidadId,   // ✅
+    contacto: data.contacto,
+    obrasSociales: data.obrasSociales,     // ✅ array
+    estado: data.estado,
+  });
+  setEditando(null);
+};
   // Eliminar
   const handleEliminar = async (id?: Id<"profesionales">) => {
     if (!id) return;
@@ -94,7 +94,10 @@ export default function ProfesionalesPage() {
                 <td className="p-3 text-center">{prof.nombre}</td>
                 <td className="p-3 text-center">{prof.especialidadNombre}</td>
                 <td className="p-3 text-center">{prof.contacto}</td>
-                <td className="p-3 text-center">{prof.obraSocialNombre}</td>
+                <td className="p-3 text-center">
+  {prof.obrasSocialesNombres?.join(", ") || "—"}
+</td>
+
                 <td className="p-3 text-center">
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${

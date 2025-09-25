@@ -1,7 +1,10 @@
 // convex/turnos.ts
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-
+import { checkSolapamiento } from "./helpers/checkSolapamiento";
+// ----------------------------
+// Listar turnos enriquecidos
+// ----------------------------
 export const listarRango = query({
   args: { from: v.number(), to: v.number() },
   handler: async (ctx, { from, to }) => {
@@ -13,32 +16,48 @@ export const listarRango = query({
 
     return Promise.all(
       turnos.map(async (t) => {
-        const prof = await ctx.db.get(t.profesionalId);
-        const especialidad = prof
-          ? await ctx.db.get(prof.especialidad)
+        const paciente = await ctx.db.get(t.pacienteId);
+        const profesional = await ctx.db.get(t.profesionalId);
+
+        // especialidad del profesional
+        const especialidad = profesional
+          ? await ctx.db.get(profesional.especialidadId)
           : null;
-        const obraSocial = prof
-          ? await ctx.db.get(prof.obraSocial)
-          : null;
+
+        // obras sociales del paciente vía tabla pivote
+        let obrasSocialesPaciente: string[] = [];
+        if (paciente) {
+          const rels = await ctx.db
+            .query("pacientes_obrasSociales")
+            .withIndex("por_paciente", (q) => q.eq("pacienteId", paciente._id))
+            .collect();
+
+          const os = await Promise.all(
+            rels.map((r) => ctx.db.get(r.obraSocialId))
+          );
+          obrasSocialesPaciente = os.filter(Boolean).map((o) => o!.nombre);
+        }
 
         return {
           ...t,
-          profesionalNombre: prof?.nombre ?? "Sin asignar",
-          especialidadNombre: especialidad?.nombre ?? "N/A",
-          obraSocialNombre: obraSocial?.nombre ?? "N/A",
+          pacienteNombre: paciente?.nombreCompleto || "—",
+          profesionalNombre: profesional?.nombre || "—",
+          especialidadNombre: especialidad?.nombre || "—",
+          obrasSocialesPaciente,
         };
       })
     );
   },
 });
 
-
-
+// ----------------------------
 // Crear turno
+// ----------------------------
+
 export const crear = mutation({
   args: {
-    paciente: v.string(),
-    profesionalId: v.id("profesionales"), // 👈 FK
+    pacienteId: v.id("pacientes"),
+    profesionalId: v.id("profesionales"),
     tipo: v.string(),
     estado: v.union(
       v.literal("Confirmado"),
@@ -50,19 +69,34 @@ export const crear = mutation({
     notas: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
-    const profesional = await ctx.db.get(args.profesionalId);
-    const title = `${args.paciente} (${args.tipo}) - ${profesional?.nombre ?? "Sin profesional"}`;
+    const existeSolapamiento = await checkSolapamiento(
+      ctx.db,
+      args.profesionalId,
+      args.start,
+      args.end
+    );
 
-    return await ctx.db.insert("turnos", { ...args, title });
+    if (existeSolapamiento) {
+      throw new Error("El profesional ya tiene un turno en este horario.");
+    }
+
+    const ahora = Date.now();
+    return await ctx.db.insert("turnos", {
+      ...args,
+      creadoEn: ahora,
+      actualizadoEn: ahora,
+    });
   },
 });
 
+// ----------------------------
 // Editar turno
+// ----------------------------
 export const editar = mutation({
   args: {
     id: v.id("turnos"),
-    paciente: v.optional(v.string()),
-    profesionalId: v.optional(v.id("profesionales")), // 👈 ahora es ID
+    pacienteId: v.optional(v.id("pacientes")),
+    profesionalId: v.optional(v.id("profesionales")),
     tipo: v.optional(v.string()),
     estado: v.optional(
       v.union(
@@ -76,12 +110,34 @@ export const editar = mutation({
     notas: v.optional(v.string()),
   },
   handler: async (ctx, { id, ...data }) => {
-    await ctx.db.patch(id, data);
+    const turnoActual = await ctx.db.get(id);
+    if (!turnoActual) throw new Error("Turno no encontrado");
+
+    const nuevo = { ...turnoActual, ...data };
+
+    const existeSolapamiento = await checkSolapamiento(
+      ctx.db,
+      nuevo.profesionalId,
+      nuevo.start,
+      nuevo.end,
+      id
+    );
+
+    if (existeSolapamiento) {
+      throw new Error("El profesional ya tiene un turno en este horario.");
+    }
+
+    await ctx.db.patch(id, {
+      ...data,
+      actualizadoEn: Date.now(),
+    });
     return id;
   },
 });
 
+// ----------------------------
 // Eliminar turno
+// ----------------------------
 export const eliminar = mutation({
   args: { id: v.id("turnos") },
   handler: async (ctx, { id }) => {

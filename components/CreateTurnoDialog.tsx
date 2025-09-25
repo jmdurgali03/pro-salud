@@ -1,3 +1,4 @@
+// components/CreateTurnoDialog.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -33,13 +34,13 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const crearTurno = useMutation(api.turnos.crear);
   const editarTurno = useMutation(api.turnos.editar);
   const eliminarTurno = useMutation(api.turnos.eliminar);
-
-  const profesionales = useQuery(api.profesionales.listar) ?? []; // 👈 lista desde Convex
+const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
+const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
 
   const [open, setOpen] = useState(false);
 
   // Campos
-  const [paciente, setPaciente] = useState("");
+  const [pacienteId, setPacienteId] = useState<Id<"pacientes"> | "">("");
   const [profesionalId, setProfesionalId] = useState<Id<"profesionales"> | "">("");
   const [tipo, setTipo] = useState("");
   const [estado, setEstado] = useState<"Confirmado" | "Pendiente" | "Cancelado">("Pendiente");
@@ -49,8 +50,8 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   // Cargar datos al editar
   useEffect(() => {
     if (turno) {
-      setPaciente(turno.paciente);
-      setProfesionalId(turno.profesionalId); // ahora es Id
+      setPacienteId(turno.pacienteId);
+      setProfesionalId(turno.profesionalId);
       setTipo(turno.tipo);
       setEstado(turno.estado);
 
@@ -63,6 +64,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!pacienteId) return alert("Debe seleccionar un paciente");
     if (!profesionalId) return alert("Debe seleccionar un profesional");
 
     const baseDate = defaultDate || (turno ? new Date(turno.start) : new Date());
@@ -79,8 +81,8 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     if (turno) {
       await editarTurno({
         id: turno._id,
-        paciente,
-        profesionalId, // 👈 FK
+        pacienteId,
+        profesionalId,
         tipo,
         estado,
         start: start.getTime(),
@@ -88,8 +90,8 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
       });
     } else {
       await crearTurno({
-        paciente,
-        profesionalId, // 👈 FK
+        pacienteId,
+        profesionalId,
         tipo,
         estado,
         start: start.getTime(),
@@ -118,27 +120,55 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Paciente */}
           <div>
             <Label>Paciente</Label>
-            <Input value={paciente} onChange={(e) => setPaciente(e.target.value)} required />
+            <Select
+              value={pacienteId || ""}
+              onValueChange={(val) => setPacienteId(val as Id<"pacientes">)}
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Seleccionar paciente" />
+              </SelectTrigger>
+              <SelectContent>
+                {pacientes.map((p) => (
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.nombreCompleto} – {p.dni}
+                  </SelectItem>
+                ))}
+                <div className="border-t my-1" />
+                <Button
+                  type="button"
+                  className="w-full bg-blue-500 text-white mt-2"
+                  onClick={() => alert("Abrir modal de nuevo paciente")}
+                >
+                  + Nuevo Paciente
+                </Button>
+              </SelectContent>
+            </Select>
           </div>
 
+          {/* Profesional */}
           <div>
             <Label>Profesional</Label>
-            <Select value={profesionalId || ""} onValueChange={(val) => setProfesionalId(val as Id<"profesionales">)}>
+            <Select
+              value={profesionalId || ""}
+              onValueChange={(val) => setProfesionalId(val as Id<"profesionales">)}
+            >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar profesional" />
               </SelectTrigger>
               <SelectContent>
                 {profesionales.map((p) => (
                   <SelectItem key={p._id} value={p._id}>
-                    {p.nombre} – {p.especialidad}
+                    {p.nombre} – {p.especialidadNombre}
                   </SelectItem>
                 ))}
               </SelectContent>
             </Select>
           </div>
 
+          {/* Tipo de consulta */}
           <div>
             <Label>Tipo de Consulta</Label>
             <Select value={tipo} onValueChange={(val) => setTipo(val)}>
@@ -154,6 +184,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </Select>
           </div>
 
+          {/* Estado */}
           <div>
             <Label>Estado</Label>
             <Select value={estado} onValueChange={(val) => setEstado(val as any)}>
@@ -168,6 +199,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </Select>
           </div>
 
+          {/* Horario */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Hora inicio</Label>
@@ -179,6 +211,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </div>
           </div>
 
+          {/* Botones */}
           <div className="flex justify-between">
             {turno && (
               <Button type="button" variant="destructive" onClick={handleDelete}>
