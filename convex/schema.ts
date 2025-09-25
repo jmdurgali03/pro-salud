@@ -84,4 +84,18 @@ pacientes_obrasSociales: defineTable({
     texto: v.string(),
     creadoEn: v.number(),
   }).index("por_paciente", ["pacienteId"]),
+  consultas: defineTable({
+    pacienteId: v.id("pacientes"),
+    motivo: v.string(),
+    profesional: v.string(),
+    notas: v.optional(v.string()),
+    fecha: v.number(),
+  }).index("por_paciente", ["pacienteId"]),
+
+  diagnosticos: defineTable({
+    pacienteId: v.id("pacientes"),
+    descripcion: v.string(),
+    profesional: v.string(),
+    fecha: v.number(),
+  }).index("por_paciente", ["pacienteId"]),
 });
