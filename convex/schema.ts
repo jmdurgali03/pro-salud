@@ -31,10 +31,12 @@ export default defineSchema({
     fecha: v.number(),
   }).index("por_paciente", ["pacienteId"]),
 
-  diagnosticos: defineTable({
+    diagnosticos: defineTable({
     pacienteId: v.id("pacientes"),
     descripcion: v.string(),
     profesional: v.string(),
     fecha: v.number(),
+    codigo: v.optional(v.string()), // <-- agregado
   }).index("por_paciente", ["pacienteId"]),
+
 });
