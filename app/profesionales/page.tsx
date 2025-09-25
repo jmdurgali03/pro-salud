@@ -122,8 +122,8 @@ export default function ProfesionalesPage() {
                     Editar
                   </button>
                   <button
-                    onClick={() => handleEliminar(prof._id)}
-                    className="text-red-600 hover:underline"
+                    //onClick={() => handleEliminar(prof._id)}
+                    //className="text-red-600 hover:underline"
                   >
                     Eliminar
                   </button>
