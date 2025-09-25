@@ -1,21 +1,31 @@
-import { query, mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-// 🔍 Listar profesionales
-export const listar = query({
-  args: {},
-  handler: async (ctx) => {
-    return await ctx.db.query("profesionales").collect();
-  },
+// Listar profesionales
+export const listar = query(async (ctx) => {
+  const profesionales = await ctx.db.query("profesionales").collect();
+
+  return await Promise.all(
+    profesionales.map(async (prof) => {
+      const especialidad = await ctx.db.get(prof.especialidad);
+      const obraSocial = await ctx.db.get(prof.obraSocial);
+
+      return {
+        ...prof,
+        especialidadNombre: especialidad?.nombre ?? "",
+        obraSocialNombre: obraSocial?.nombre ?? "",
+      };
+    })
+  );
 });
 
-// ➕ Crear
+// Crear
 export const crear = mutation({
   args: {
     nombre: v.string(),
-    especialidad: v.string(),
+    especialidad: v.id("especialidades"),
     contacto: v.string(),
-    obrasSociales: v.array(v.string()),
+    obraSocial: v.id("obrasSociales"),
     estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
   },
   handler: async (ctx, args) => {
@@ -23,28 +33,25 @@ export const crear = mutation({
   },
 });
 
-// ✏️ Editar
+// Editar
 export const editar = mutation({
   args: {
     id: v.id("profesionales"),
-    nombre: v.optional(v.string()),
-    especialidad: v.optional(v.string()),
-    contacto: v.optional(v.string()),
-    obrasSociales: v.optional(v.array(v.string())),
-    estado: v.optional(v.union(v.literal("Activo"), v.literal("Inactivo"))),
+    nombre: v.string(),
+    especialidad: v.id("especialidades"),
+    contacto: v.string(),
+    obraSocial: v.id("obrasSociales"),
+    estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
   },
-  handler: async (ctx, args) => {
-    const { id, ...updates } = args;
-    await ctx.db.patch(id, updates);
-    return await ctx.db.get(id);
+  handler: async (ctx, { id, ...data }) => {
+    return await ctx.db.patch(id, data);
   },
 });
 
-// 🗑️ Eliminar
+// Eliminar
 export const eliminar = mutation({
   args: { id: v.id("profesionales") },
-  handler: async (ctx, args) => {
-    await ctx.db.delete(args.id);
-    return { success: true };
+  handler: async (ctx, { id }) => {
+    return await ctx.db.delete(id);
   },
 });
