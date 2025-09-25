@@ -5,19 +5,25 @@ import type { Profesional, ProfesionalInput } from "./page";
 
 type Props = {
   title: string;
-  initialData?: Profesional;
-  onSubmit: (data: ProfesionalInput) => void; // 👈 ahora acepta ProfesionalInput
+  initialData?: Profesional; // cuando editamos
+  onSubmit: (data: ProfesionalInput) => void; // 👈 recibe solo ProfesionalInput
   onCancel: () => void;
 };
 
-export default function ProfesionalModal({ title, initialData, onSubmit, onCancel }: Props) {
+export default function ProfesionalModal({
+  title,
+  initialData,
+  onSubmit,
+  onCancel,
+}: Props) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
       <div className="bg-white text-black rounded-lg shadow-xl p-6 w-96 space-y-4">
         <h2 className="text-lg font-bold">{title}</h2>
+
         <ProfesionalForm
           initialData={initialData}
-          onSubmit={onSubmit}
+          onSubmit={onSubmit} 
           onCancel={onCancel}
         />
       </div>

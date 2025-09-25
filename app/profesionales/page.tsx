@@ -10,15 +10,23 @@ import ProfesionalModal from "./ProfesionalModal";
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
-  especialidadId: Id<"especialidades">;   // ✅
+  especialidadId: Id<"especialidades">;
   contacto: string;
-  obrasSociales: Id<"obrasSociales">[];   // ✅ array
+  obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
 
   especialidadNombre?: string;
-  obrasSocialesNombres?: string[];        // ✅ array de nombres
+  obrasSocialesNombres?: string[];
 };
 
+// Tipo para input (crear/editar)
+export type ProfesionalInput = {
+  nombre: string;
+  especialidadId: Id<"especialidades">;
+  contacto: string;
+  obrasSociales: Id<"obrasSociales">[];
+  estado: "Activo" | "Inactivo";
+};
 
 export default function ProfesionalesPage() {
   // Queries
@@ -36,30 +44,21 @@ export default function ProfesionalesPage() {
   const [editando, setEditando] = useState<Profesional | null>(null);
 
   // Crear
-const handleCrear = async (data: Profesional) => {
-  await crear({
-    nombre: data.nombre,
-    especialidadId: data.especialidadId,   // ✅
-    contacto: data.contacto,
-    obrasSociales: data.obrasSociales,     // ✅ array
-    estado: data.estado,
-  });
-  setModalOpen(false);
-};
+  const handleCrear = async (data: ProfesionalInput) => {
+    await crear(data); // data ya tiene el shape correcto
+    setModalOpen(false);
+  };
 
   // Editar
-const handleEditar = async (data: Profesional) => {
-  if (!editando?._id) return;
-  await editar({
-    id: editando._id,
-    nombre: data.nombre,
-    especialidadId: data.especialidadId,   // ✅
-    contacto: data.contacto,
-    obrasSociales: data.obrasSociales,     // ✅ array
-    estado: data.estado,
-  });
-  setEditando(null);
-};
+  const handleEditar = async (data: ProfesionalInput) => {
+    if (!editando?._id) return;
+    await editar({
+      id: editando._id,
+      ...data, // mezclamos input con el id
+    });
+    setEditando(null);
+  };
+
   // Eliminar
   const handleEliminar = async (id?: Id<"profesionales">) => {
     if (!id) return;
@@ -106,19 +105,19 @@ const handleEditar = async (data: Profesional) => {
             </tr>
           </thead>
           <tbody>
-            {profesionales.map((prof) => (
+            {profesionales.map((prof: Profesional) => (
               <tr
                 key={prof._id.toString()}
                 className="border-t hover:bg-gray-50"
               >
                 <td className="p-3 text-center">{prof.nombre}</td>
                 <td className="p-3 text-center">
-                  {getEspecialidadNombre(prof.especialidad)}
+                  {getEspecialidadNombre(prof.especialidadId)}
                 </td>
                 <td className="p-3 text-center">{prof.contacto}</td>
                 <td className="p-3 text-center">
-  {prof.obrasSocialesNombres?.join(", ") || "—"}
-</td>
+                  {prof.obrasSocialesNombres?.join(", ") || "—"}
+                </td>
 
                 <td className="p-3 text-center">
                   <span
@@ -139,8 +138,8 @@ const handleEditar = async (data: Profesional) => {
                     Editar
                   </button>
                   <button
-                    //onClick={() => handleEliminar(prof._id)}
-                    //className="text-red-600 hover:underline"
+                    onClick={() => handleEliminar(prof._id)}
+                    className="text-red-600 hover:underline"
                   >
                     Eliminar
                   </button>
@@ -149,10 +148,6 @@ const handleEditar = async (data: Profesional) => {
             ))}
             {profesionales.length === 0 && (
               <tr>
-                <td
-                  colSpan={6}
-                  className="p-4 text-center text-gray-400 italic"
-                >
                 <td
                   colSpan={6}
                   className="p-4 text-center text-gray-400 italic"

@@ -3,12 +3,12 @@
 import { useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
-import type { Profesional, ProfesionalInput } from "./page";
 import type { Id } from "../../convex/_generated/dataModel";
+import type { Profesional, ProfesionalInput } from "./page";
 
 type Props = {
-  initialData?: Profesional;
-  onSubmit: (data: ProfesionalInput) => void;
+  initialData?: Profesional; // cuando editamos viene un Profesional
+  onSubmit: (data: ProfesionalInput) => void; // 👈 devuelve ProfesionalInput
   onCancel: () => void;
 };
 
@@ -17,8 +17,8 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
   const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
 
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
-  const [especialidad, setEspecialidad] = useState<Id<"especialidades"> | "">(
-    initialData?.especialidad ?? ""
+  const [especialidadId, setEspecialidadId] = useState<Id<"especialidades"> | "">(
+    initialData?.especialidadId ?? ""
   );
   const [contacto, setContacto] = useState(initialData?.contacto ?? "");
   const [obrasSeleccionadas, setObrasSeleccionadas] = useState<Id<"obrasSociales">[]>(
@@ -37,17 +37,23 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    onSubmit({
+    if (!especialidadId) return alert("Debe seleccionar una especialidad");
+
+    // ✅ devolvemos ProfesionalInput
+    const data: ProfesionalInput = {
       nombre,
-      especialidad: especialidad as Id<"especialidades">,
+      especialidadId: especialidadId as Id<"especialidades">,
       contacto,
       obrasSociales: obrasSeleccionadas,
       estado,
-    });
+    };
+
+    onSubmit(data);
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3">
+      {/* Nombre */}
       <input
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
@@ -56,9 +62,10 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         required
       />
 
+      {/* Especialidad */}
       <select
-        value={especialidad}
-        onChange={(e) => setEspecialidad(e.target.value as Id<"especialidades">)}
+        value={especialidadId}
+        onChange={(e) => setEspecialidadId(e.target.value as Id<"especialidades">)}
         className="w-full border rounded px-3 py-2"
         required
       >
@@ -70,6 +77,7 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         ))}
       </select>
 
+      {/* Contacto */}
       <input
         type="email"
         value={contacto}
@@ -79,7 +87,7 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         required
       />
 
-      {/* 👇 Checkboxes para obras sociales */}
+      {/* Obras Sociales */}
       <div className="space-y-2">
         <label className="font-medium text-gray-700">Obras Sociales</label>
         {obrasSociales.map((os) => (
@@ -95,6 +103,7 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         ))}
       </div>
 
+      {/* Estado */}
       <select
         value={estado}
         onChange={(e) => setEstado(e.target.value as "Activo" | "Inactivo")}
@@ -104,6 +113,7 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         <option value="Inactivo">Inactivo</option>
       </select>
 
+      {/* Botones */}
       <div className="flex justify-end gap-2 pt-2">
         <button
           type="button"
