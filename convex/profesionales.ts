@@ -1,31 +1,27 @@
-import { mutation, query } from "./_generated/server";
+// convex/profesionales.ts
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// Listar profesionales
-export const listar = query(async (ctx) => {
-  const profesionales = await ctx.db.query("profesionales").collect();
-
-  return await Promise.all(
-    profesionales.map(async (prof) => {
-      const especialidad = await ctx.db.get(prof.especialidad);
-      const obraSocial = await ctx.db.get(prof.obraSocial);
-
-      return {
-        ...prof,
-        especialidadNombre: especialidad?.nombre ?? "",
-        obraSocialNombre: obraSocial?.nombre ?? "",
-      };
-    })
-  );
+/**
+ * Lista todos los profesionales.
+ */
+export const listar = query({
+  args: {},
+  handler: async (ctx) => {
+    return await ctx.db.query("profesionales").collect();
+  },
 });
 
-// Crear
+/**
+ * Crea un profesional.
+ * OJO: obrasSociales es un ARRAY de Id<"obrasSociales">.
+ */
 export const crear = mutation({
   args: {
     nombre: v.string(),
     especialidad: v.id("especialidades"),
     contacto: v.string(),
-    obraSocial: v.id("obrasSociales"),
+    obrasSociales: v.array(v.id("obrasSociales")),
     estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
   },
   handler: async (ctx, args) => {
@@ -33,25 +29,30 @@ export const crear = mutation({
   },
 });
 
-// Editar
+/**
+ * Edita un profesional existente.
+ */
 export const editar = mutation({
   args: {
     id: v.id("profesionales"),
     nombre: v.string(),
     especialidad: v.id("especialidades"),
     contacto: v.string(),
-    obraSocial: v.id("obrasSociales"),
+    obrasSociales: v.array(v.id("obrasSociales")),
     estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
   },
   handler: async (ctx, { id, ...data }) => {
-    return await ctx.db.patch(id, data);
+    await ctx.db.patch(id, data);
+    return id;
   },
 });
 
-// Eliminar
+/**
+ * Elimina un profesional.
+ */
 export const eliminar = mutation({
   args: { id: v.id("profesionales") },
   handler: async (ctx, { id }) => {
-    return await ctx.db.delete(id);
+    await ctx.db.delete(id);
   },
 });

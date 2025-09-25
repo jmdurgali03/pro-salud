@@ -6,51 +6,44 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import ProfesionalModal from "./ProfesionalModal";
 
+// Tipo con _id (lo que viene de la BD)
 export type Profesional = {
-  _id?: Id<"profesionales">;
+  _id: Id<"profesionales">;
   nombre: string;
   especialidad: Id<"especialidades">;
   contacto: string;
-  obraSocial: Id<"obrasSociales">;
+  obrasSociales: Id<"obrasSociales">[]; // array de obras sociales
   estado: "Activo" | "Inactivo";
-
-  especialidadNombre?: string;
-  obraSocialNombre?: string;
-
 };
 
+// Tipo de entrada (crear/editar) sin _id
+export type ProfesionalInput = Omit<Profesional, "_id">;
+
 export default function ProfesionalesPage() {
+  // Queries
   const profesionales = useQuery(api.profesionales.listar) ?? [];
+  const especialidades = useQuery(api.especialidades.listar) ?? [];
+  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+
+  // Mutations
   const crear = useMutation(api.profesionales.crear);
   const editar = useMutation(api.profesionales.editar);
   const eliminar = useMutation(api.profesionales.eliminar);
 
+  // Estado modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
 
   // Crear
-  const handleCrear = async (data: Profesional) => {
-    await crear({
-      nombre: data.nombre,
-      especialidad: data.especialidad,
-      contacto: data.contacto,
-      obraSocial: data.obraSocial,
-      estado: data.estado,
-    });
+  const handleCrear = async (data: ProfesionalInput) => {
+    await crear(data);
     setModalOpen(false);
   };
 
   // Editar
-  const handleEditar = async (data: Profesional) => {
+  const handleEditar = async (data: ProfesionalInput) => {
     if (!editando?._id) return;
-    await editar({
-      id: editando._id,
-      nombre: data.nombre,
-      especialidad: data.especialidad,
-      contacto: data.contacto,
-      obraSocial: data.obraSocial,
-      estado: data.estado,
-    });
+    await editar({ id: editando._id, ...data });
     setEditando(null);
   };
 
@@ -60,14 +53,26 @@ export default function ProfesionalesPage() {
     await eliminar({ id });
   };
 
+  // Helpers para mostrar nombres
+  const getEspecialidadNombre = (id: Id<"especialidades">) =>
+    especialidades.find((e) => e._id === id)?.nombre || "—";
+
+  const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
+    ids
+      .map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
+      .filter((n) => n !== "")
+      .join(", ");
+
   return (
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold text-black">Gestión de Profesionales</h1>
+        <h1 className="text-2xl font-bold text-black">
+          Gestión de Profesionales
+        </h1>
         <button
           onClick={() => setModalOpen(true)}
-          className="px-4 py-2 rounded bg-zinc-300 text-black hover:bg-zinc-400"
+          className="px-4 py-2 rounded bg-blue-600 text-white hover:bg-blue-500"
         >
           Añadir Profesional
         </button>
@@ -81,21 +86,28 @@ export default function ProfesionalesPage() {
               <th className="p-3 text-center">Nombre</th>
               <th className="p-3 text-center">Especialidad</th>
               <th className="p-3 text-center">Contacto</th>
-              <th className="p-3 text-center">Obra Social</th>
+              <th className="p-3 text-center">Obras Sociales</th>
               <th className="p-3 text-center">Estado</th>
               <th className="p-3 text-center">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {profesionales.map((prof: Profesional) => (
-              <tr key={prof._id?.toString()} className="border-t hover:bg-gray-50">
+            {profesionales.map((prof) => (
+              <tr
+                key={prof._id.toString()}
+                className="border-t hover:bg-gray-50"
+              >
                 <td className="p-3 text-center">{prof.nombre}</td>
-                <td className="p-3 text-center">{prof.especialidadNombre}</td>
+                <td className="p-3 text-center">
+                  {getEspecialidadNombre(prof.especialidad)}
+                </td>
                 <td className="p-3 text-center">{prof.contacto}</td>
-                <td className="p-3 text-center">{prof.obraSocialNombre}</td>
+                <td className="p-3 text-center">
+                  {getObrasSocialesNombres(prof.obrasSociales)}
+                </td>
                 <td className="p-3 text-center">
                   <span
-                    className={`px-2 py-1 rounded text-white text-xs font-medium  ${
+                    className={`px-2 py-1 rounded text-white text-xs font-medium ${
                       prof.estado === "Activo" ? "bg-green-500" : "bg-red-500"
                     }`}
                   >
@@ -120,7 +132,10 @@ export default function ProfesionalesPage() {
             ))}
             {profesionales.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-4 text-center text-gray-400 italic">
+                <td
+                  colSpan={6}
+                  className="p-4 text-center text-gray-400 italic"
+                >
                   No hay profesionales registrados
                 </td>
               </tr>
