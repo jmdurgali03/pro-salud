@@ -9,10 +9,15 @@ import ProfesionalModal from "./ProfesionalModal";
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
+  dni: string;
+  matricula: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
   obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
+
+  especialidadNombre?: string;
+  obrasSocialesNombres?: string[];
 };
 
 export type ProfesionalInput = {
@@ -34,8 +39,9 @@ export default function ProfesionalesPage() {
 
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
+  const [viendo, setViendo] = useState<Profesional | null>(null);
 
-  const handleCrear = async (data: ProfesionalInput) => {
+  const handleCrear = async (data: ProfesionalInput & { dni: string; matricula: string }) => {
     await crear(data);
     setModalOpen(false);
   };
@@ -55,10 +61,7 @@ export default function ProfesionalesPage() {
     especialidades.find((e) => e._id === id)?.nombre || "—";
 
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
-    ids
-      .map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
-      .filter((n) => n !== "")
-      .join(", ");
+    ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean).join(", ");
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
@@ -72,7 +75,7 @@ export default function ProfesionalesPage() {
         </button>
       </div>
       <p className="text-gray-500">
-        Administra los profesionales de tu institución: especialidad, obra social y estado.
+        Administra los profesionales de tu institución.
       </p>
 
       <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm bg-white">
@@ -91,35 +94,27 @@ export default function ProfesionalesPage() {
             {profesionales.map((prof: Profesional) => (
               <tr key={prof._id.toString()} className="border-t hover:bg-gray-50">
                 <td className="p-3 text-center">{prof.nombre}</td>
-                <td className="p-3 text-center">
-                  {getEspecialidadNombre(prof.especialidadId)}
-                </td>
+                <td className="p-3 text-center">{getEspecialidadNombre(prof.especialidadId)}</td>
                 <td className="p-3 text-center">{prof.contacto}</td>
-                <td className="p-3 text-center">
-                  {getObrasSocialesNombres(prof.obrasSociales) || "—"}
-                </td>
+                <td className="p-3 text-center">{getObrasSocialesNombres(prof.obrasSociales) || "—"}</td>
                 <td className="p-3 text-center">
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${
-                      prof.estado === "Activo"
-                        ? "bg-green-500 text-white"
-                        : "bg-red-500 text-white"
+                      prof.estado === "Activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
                     }`}
                   >
                     {prof.estado}
                   </span>
                 </td>
                 <td className="p-3 space-x-3 text-center">
-                  <button
-                    onClick={() => setEditando(prof)}
-                    className="text-blue-600 hover:underline"
-                  >
+                  <button onClick={() => setViendo(prof)} className="text-green-600 hover:underline">
+                    Ver
+                  </button>
+                  <button onClick={() => setEditando(prof)} className="text-blue-600 hover:underline">
                     Editar
                   </button>
-                  <button
-                    onClick={() => handleEliminar(prof._id)}
-                    className="text-red-600 hover:underline"
-                  >
+
+                  <button onClick={() => handleEliminar(prof._id)} className="text-red-600 hover:underline hidden"> 
                     Eliminar
                   </button>
                 </td>
@@ -127,10 +122,7 @@ export default function ProfesionalesPage() {
             ))}
             {profesionales.length === 0 && (
               <tr>
-                <td
-                  colSpan={6}
-                  className="p-4 text-center text-gray-400 italic"
-                >
+                <td colSpan={6} className="p-4 text-center text-gray-400 italic">
                   No hay profesionales registrados
                 </td>
               </tr>
@@ -139,14 +131,16 @@ export default function ProfesionalesPage() {
         </table>
       </div>
 
+      {/* Modal Crear */}
       {modalOpen && (
         <ProfesionalModal
           title="Nuevo Profesional"
-          onSubmit={handleCrear}
+          onSubmit={handleCrear as any}
           onCancel={() => setModalOpen(false)}
         />
       )}
 
+      {/* Modal Editar */}
       {editando && (
         <ProfesionalModal
           title="Editar Profesional"
@@ -154,6 +148,30 @@ export default function ProfesionalesPage() {
           onSubmit={handleEditar}
           onCancel={() => setEditando(null)}
         />
+      )}
+
+      {/* Modal Ver */}
+      {viendo && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white text-black rounded-lg shadow-xl p-6 w-96 space-y-4">
+            <h2 className="text-lg font-bold">Datos del Profesional</h2>
+            <p><strong>Nombre:</strong> {viendo.nombre}</p>
+            <p><strong>DNI:</strong> {viendo.dni}</p>
+            <p><strong>Matrícula:</strong> {viendo.matricula}</p>
+            <p><strong>Especialidad:</strong> {getEspecialidadNombre(viendo.especialidadId)}</p>
+            <p><strong>Contacto:</strong> {viendo.contacto}</p>
+            <p><strong>Obras Sociales:</strong> {getObrasSocialesNombres(viendo.obrasSociales)}</p>
+            <p><strong>Estado:</strong> {viendo.estado}</p>
+            <div className="flex justify-end">
+              <button
+                onClick={() => setViendo(null)}
+                className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300"
+              >
+                Cerrar
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

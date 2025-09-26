@@ -43,6 +43,8 @@ export default defineSchema({
   // -------------------------
   profesionales: defineTable({
     nombre: v.string(),
+    dni: v.string(),        
+    matricula: v.string(), 
     especialidadId: v.id("especialidades"),
     contacto: v.string(),
     obrasSociales: v.array(v.id("obrasSociales")), // puede atender varias
