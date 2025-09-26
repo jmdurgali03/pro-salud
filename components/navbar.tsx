@@ -80,14 +80,18 @@ export function Navbar() {
                     {isSignedIn ? (
                         <>
                             <UserButton afterSignOutUrl="/" />
-                            <Button onClick={handleHomeClick}>Home</Button>
+                            <Button
+                                variant={"outline"}
+                                className="flex-1"
+                                onClick={handleHomeClick}>
+                                Iniciar
+                            </Button>
                         </>
                     ) : (
                         <>
                             <Button asChild>
                                 <Link href="/sign-up">Registrarse</Link>
                             </Button>
-                            <Button disabled>Home</Button>
                         </>
                     )}
                 </div>
@@ -122,17 +126,17 @@ export function Navbar() {
                                 {isSignedIn ? (
                                     <div className="flex items-center gap-3">
                                         <UserButton afterSignOutUrl="/" />
-                                        <Button className="flex-1" onClick={handleHomeClick}>
-                                            Home
+                                        <Button
+                                            variant={"ghost"}
+                                            className="flex-1 bg-green-500 text-white"
+                                            onClick={handleHomeClick}>
+                                            Iniciar
                                         </Button>
                                     </div>
                                 ) : (
                                     <div className="flex items-center gap-3">
                                         <Button asChild className="flex-1">
                                             <Link href="/sign-up">Registrarse</Link>
-                                        </Button>
-                                        <Button disabled className="flex-1">
-                                            Home
                                         </Button>
                                     </div>
                                 )}

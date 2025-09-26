@@ -193,15 +193,15 @@ export default function TurnosPage() {
                       {t.estado}
                     </Badge>
                   </TableCell>
-                <TableCell>
-                <TurnoDialog
-                  turno={t}
-                  trigger={
-                <Button variant="outline" disabled className=" cursor-not-allowed">
-                 Editar
-              </Button>
-                 }
-                      />
+                  <TableCell>
+                    <TurnoDialog
+                      turno={t}
+                      trigger={
+                        <Button variant="outline" disabled className=" cursor-not-allowed">
+                          Editar
+                        </Button>
+                      }
+                    />
                   </TableCell>
 
                 </TableRow>

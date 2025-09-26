@@ -4,10 +4,12 @@ import { Navbar } from "@/components/navbar";
 
 export default function HomePage() {
   return (
-    <div className="">
+    <div className="flex flex-col min-h-screen bg-white text-gray-800">
       <Navbar />
-      <Hero />
+      <main className="flex-1">
+        <Hero />
+      </main>
       <Footer />
     </div>
-  )
+  );
 }
