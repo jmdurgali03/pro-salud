@@ -330,9 +330,6 @@ function PacienteForm({
       newErrors.fechaNacimiento = "La fecha de nacimiento es obligatoria.";
     }
 
-    if (form.obrasSociales.length === 0) {
-      newErrors.obrasSociales = "Debe seleccionar al menos una obra social.";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
