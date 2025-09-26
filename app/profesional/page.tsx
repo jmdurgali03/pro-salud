@@ -6,7 +6,6 @@ import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 import ProfesionalModal from "./ProfesionalModal";
 
-// Tipo con _id (lo que viene de la BD)
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
@@ -14,12 +13,8 @@ export type Profesional = {
   contacto: string;
   obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
-
-  especialidadNombre?: string;
-  obrasSocialesNombres?: string[];
 };
 
-// Tipo para input (crear/editar)
 export type ProfesionalInput = {
   nombre: string;
   especialidadId: Id<"especialidades">;
@@ -29,43 +24,33 @@ export type ProfesionalInput = {
 };
 
 export default function ProfesionalesPage() {
-  // Queries
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
 
-  // Mutations
   const crear = useMutation(api.profesionales.crear);
   const editar = useMutation(api.profesionales.editar);
   const eliminar = useMutation(api.profesionales.eliminar);
 
-  // Estado modal
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
 
-  // Crear
   const handleCrear = async (data: ProfesionalInput) => {
-    await crear(data); // data ya tiene el shape correcto
+    await crear(data);
     setModalOpen(false);
   };
 
-  // Editar
   const handleEditar = async (data: ProfesionalInput) => {
     if (!editando?._id) return;
-    await editar({
-      id: editando._id,
-      ...data, // mezclamos input con el id
-    });
+    await editar({ id: editando._id, ...data });
     setEditando(null);
   };
 
-  // Eliminar
   const handleEliminar = async (id?: Id<"profesionales">) => {
     if (!id) return;
     await eliminar({ id });
   };
 
-  // Helpers para mostrar nombres
   const getEspecialidadNombre = (id: Id<"especialidades">) =>
     especialidades.find((e) => e._id === id)?.nombre || "—";
 
@@ -77,7 +62,6 @@ export default function ProfesionalesPage() {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold">Gestión de Profesionales</h1>
         <button
@@ -91,7 +75,6 @@ export default function ProfesionalesPage() {
         Administra los profesionales de tu institución: especialidad, obra social y estado.
       </p>
 
-      {/* Tabla */}
       <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm bg-white">
         <table className="w-full text-sm text-gray-700">
           <thead className="bg-gray-100">
@@ -106,19 +89,15 @@ export default function ProfesionalesPage() {
           </thead>
           <tbody>
             {profesionales.map((prof: Profesional) => (
-              <tr
-                key={prof._id.toString()}
-                className="border-t hover:bg-gray-50"
-              >
+              <tr key={prof._id.toString()} className="border-t hover:bg-gray-50">
                 <td className="p-3 text-center">{prof.nombre}</td>
                 <td className="p-3 text-center">
                   {getEspecialidadNombre(prof.especialidadId)}
                 </td>
                 <td className="p-3 text-center">{prof.contacto}</td>
                 <td className="p-3 text-center">
-                  {prof.obrasSocialesNombres?.join(", ") || "—"}
+                  {getObrasSocialesNombres(prof.obrasSociales) || "—"}
                 </td>
-
                 <td className="p-3 text-center">
                   <span
                     className={`px-2 py-1 rounded text-xs font-medium ${
@@ -160,7 +139,6 @@ export default function ProfesionalesPage() {
         </table>
       </div>
 
-      {/* Modal Crear */}
       {modalOpen && (
         <ProfesionalModal
           title="Nuevo Profesional"
@@ -169,7 +147,6 @@ export default function ProfesionalesPage() {
         />
       )}
 
-      {/* Modal Editar */}
       {editando && (
         <ProfesionalModal
           title="Editar Profesional"

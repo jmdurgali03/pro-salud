@@ -27,12 +27,12 @@ export default function AddProfesional() {
     }
 
     await crear({
-      nombre,
-      especialidad: especialidad as Id<"especialidades">,
-      contacto,
-      obrasSociales: obrasSeleccionadas,
-      estado,
-    });
+  nombre,
+  especialidadId: especialidad as Id<"especialidades">, // ✅ usa la propiedad correcta
+  contacto,
+  obrasSociales: obrasSeleccionadas,
+  estado,
+});
 
     setOpen(false);
     setNombre("");

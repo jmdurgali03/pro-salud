@@ -7,14 +7,19 @@ import type { Id } from "../../convex/_generated/dataModel";
 import type { Profesional, ProfesionalInput } from "./page";
 
 type Props = {
-  initialData?: Profesional; // cuando editamos viene un Profesional
-  onSubmit: (data: ProfesionalInput) => void; // 👈 devuelve ProfesionalInput
+  initialData?: Profesional;
+  onSubmit: (data: ProfesionalInput) => void;
   onCancel: () => void;
 };
 
 export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Props) {
-  const especialidades = useQuery(api.especialidades.listar) ?? [];
-  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+  const especialidades = useQuery(api.especialidades.listar);
+  const obrasSociales = useQuery(api.obrasSociales.listar);
+
+  // ⏳ Mostrar mientras carga
+  if (!especialidades || !obrasSociales) {
+    return <p className="text-gray-500">Cargando datos...</p>;
+  }
 
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
   const [especialidadId, setEspecialidadId] = useState<Id<"especialidades"> | "">(
@@ -28,7 +33,6 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
     initialData?.estado ?? "Activo"
   );
 
-  // 👉 Manejar checkboxes de obras sociales
   const handleObraSocialChange = (id: Id<"obrasSociales">) => {
     setObrasSeleccionadas((prev) =>
       prev.includes(id) ? prev.filter((os) => os !== id) : [...prev, id]
@@ -39,7 +43,6 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
     e.preventDefault();
     if (!especialidadId) return alert("Debe seleccionar una especialidad");
 
-    // ✅ devolvemos ProfesionalInput
     const data: ProfesionalInput = {
       nombre,
       especialidadId: especialidadId as Id<"especialidades">,

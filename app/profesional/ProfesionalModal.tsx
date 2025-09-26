@@ -5,8 +5,8 @@ import type { Profesional, ProfesionalInput } from "./page";
 
 type Props = {
   title: string;
-  initialData?: Profesional; // cuando editamos
-  onSubmit: (data: ProfesionalInput) => void; // 👈 recibe solo ProfesionalInput
+  initialData?: Profesional;
+  onSubmit: (data: ProfesionalInput) => void;
   onCancel: () => void;
 };
 
@@ -23,7 +23,7 @@ export default function ProfesionalModal({
 
         <ProfesionalForm
           initialData={initialData}
-          onSubmit={onSubmit} 
+          onSubmit={onSubmit}
           onCancel={onCancel}
         />
       </div>
