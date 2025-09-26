@@ -39,7 +39,6 @@ export function Navbar() {
     const links = [
         { href: "#inicio", label: "Inicio" },
         { href: "#servicios", label: "Servicios" },
-        { href: "#acerca", label: "Acerca" },
         { href: "#contacto", label: "Contacto" },
     ];
 

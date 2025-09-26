@@ -6,7 +6,7 @@ export function Footer() {
                     {/* Columna izquierda */}
                     <div className="flex flex-col items-center md:items-start text-center md:text-left">
                         <div className="flex items-center gap-2 mb-4">
-                            <img src="/logo.png" alt="ProSalud Logo" className="h-10 w-auto" />
+                            <img src="/logo.png" alt="ProSalud Logo" className="h-12 w-auto" />
                             <span className="font-bold text-lg text-gray-800">ProSalud</span>
                         </div>
                         <p className="text-sm text-gray-500 max-w-xs">
