@@ -1,5 +1,5 @@
 // convex/pacientes.ts
-import { query ,mutation} from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
 export const listar = query({
@@ -24,15 +24,14 @@ export const listar = query({
 
       return {
         ...p,
-        obrasSociales: obrasIds, // 🔹 array de Id<"obrasSociales">
+        obrasSociales: obrasIds, // array de Id<"obrasSociales">
         obrasSocialesNombres: obrasIds
           .map((id) => obras.find((o) => o._id === id)?.nombre)
-          .filter(Boolean), // 🔹 nombres listos para mostrar
+          .filter(Boolean), // nombres listos para mostrar
       };
     });
   },
 });
-
 
 // Crear paciente
 export const crear = mutation({
@@ -46,7 +45,21 @@ export const crear = mutation({
   },
   handler: async (ctx, args) => {
     const ahora = Date.now();
-    const { obrasSociales, ...pacienteData } = args;
+    let { obrasSociales, ...pacienteData } = args;
+
+    // 🔹 Si no seleccionaron obra social, asignar "Particular"
+    if (obrasSociales.length === 0) {
+      const particular = await ctx.db
+        .query("obrasSociales")
+        .withIndex("por_nombre", (q) => q.eq("nombre", "Particular"))
+        .unique();
+
+      if (!particular) {
+        throw new Error("No existe la obra social 'Particular' en la base.");
+      }
+
+      obrasSociales = [particular._id];
+    }
 
     const pacienteId = await ctx.db.insert("pacientes", {
       ...pacienteData,
@@ -103,7 +116,22 @@ export const actualizar = mutation({
       await ctx.db.delete(rel._id);
     }
 
-    for (const osId of obrasSociales) {
+    // 🔹 Si está vacío, asignar "Particular"
+    let obras = obrasSociales;
+    if (obras.length === 0) {
+      const particular = await ctx.db
+        .query("obrasSociales")
+        .withIndex("por_nombre", (q) => q.eq("nombre", "Particular"))
+        .unique();
+
+      if (!particular) {
+        throw new Error("No existe la obra social 'Particular' en la base.");
+      }
+
+      obras = [particular._id];
+    }
+
+    for (const osId of obras) {
       await ctx.db.insert("pacientes_obrasSociales", {
         pacienteId: id,
         obraSocialId: osId,
@@ -131,9 +159,8 @@ export const eliminar = mutation({
 
     await ctx.db.delete(args.id);
   },
-
-
 });
+
 // 🔹 Obtener paciente por ID con sus obras sociales
 export const getByIdConObras = query({
   args: { id: v.id("pacientes") },
@@ -156,6 +183,7 @@ export const getByIdConObras = query({
     };
   },
 });
+
 export const getById = query({
   args: { id: v.id("pacientes") },
   handler: async (ctx, args) => {
@@ -170,9 +198,7 @@ export const getById = query({
 
     const obrasIds = relaciones.map((r) => r.obraSocialId);
 
-    const obras = await Promise.all(
-      obrasIds.map((id) => ctx.db.get(id))
-    );
+    const obras = await Promise.all(obrasIds.map((id) => ctx.db.get(id)));
 
     return {
       ...paciente,
