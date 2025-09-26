@@ -1,65 +1,11 @@
 "use client";
 
 import { useState } from "react";
-
-// Mock data and types since Convex and Next.js libraries are not available
-type Id<T> = string; // Placeholder for a Convex Id
-type Paciente = {
-  _id: Id<"pacientes">;
-  nombreCompleto: string;
-  email: string;
-  telefono: string;
-  dni: string;
-  fechaNacimiento: string;
-  obrasSociales: Id<"obrasSociales">[];
-  obrasSocialesNombres?: string[];
-};
-
-type ObraSocial = {
-  _id: Id<"obrasSociales">;
-  nombre: string;
-};
-
-const MOCK_OBRAS_SOCIALES: ObraSocial[] = [
-  { _id: "1", nombre: "OSDE" },
-  { _id: "2", nombre: "Swiss Medical" },
-  { _id: "3", nombre: "Sancor Salud" },
-  { _id: "4", nombre: "IPS" },
-  { _id: "5", nombre: "Particular" },
-];
-
-const MOCK_PACIENTES: Paciente[] = [
-  {
-    _id: "p1",
-    nombreCompleto: "Juan Pérez",
-    email: "juan.perez@example.com",
-    telefono: "1112345678",
-    dni: "12345678",
-    fechaNacimiento: "1990-05-15",
-    obrasSociales: ["1", "3"],
-    obrasSocialesNombres: ["OSDE", "Sancor Salud"],
-  },
-  {
-    _id: "p2",
-    nombreCompleto: "María Gómez",
-    email: "maria.gomez@example.com",
-    telefono: "2223456789",
-    dni: "87654321",
-    fechaNacimiento: "1985-11-20",
-    obrasSociales: ["2"],
-    obrasSocialesNombres: ["Swiss Medical"],
-  },
-  {
-    _id: "p3",
-    nombreCompleto: "Carlos Rodríguez",
-    email: "carlos.rodriguez@example.com",
-    telefono: "3334567890",
-    dni: "98765432",
-    fechaNacimiento: "1978-01-25",
-    obrasSociales: ["5"],
-    obrasSocialesNombres: ["Particular"],
-  },
-];
+import { useRouter } from "next/navigation";
+import { useQuery, useMutation } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { Id } from "@/convex/_generated/dataModel"; // 🔹 Ahora necesitamos este import
+import { useMemo } from "react";
 
 // Tipo para el form
 type FormState = {
@@ -73,57 +19,51 @@ type FormState = {
 
 export default function PacientesPage() {
   const [search, setSearch] = useState("");
-  const [pacientes, setPacientes] = useState(MOCK_PACIENTES);
   const [seleccionado, setSeleccionado] = useState<any | null>(null);
-  const [modo, setModo] = useState<"ver" | "editar" | "crear" | "eliminar" | null>(null);
+  const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | null>(null);
+  const router = useRouter();
 
-  const obrasSociales = MOCK_OBRAS_SOCIALES;
+  // 🔹 Utiliza useQuery para obtener la lista de pacientes y obras sociales desde Convex
+  const pacientesConvex = useQuery(api.pacientes.listar, { search });
+  const obrasSociales = useQuery(api.obrasSociales.listar);
 
-  const handleCrear = (form: FormState) => {
-    const newPaciente: Paciente = {
-      ...form,
-      _id: `p${pacientes.length + 1}`,
-      obrasSocialesNombres: form.obrasSociales.map(
-        (id) => MOCK_OBRAS_SOCIALES.find((os) => os._id === id)?.nombre || "Desconocida"
-      ),
-    };
-    setPacientes((prev) => [...prev, newPaciente]);
+  // 🔹 Usa useMemo para evitar re-cálculos innecesarios de la lista filtrada
+  const filteredPacientes = useMemo(() => {
+    return pacientesConvex || [];
+  }, [pacientesConvex]);
+
+  // Mutations
+  const crearPaciente = useMutation(api.pacientes.crear);
+  const actualizarPaciente = useMutation(api.pacientes.actualizar);
+  const eliminarPaciente = useMutation(api.pacientes.eliminar);
+
+  if (pacientesConvex === undefined || obrasSociales === undefined) {
+    return (
+      <div className="flex justify-center items-center h-screen bg-gray-50">
+        <p className="text-gray-500 text-lg">Cargando pacientes...</p>
+      </div>
+    );
+  }
+
+  const handleCrear = async (form: FormState) => {
+    await crearPaciente(form);
     setModo(null);
   };
 
-  const handleActualizar = (id: Id<"pacientes">, form: FormState) => {
-    const updatedPacientes = pacientes.map((p) =>
-      p._id === id
-        ? {
-            ...p,
-            ...form,
-            obrasSocialesNombres: form.obrasSociales.map(
-              (osId) => MOCK_OBRAS_SOCIALES.find((os) => os._id === osId)?.nombre || "Desconocida"
-            ),
-          }
-        : p
-    );
-    setPacientes(updatedPacientes);
+  const handleActualizar = async (id: Id<"pacientes">, form: FormState) => {
+    await actualizarPaciente({ id, ...form });
     setModo(null);
     setSeleccionado(null);
   };
 
-  const handleEliminar = (id: Id<"pacientes">) => {
-    setPacientes((prev) => prev.filter((p) => p._id !== id));
+  const handleEliminar = async (id: Id<"pacientes">) => {
+    await eliminarPaciente({ id });
     setModo(null);
   };
 
-  // Filtrado simple por nombre o DNI
-  const filteredPacientes = pacientes.filter(
-    (p) =>
-      p.nombreCompleto.toLowerCase().includes(search.toLowerCase()) ||
-      p.dni.includes(search)
-  );
-
   // Estilos para badges
   const getBadgeClass = (nombre: string) => {
-    const base =
-      "inline-block px-2 py-0.5 mr-1 rounded-full text-xs font-medium";
+    const base = "inline-block px-2 py-0.5 mr-1 rounded-full text-xs font-medium";
     switch (nombre) {
       case "OSDE":
       case "OSDE 310":
@@ -175,60 +115,60 @@ export default function PacientesPage() {
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
-            {filteredPacientes.map((p) => (
-              <tr key={p._id} className="hover:bg-gray-50 transition-colors">
-                <td className="px-4 py-3">
-                  <div className="font-medium text-gray-900">{p.nombreCompleto}</div>
-                  <div className="text-xs text-gray-500">{p.email ?? ""}</div>
-                </td>
-                <td className="px-4 py-3 text-gray-900">{p.dni}</td>
-                <td className="px-4 py-3 text-gray-900">{p.telefono ?? "-"}</td>
-                <td className="px-4 py-3">
-                  {p.obrasSocialesNombres?.length > 0 ? (
-                    p.obrasSocialesNombres
-                      .filter((n): n is string => Boolean(n))
-                      .map((nombre, i) => (
-                        <span key={i} className={getBadgeClass(nombre)}>
-                          {nombre}
-                        </span>
-                      ))
-                  ) : (
-                    <span className={getBadgeClass("Particular")}>Particular</span>
-                  )}
-                </td>
+            {filteredPacientes.length > 0 ? (
+              filteredPacientes.map((p) => (
+                <tr key={p._id} className="hover:bg-gray-50 transition-colors">
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{p.nombreCompleto}</div>
+                    <div className="text-xs text-gray-500">{p.email ?? ""}</div>
+                  </td>
+                  <td className="px-4 py-3 text-gray-900">{p.dni}</td>
+                  <td className="px-4 py-3 text-gray-900">{p.telefono ?? "-"}</td>
+                  <td className="px-4 py-3">
+                    {Array.isArray(p.obrasSocialesNombres) && p.obrasSocialesNombres.length > 0 ? (
+                      p.obrasSocialesNombres
+                        .filter((n): n is string => Boolean(n))
+                        .map((nombre, i) => (
+                          <span key={i} className={getBadgeClass(nombre)}>
+                            {nombre}
+                          </span>
+                        ))
+                    ) : (
+                      <span className={getBadgeClass("Particular")}>Particular</span>
+                    )}
+                  </td>
 
-                <td className="px-4 py-3 text-right space-x-2">
-                  <button
-                    onClick={() => {
-                      setSeleccionado(p);
-                      setModo("ver");
-                    }}
-                    className="rounded-md px-3 py-1 text-sm text-cyan-600 hover:bg-cyan-50 transition-colors"
-                  >
-                    👁 Ver
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSeleccionado(p);
-                      setModo("editar");
-                    }}
-                    className="rounded-md px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
-                  >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => {
-                      setSeleccionado(p);
-                      setModo("eliminar");
-                    }}
-                    className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                  >
-                    🗑
-                  </button>
-                </td>
-              </tr>
-            ))}
-            {filteredPacientes.length === 0 && (
+                  <td className="px-4 py-3 text-right space-x-2">
+                    <button
+                      onClick={() => {
+                        router.push(`/pacientes/${p._id}`);
+                      }}
+                      className="rounded-md px-3 py-1 text-sm text-cyan-600 hover:bg-cyan-50 transition-colors"
+                    >
+                      👁 Ver
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSeleccionado(p);
+                        setModo("editar");
+                      }}
+                      className="rounded-md px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                    >
+                      ✏️
+                    </button>
+                    <button
+                      onClick={() => {
+                        setSeleccionado(p);
+                        setModo("eliminar");
+                      }}
+                      className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                    >
+                      🗑
+                    </button>
+                  </td>
+                </tr>
+              ))
+            ) : (
               <tr>
                 <td colSpan={5} className="px-4 py-6 text-center text-gray-500 italic">
                   No se encontraron pacientes
@@ -239,7 +179,7 @@ export default function PacientesPage() {
         </table>
       </div>
 
-      {/* Modal para ver/editar/crear */}
+      {/* Modal para editar/crear/eliminar */}
       {modo && (
         <Modal
           onClose={() => {
@@ -247,10 +187,6 @@ export default function PacientesPage() {
             setSeleccionado(null);
           }}
         >
-          {modo === "ver" && seleccionado && (
-            <VerPaciente paciente={seleccionado} />
-          )}
-
           {modo === "crear" && (
             <PacienteForm
               titulo="Nuevo paciente"
@@ -340,71 +276,6 @@ function ConfirmacionModal({ onConfirm, onCancel }: { onConfirm: () => void; onC
   );
 }
 
-/* Ver paciente */
-function VerPaciente({ paciente }: { paciente: any }) {
-  const getBadgeClass = (nombre: string) => {
-    const base = "inline-block px-2 py-0.5 mr-1 rounded-full text-xs font-medium";
-    switch (nombre) {
-      case "OSDE":
-      case "OSDE 310":
-        return base + " bg-blue-100 text-blue-700";
-      case "Swiss Medical":
-        return base + " bg-green-100 text-green-700";
-      case "Sancor Salud":
-        return base + " bg-purple-100 text-purple-700";
-      case "IPS":
-        return base + " bg-red-100 text-red-700";
-      default:
-        return base + " bg-gray-200 text-gray-600";
-    }
-  };
-
-  return (
-    <div className="space-y-4">
-      <h2 className="text-2xl font-semibold text-gray-900">Datos del Paciente</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm text-gray-700">
-        <div>
-          <b className="font-semibold text-gray-900">Nombre Completo:</b>
-          <p className="text-gray-800">{paciente.nombreCompleto}</p>
-        </div>
-        <div>
-          <b className="font-semibold text-gray-900">DNI:</b>
-          <p className="text-gray-800">{paciente.dni}</p>
-        </div>
-        <div>
-          <b className="font-semibold text-gray-900">Teléfono:</b>
-          <p className="text-gray-800">{paciente.telefono ?? "-"}</p>
-        </div>
-        <div>
-          <b className="font-semibold text-gray-900">Email:</b>
-          <p className="text-gray-800">{paciente.email ?? "-"}</p>
-        </div>
-        <div>
-          <b className="font-semibold text-gray-900">Fecha de Nacimiento:</b>
-          <p className="text-gray-800">{paciente.fechaNacimiento ?? "-"}</p>
-        </div>
-        <div className="sm:col-span-2">
-          <b className="font-semibold text-gray-900">Obras Sociales:</b>
-          <div className="mt-1">
-            {paciente.obrasSocialesNombres?.length > 0 ? (
-              paciente.obrasSocialesNombres
-                .filter((n: any): n is string => Boolean(n))
-                .map((nombre: string, i: number) => (
-                  <span key={i} className={getBadgeClass(nombre)}>
-                    {nombre}
-                  </span>
-                ))
-            ) : (
-              <span className={getBadgeClass("Particular")}>Particular</span>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-
 /* Formulario de paciente */
 function PacienteForm({
   titulo,
@@ -415,7 +286,7 @@ function PacienteForm({
 }: {
   titulo: string;
   initial: any;
-  obrasSociales: { _id: Id<"obrasSociales">; nombre: string }[];
+  obrasSociales: any; // Updated to `any`
   onSubmit: (form: FormState) => void;
   onCancel: () => void;
 }) {
@@ -447,7 +318,7 @@ function PacienteForm({
     } else if (!/^\+?\d*$/.test(form.telefono)) {
       newErrors.telefono = "El formato del teléfono no es válido. Solo puede contener números y un '+' opcional al inicio.";
     }
-    
+
     if (!form.email.trim()) {
       newErrors.email = "El email es obligatorio.";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
@@ -550,7 +421,7 @@ function PacienteForm({
         <div className="sm:col-span-2">
           <label className="text-sm text-gray-800">Obras Sociales</label>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-            {obrasSociales.map((os) => (
+            {obrasSociales?.map((os: any) => (
               <label key={os._id} className="flex items-center gap-2 text-gray-900">
                 <input
                   type="checkbox"
@@ -575,7 +446,7 @@ function PacienteForm({
         </button>
         <button
           type="submit"
-          className="rounded-lg px-4 py-2 bg-cyan-600 text-white hover:bg-cyan-700 transition-colors"
+          className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700 transition-colors"
         >
           Guardar
         </button>

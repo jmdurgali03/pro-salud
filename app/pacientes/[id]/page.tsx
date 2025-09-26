@@ -131,14 +131,12 @@ export default function HistorialPacientePage() {
   const crearConsulta = useMutation(api.consultas.crear);
   const diagnosticos = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId });
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
-  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
   const profesionales = useQuery(api.profesionales.listar) ?? [];
-  const actualizarPaciente = useMutation(api.pacientes.actualizar);
 
   // Modales
   const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
-  const [openEditar, setOpenEditar] = useState(false);
+
 
   // Formularios
   const [motivo, setMotivo] = useState("");
@@ -146,7 +144,6 @@ export default function HistorialPacientePage() {
   const [notas, setNotas] = useState("");
   const [dxDesc, setDxDesc] = useState("");
   const [dxProf, setDxProf] = useState("");
-  const [editForm, setEditForm] = useState<Partial<PacienteExtendido>>({});
 
   const resumenRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -180,19 +177,6 @@ export default function HistorialPacientePage() {
     setOpenDx(false);
   };
 
-  const handleActualizar = async (e: React.FormEvent) => {
-    e.preventDefault();
-    await actualizarPaciente({
-      id: paciente._id,
-      nombreCompleto: editForm.nombreCompleto ?? paciente.nombreCompleto,
-      email: editForm.email ?? paciente.email,
-      telefono: editForm.telefono ?? paciente.telefono,
-      dni: editForm.dni ?? paciente.dni,
-      fechaNacimiento: editForm.fechaNacimiento ?? paciente.fechaNacimiento,
-      obrasSociales: editForm.obrasSociales ?? paciente.obrasSociales,
-    });
-    setOpenEditar(false);
-  };
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -234,15 +218,6 @@ export default function HistorialPacientePage() {
                 <p className="text-sm text-gray-500">Información básica del paciente</p>
               </div>
               <div className="flex gap-2">
-                <button
-                  onClick={() => {
-                    setEditForm(paciente);
-                    setOpenEditar(true);
-                  }}
-                  className="inline-flex items-center gap-2 self-start rounded-lg border border-cyan-600 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50"
-                >
-                  ✏️ Editar
-                </button>
                 <button
                   onClick={() => router.push("/pacientes")}
                   className="inline-flex items-center gap-2 self-start rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
@@ -357,41 +332,6 @@ export default function HistorialPacientePage() {
           <div className="flex justify-end gap-2 pt-2">
             <button type="button" onClick={() => setOpenDx(false)} className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100">Cancelar</button>
             <button type="submit" className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700">Guardar</button>
-          </div>
-        </form>
-      </Modal>
-
-      {/* Modal: Editar paciente */}
-      <Modal open={openEditar} onClose={() => setOpenEditar(false)} title="Editar paciente">
-        <form onSubmit={handleActualizar} className="space-y-3">
-          <input defaultValue={paciente.nombreCompleto} onChange={(e) => setEditForm((f) => ({ ...f, nombreCompleto: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="Nombre completo" required />
-          <input defaultValue={paciente.dni} onChange={(e) => setEditForm((f) => ({ ...f, dni: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="DNI" required />
-          <input type="email" defaultValue={paciente.email ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, email: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="Email" />
-          <input defaultValue={paciente.telefono ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, telefono: e.target.value }))} className="w-full border rounded-lg p-2" placeholder="Teléfono" />
-          <input type="date" defaultValue={paciente.fechaNacimiento ?? ""} onChange={(e) => setEditForm((f) => ({ ...f, fechaNacimiento: e.target.value }))} className="w-full border rounded-lg p-2" />
-
-          {/* Obras sociales */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Obras Sociales</label>
-            {obrasSociales.map((os) => (
-              <label key={os._id} className="flex items-center gap-2">
-                <input type="checkbox" defaultChecked={paciente.obrasSociales.includes(os._id)} onChange={(e) =>
-                  setEditForm((f) => {
-                    const current = f.obrasSociales ?? paciente.obrasSociales;
-                    return {
-                      ...f,
-                      obrasSociales: e.target.checked ? [...current, os._id] : current.filter((id) => id !== os._id),
-                    };
-                  })
-                }/>
-                {os.nombre}
-              </label>
-            ))}
-          </div>
-
-          <div className="flex justify-end gap-2 pt-2">
-            <button type="button" onClick={() => setOpenEditar(false)} className="rounded-lg border px-4 py-2 text-gray-700 hover:bg-gray-100">Cancelar</button>
-            <button type="submit" className="rounded-lg bg-cyan-600 px-4 py-2 font-medium text-white hover:bg-cyan-700">Guardar cambios</button>
           </div>
         </form>
       </Modal>
