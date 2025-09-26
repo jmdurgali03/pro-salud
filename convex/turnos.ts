@@ -1,7 +1,7 @@
-// convex/turnos.ts
 import { query, mutation } from "./_generated/server";
-import { v } from "convex/values";
+import { v, ConvexError } from "convex/values"; // ✅ importo ConvexError
 import { checkSolapamiento } from "./helpers/checkSolapamiento";
+
 // ----------------------------
 // Listar turnos enriquecidos
 // ----------------------------
@@ -53,7 +53,6 @@ export const listarRango = query({
 // ----------------------------
 // Crear turno
 // ----------------------------
-
 export const crear = mutation({
   args: {
     pacienteId: v.id("pacientes"),
@@ -77,7 +76,7 @@ export const crear = mutation({
     );
 
     if (existeSolapamiento) {
-      throw new Error("El profesional ya tiene un turno en este horario.");
+      throw new ConvexError("El profesional ya tiene un turno en este horario."); // ✅
     }
 
     const ahora = Date.now();
@@ -111,7 +110,9 @@ export const editar = mutation({
   },
   handler: async (ctx, { id, ...data }) => {
     const turnoActual = await ctx.db.get(id);
-    if (!turnoActual) throw new Error("Turno no encontrado");
+    if (!turnoActual) {
+      throw new ConvexError("Turno no encontrado"); // ✅
+    }
 
     const nuevo = { ...turnoActual, ...data };
 
@@ -124,7 +125,7 @@ export const editar = mutation({
     );
 
     if (existeSolapamiento) {
-      throw new Error("El profesional ya tiene un turno en este horario.");
+      throw new ConvexError("El profesional ya tiene un turno en este horario."); // ✅
     }
 
     await ctx.db.patch(id, {

@@ -1,4 +1,3 @@
-// components/CreateTurnoDialog.tsx
 "use client";
 
 import { useEffect, useState } from "react";
@@ -47,7 +46,10 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFin, setHoraFin] = useState("10:00");
 
-  // Cargar datos al editar
+  // 👉 estado para mensajes de error
+  const [error, setError] = useState<string | null>(null);
+
+  // Cargar datos al editar o resetear en nuevo
   useEffect(() => {
     if (turno) {
       setPacienteId(turno.pacienteId);
@@ -59,13 +61,40 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
       const d2 = new Date(turno.end);
       setHoraInicio(`${d1.getHours().toString().padStart(2, "0")}:${d1.getMinutes().toString().padStart(2, "0")}`);
       setHoraFin(`${d2.getHours().toString().padStart(2, "0")}:${d2.getMinutes().toString().padStart(2, "0")}`);
+    } else {
+      // reset al abrir nuevo turno
+      setPacienteId("");
+      setProfesionalId("");
+      setTipo("");
+      setEstado("Pendiente");
+      setHoraInicio("09:00");
+      setHoraFin("10:00");
     }
-  }, [turno]);
+  }, [turno, open]);
+
+  // 👇 Nuevo efecto: actualiza automáticamente la horaFin a +1 hora de horaInicio
+  useEffect(() => {
+    if (horaInicio) {
+      const [h, m] = horaInicio.split(":").map(Number);
+      const nuevaHora = new Date();
+      nuevaHora.setHours(h + 1, m, 0, 0);
+
+      const hh = nuevaHora.getHours().toString().padStart(2, "0");
+      const mm = nuevaHora.getMinutes().toString().padStart(2, "0");
+
+      setHoraFin(`${hh}:${mm}`);
+    }
+  }, [horaInicio]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!pacienteId) return alert("Debe seleccionar un paciente");
-    if (!profesionalId) return alert("Debe seleccionar un profesional");
+    setError(null);
+
+    // ✅ Validaciones obligatorias
+    if (!pacienteId) return setError("Debe seleccionar un paciente");
+    if (!profesionalId) return setError("Debe seleccionar un profesional");
+    if (!tipo) return setError("Debe seleccionar un tipo de consulta");
+    if (!estado) return setError("Debe seleccionar un estado");
 
     const baseDate = defaultDate || (turno ? new Date(turno.start) : new Date());
 
@@ -78,28 +107,38 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     const end = new Date(baseDate);
     end.setHours(h2, m2, 0, 0);
 
-    if (turno) {
-      await editarTurno({
-        id: turno._id,
-        pacienteId,
-        profesionalId,
-        tipo,
-        estado,
-        start: start.getTime(),
-        end: end.getTime(),
-      });
-    } else {
-      await crearTurno({
-        pacienteId,
-        profesionalId,
-        tipo,
-        estado,
-        start: start.getTime(),
-        end: end.getTime(),
-      });
+    // ✅ Validación: duración exacta de 1 hora
+    if (end.getTime() - start.getTime() !== 60 * 60 * 1000) {
+      return setError("El turno debe durar exactamente 1 hora");
     }
 
-    setOpen(false);
+    try {
+      if (turno) {
+        await editarTurno({
+          id: turno._id,
+          pacienteId,
+          profesionalId,
+          tipo,
+          estado,
+          start: start.getTime(),
+          end: end.getTime(),
+        });
+      } else {
+        await crearTurno({
+          pacienteId,
+          profesionalId,
+          tipo,
+          estado,
+          start: start.getTime(),
+          end: end.getTime(),
+        });
+      }
+      setOpen(false);
+    } catch (err: any) {
+      // 👇 Capturamos ConvexError limpio
+      setError(err.data || "Ocurrió un error al guardar el turno");
+      return;
+    }
   };
 
   const handleDelete = async () => {
@@ -136,14 +175,6 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
                     {p.nombreCompleto} – {p.dni}
                   </SelectItem>
                 ))}
-                <div className="border-t my-1" />
-                <Button
-                  type="button"
-                  className="w-full bg-blue-500 text-white mt-2"
-                  onClick={() => alert("Abrir modal de nuevo paciente")}
-                >
-                  + Nuevo Paciente
-                </Button>
               </SelectContent>
             </Select>
           </div>
@@ -207,7 +238,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </div>
             <div>
               <Label>Hora fin</Label>
-              <Input type="time" value={horaFin} onChange={(e) => setHoraFin(e.target.value)} required />
+              <Input type="time" value={horaFin} readOnly required /> {/* 👈 ahora solo lectura */}
             </div>
           </div>
 
@@ -222,6 +253,13 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
               {turno ? "Guardar cambios" : "Guardar Turno"}
             </Button>
           </div>
+
+          {/* Mensaje de error elegante */}
+          {error && (
+            <div className="mt-3 p-2 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>
