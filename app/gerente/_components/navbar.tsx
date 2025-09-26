@@ -40,11 +40,11 @@ export function Navbar() {
                     <Image
                         src="/logo.png"
                         alt="ProSalud Logo"
-                        width={160}
-                        height={160}
+                        width={120}
+                        height={40}
+                        className="h-40 w-auto"
                         priority
                     />
-                    <span className="sr-only">ProSalud</span>
                 </Link>
 
                 {/* Links desktop */}

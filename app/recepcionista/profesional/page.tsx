@@ -2,9 +2,9 @@
 
 import { useState } from "react";
 import { useQuery, useMutation } from "convex/react";
-import { api } from "../../convex/_generated/api";
-import type { Id } from "../../convex/_generated/dataModel";
 import ProfesionalModal from "./ProfesionalModal";
+import { Id } from "@/convex/_generated/dataModel";
+import { api } from "@/convex/_generated/api";
 
 export type Profesional = {
   _id: Id<"profesionales">;
@@ -99,9 +99,8 @@ export default function ProfesionalesPage() {
                 <td className="p-3 text-center">{getObrasSocialesNombres(prof.obrasSociales) || "—"}</td>
                 <td className="p-3 text-center">
                   <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${
-                      prof.estado === "Activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                    }`}
+                    className={`px-2 py-1 rounded text-xs font-medium ${prof.estado === "Activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
+                      }`}
                   >
                     {prof.estado}
                   </span>
@@ -114,7 +113,7 @@ export default function ProfesionalesPage() {
                     Editar
                   </button>
 
-                  <button onClick={() => handleEliminar(prof._id)} className="text-red-600 hover:underline hidden"> 
+                  <button onClick={() => handleEliminar(prof._id)} className="text-red-600 hover:underline hidden">
                     Eliminar
                   </button>
                 </td>

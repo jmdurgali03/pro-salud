@@ -1,27 +1,18 @@
 "use client";
 
-import Link from "next/link";
-import Image from "next/image";
 import { Button } from "@/components/ui/button";
 import { Sheet, SheetContent, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { Menu } from "lucide-react";
-import { UserButton, useUser, useAuth } from "@clerk/nextjs";
+import Image from "next/image";
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
-import { useRoleRedirect } from "@/hooks/useRoleRedirect";
+import { usePathname } from "next/navigation";
 
 export function Navbar() {
     const { isSignedIn } = useUser();
-    const { userId } = useAuth();
     const [scrolled, setScrolled] = useState(false);
-
-    const currentUser = useQuery(
-        api.users.getCurrentUser,
-        userId ? { clerkId: userId } : "skip"
-    );
-
-    const { goToRolePage } = useRoleRedirect();
+    const pathname = usePathname();
 
     useEffect(() => {
         const handleScroll = () => setScrolled(window.scrollY > 10);
@@ -29,30 +20,22 @@ export function Navbar() {
         return () => window.removeEventListener("scroll", handleScroll);
     }, []);
 
-    const handleHomeClick = () => {
-        if (currentUser?.role) {
-            goToRolePage(currentUser.role);
-        }
-    };
-
-    // 🔹 Definimos un solo array de links
     const links = [
-        { href: "#inicio", label: "Inicio" },
-        { href: "#servicios", label: "Servicios" },
-        { href: "#acerca", label: "Acerca" },
-        { href: "#contacto", label: "Contacto" },
+        { href: "/recepcionista/cal-turnos", label: "Turnos" },
+        { href: "/recepcionista/pacientes", label: "Pacientes" },
+        { href: "/recepcionista/profesional", label: "Profesionales" },
     ];
 
     return (
         <header
-            className={`fixed top-0 left-0 w-full z-50 transition-all duration-300 ${scrolled
+            className={`fixed top-0 left-0 w-full border z-50 transition-all duration-300 ${scrolled
                 ? "backdrop-blur-md bg-white/80 shadow-md"
                 : "bg-white/95"
                 }`}
         >
             <div className="container mx-auto flex h-20 items-center justify-between px-4">
                 {/* Logo */}
-                <Link href="#inicio" className="flex items-center">
+                <Link href="/" className="flex items-center">
                     <Image
                         src="/logo.png"
                         alt="ProSalud Logo"
@@ -64,32 +47,31 @@ export function Navbar() {
                 </Link>
 
                 {/* Links desktop */}
-                <nav className="hidden md:flex gap-8 text-lg font-medium text-gray-700">
+                <nav className="hidden md:flex gap-8 text-lg font-medium absolute left-1/2 -translate-x-1/2">
                     {links.map((link) => (
                         <Link
                             key={link.href}
                             href={link.href}
-                            className="transition-all hover:shadow-md hover:shadow-gray-300 rounded-md px-2 py-1 hover:text-gray-900"
+                            className={`relative px-2 py-1 transition-all rounded-md
+                            hover:shadow-md hover:shadow-gray-300 
+                            ${pathname === link.href
+                                    ? "text-blue-600 font-semibold "
+                                    : "text-gray-700 hover:text-gray-900"
+                                }`}
                         >
                             {link.label}
                         </Link>
                     ))}
                 </nav>
 
-                {/* Botones desktop */}
+                {/* User / Registro */}
                 <div className="hidden md:flex items-center gap-4">
                     {isSignedIn ? (
-                        <>
-                            <UserButton afterSignOutUrl="/" />
-                            <Button onClick={handleHomeClick}>Home</Button>
-                        </>
+                        <UserButton />
                     ) : (
-                        <>
-                            <Button asChild>
-                                <Link href="/sign-up">Registrarse</Link>
-                            </Button>
-                            <Button disabled>Home</Button>
-                        </>
+                        <Button asChild>
+                            <Link href="/sign-up">Registrarse</Link>
+                        </Button>
                     )}
                 </div>
 
@@ -105,37 +87,30 @@ export function Navbar() {
                         <SheetContent side="right" className="p-6">
                             <SheetTitle className="sr-only">Menu de nav</SheetTitle>
 
-                            {/* Links mobile */}
                             <nav className="flex flex-col gap-4 text-lg font-medium mt-4">
                                 {links.map((link) => (
                                     <Link
                                         key={link.href}
                                         href={link.href}
-                                        className="hover:bg-gray-100 hover:shadow-md hover:shadow-gray-300 rounded-md px-3 py-1"
+                                        className={`rounded-md px-3 py-1 transition-all
+                                        hover:bg-gray-100 hover:shadow-md hover:shadow-gray-300
+                                        ${pathname === link.href
+                                                ? "text-blue-600 font-semibold shadow-[0_0_10px_rgba(0,200,200,0.6)]"
+                                                : "text-gray-700"
+                                            }`}
                                     >
                                         {link.label}
                                     </Link>
                                 ))}
                             </nav>
 
-                            {/* Botones mobile */}
                             <div className="mt-6">
                                 {isSignedIn ? (
-                                    <div className="flex items-center gap-3">
-                                        <UserButton afterSignOutUrl="/" />
-                                        <Button className="flex-1" onClick={handleHomeClick}>
-                                            Home
-                                        </Button>
-                                    </div>
+                                    <UserButton />
                                 ) : (
-                                    <div className="flex items-center gap-3">
-                                        <Button asChild className="flex-1">
-                                            <Link href="/sign-up">Registrarse</Link>
-                                        </Button>
-                                        <Button disabled className="flex-1">
-                                            Home
-                                        </Button>
-                                    </div>
+                                    <Button asChild>
+                                        <Link href="/sign-up">Registrarse</Link>
+                                    </Button>
                                 )}
                             </div>
                         </SheetContent>

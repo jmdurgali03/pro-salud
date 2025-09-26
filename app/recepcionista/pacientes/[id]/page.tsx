@@ -219,7 +219,7 @@ export default function HistorialPacientePage() {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => router.push("/pacientes")}
+                  onClick={() => router.push("/recepcionista/pacientes")}
                   className="inline-flex items-center gap-2 self-start rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
                 >
                   <ArrowLeft className="h-4 w-4" />Volver

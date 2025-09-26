@@ -141,7 +141,7 @@ export default function PacientesPage() {
                   <td className="px-4 py-3 text-right space-x-2">
                     <button
                       onClick={() => {
-                        router.push(`/pacientes/${p._id}`);
+                        router.push(`/recepcionista/pacientes/${p._id}`);
                       }}
                       className="rounded-md px-3 py-1 text-sm text-cyan-600 hover:bg-cyan-50 transition-colors"
                     >
@@ -309,7 +309,7 @@ function PacienteForm({
     if (!form.dni.trim()) {
       newErrors.dni = "El DNI es obligatorio.";
     } else if (form.dni.length > 8) {
-        newErrors.dni = "El DNI no puede tener más de 8 caracteres.";
+      newErrors.dni = "El DNI no puede tener más de 8 caracteres.";
     } else if (!/^\d+$/.test(form.dni)) {
       newErrors.dni = "El DNI solo puede contener números.";
     }
@@ -374,9 +374,8 @@ function PacienteForm({
           <input
             value={form.dni}
             onChange={(e) => handleChange("dni", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
-              errors.dni ? "border-red-500" : ""
-            }`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.dni ? "border-red-500" : ""
+              }`}
             maxLength={8}
             required
           />
@@ -398,9 +397,8 @@ function PacienteForm({
             type="email"
             value={form.email}
             onChange={(e) => handleChange("email", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
-              errors.email ? "border-red-500" : ""
-            }`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.email ? "border-red-500" : ""
+              }`}
             required
           />
           {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
