@@ -7,10 +7,10 @@ type Id<T> = string; // Placeholder for a Convex Id
 type Paciente = {
   _id: Id<"pacientes">;
   nombreCompleto: string;
-  email?: string;
-  telefono?: string;
+  email: string;
+  telefono: string;
   dni: string;
-  fechaNacimiento?: string;
+  fechaNacimiento: string;
   obrasSociales: Id<"obrasSociales">[];
   obrasSocialesNombres?: string[];
 };
@@ -52,10 +52,10 @@ const MOCK_PACIENTES: Paciente[] = [
   {
     _id: "p3",
     nombreCompleto: "Carlos Rodríguez",
-    email: null,
-    telefono: null,
+    email: "carlos.rodriguez@example.com",
+    telefono: "3334567890",
     dni: "98765432",
-    fechaNacimiento: null,
+    fechaNacimiento: "1978-01-25",
     obrasSociales: ["5"],
     obrasSocialesNombres: ["Particular"],
   },
@@ -64,10 +64,10 @@ const MOCK_PACIENTES: Paciente[] = [
 // Tipo para el form
 type FormState = {
   nombreCompleto: string;
-  email?: string;
-  telefono?: string;
+  email: string;
+  telefono: string;
   dni: string;
-  fechaNacimiento?: string;
+  fechaNacimiento: string;
   obrasSociales: Id<"obrasSociales">[];
 };
 
@@ -442,12 +442,26 @@ function PacienteForm({
       newErrors.dni = "El DNI solo puede contener números.";
     }
 
-    if (form.telefono && !/^\+?\d*$/.test(form.telefono)) {
+    if (!form.telefono.trim()) {
+      newErrors.telefono = "El teléfono es obligatorio.";
+    } else if (!/^\+?\d*$/.test(form.telefono)) {
       newErrors.telefono = "El formato del teléfono no es válido. Solo puede contener números y un '+' opcional al inicio.";
     }
-    if (form.email && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
+    
+    if (!form.email.trim()) {
+      newErrors.email = "El email es obligatorio.";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
       newErrors.email = "El formato del email no es válido.";
     }
+
+    if (!form.fechaNacimiento.trim()) {
+      newErrors.fechaNacimiento = "La fecha de nacimiento es obligatoria.";
+    }
+
+    if (form.obrasSociales.length === 0) {
+      newErrors.obrasSociales = "Debe seleccionar al menos una obra social.";
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -505,6 +519,7 @@ function PacienteForm({
             value={form.telefono}
             onChange={(e) => handleChange("telefono", e.target.value)}
             className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.telefono ? "border-red-500" : ""}`}
+            required
           />
           {errors.telefono && <p className="text-xs text-red-500 mt-1">{errors.telefono}</p>}
         </div>
@@ -517,6 +532,7 @@ function PacienteForm({
             className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
               errors.email ? "border-red-500" : ""
             }`}
+            required
           />
           {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
         </div>
@@ -526,8 +542,10 @@ function PacienteForm({
             type="date"
             value={form.fechaNacimiento || ""}
             onChange={(e) => handleChange("fechaNacimiento", e.target.value)}
-            className="w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500"
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.fechaNacimiento ? "border-red-500" : ""}`}
+            required
           />
+          {errors.fechaNacimiento && <p className="text-xs text-red-500 mt-1">{errors.fechaNacimiento}</p>}
         </div>
         <div className="sm:col-span-2">
           <label className="text-sm text-gray-800">Obras Sociales</label>
@@ -544,6 +562,7 @@ function PacienteForm({
               </label>
             ))}
           </div>
+          {errors.obrasSociales && <p className="text-xs text-red-500 mt-1">{errors.obrasSociales}</p>}
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-2">
