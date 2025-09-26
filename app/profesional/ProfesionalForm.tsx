@@ -8,7 +8,7 @@ import type { Profesional, ProfesionalInput } from "./page";
 
 type Props = {
   initialData?: Profesional;
-  onSubmit: (data: ProfesionalInput) => void;
+  onSubmit: (data: ProfesionalInput & { dni?: string; matricula?: string }) => void;
   onCancel: () => void;
 };
 
@@ -16,12 +16,13 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
   const especialidades = useQuery(api.especialidades.listar);
   const obrasSociales = useQuery(api.obrasSociales.listar);
 
-  // ⏳ Mostrar mientras carga
   if (!especialidades || !obrasSociales) {
     return <p className="text-gray-500">Cargando datos...</p>;
   }
 
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
+  const [dni, setDni] = useState(initialData?.dni ?? "");
+  const [matricula, setMatricula] = useState(initialData?.matricula ?? "");
   const [especialidadId, setEspecialidadId] = useState<Id<"especialidades"> | "">(
     initialData?.especialidadId ?? ""
   );
@@ -29,9 +30,7 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
   const [obrasSeleccionadas, setObrasSeleccionadas] = useState<Id<"obrasSociales">[]>(
     initialData?.obrasSociales ?? []
   );
-  const [estado, setEstado] = useState<"Activo" | "Inactivo">(
-    initialData?.estado ?? "Activo"
-  );
+  const [estado, setEstado] = useState<"Activo" | "Inactivo">(initialData?.estado ?? "Activo");
 
   const handleObraSocialChange = (id: Id<"obrasSociales">) => {
     setObrasSeleccionadas((prev) =>
@@ -41,15 +40,31 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!especialidadId) return alert("Debe seleccionar una especialidad");
 
-    const data: ProfesionalInput = {
+    // Solo validar cuando es crear (no editar)
+    if (!initialData) {
+      if (dni.length !== 8) {
+        alert("El DNI debe tener exactamente 8 dígitos");
+        return;
+      }
+      if (matricula.length !== 4) {
+        alert("La matrícula debe tener exactamente 4 dígitos");
+        return;
+      }
+    }
+
+    const data: any = {
       nombre,
       especialidadId: especialidadId as Id<"especialidades">,
       contacto,
       obrasSociales: obrasSeleccionadas,
       estado,
     };
+
+    if (!initialData) {
+      data.dni = dni;
+      data.matricula = matricula;
+    }
 
     onSubmit(data);
   };
@@ -64,6 +79,30 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         className="w-full border rounded px-3 py-2"
         required
       />
+
+      {/* DNI y Matrícula solo en crear */}
+      {!initialData && (
+        <>
+          <input
+            type="text"
+            value={dni}
+            onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+            placeholder="DNI (8 dígitos)"
+            className="w-full border rounded px-3 py-2"
+            required
+            maxLength={8}
+          />
+          <input
+            type="text"
+            value={matricula}
+            onChange={(e) => setMatricula(e.target.value.replace(/\D/g, ""))}
+            placeholder="Matrícula (4 dígitos)"
+            className="w-full border rounded px-3 py-2"
+            required
+            maxLength={4}
+          />
+        </>
+      )}
 
       {/* Especialidad */}
       <select

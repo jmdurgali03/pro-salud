@@ -1,4 +1,3 @@
-// convex/profesionales.ts
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -26,10 +25,12 @@ export const listar = query(async (ctx) => {
   );
 });
 
-// Crear profesional
+// Crear profesional (requiere DNI y matrícula)
 export const crear = mutation({
   args: {
     nombre: v.string(),
+    dni: v.string(),
+    matricula: v.string(),
     especialidadId: v.id("especialidades"),
     contacto: v.string(),
     obrasSociales: v.array(v.id("obrasSociales")),
@@ -42,9 +43,7 @@ export const crear = mutation({
   },
 });
 
-/**
- * Edita un profesional existente.
- */
+// Editar profesional (no permite modificar DNI ni matrícula)
 export const editar = mutation({
   args: {
     id: v.id("profesionales"),
@@ -60,9 +59,7 @@ export const editar = mutation({
   },
 });
 
-/**
- * Elimina un profesional.
- */
+// Eliminar profesional
 export const eliminar = mutation({
   args: { id: v.id("profesionales") },
   handler: async (ctx, { id }) => {
