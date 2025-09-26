@@ -161,6 +161,7 @@ export default function PacientesPage() {
                         setSeleccionado(p);
                         setModo("eliminar");
                       }}
+                      disabled //ESTA FUERA DE SERVICIO
                       className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors"
                     >
                       🗑

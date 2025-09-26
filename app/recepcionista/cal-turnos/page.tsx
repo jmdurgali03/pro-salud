@@ -197,7 +197,7 @@ export default function TurnosPage() {
                 <TurnoDialog
                   turno={t}
                   trigger={
-                <Button variant="outline" disabled className="opacity-50 cursor-not-allowed">
+                <Button variant="outline" disabled className=" cursor-not-allowed">
                  Editar
               </Button>
                  }
