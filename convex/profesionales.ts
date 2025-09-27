@@ -1,13 +1,26 @@
+// convex/profesionales.ts
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
-// LISTAR (sin cambios)
+const onlyDigits = (s: string) => s.replace(/\D/g, "");
+
+// ---- Tipos de respuestas
+export type CrearResp =
+  | { ok: true; id: string }
+  | { ok: false; reason: "DNI_DUP" | "MATRICULA_DUP" | "TELEFONO_DUP" | "BAD_INPUT"; message?: string };
+
+export type EditResp =
+  | { ok: true }
+  | { ok: false; reason: "TELEFONO_DUP" | "NOT_FOUND" | "BAD_INPUT"; message?: string };
+
+export type EliminarResp =
+  | { ok: true }
+  | { ok: false; reason: "NOT_FOUND" };
+
 export const listar = query(async (ctx) => {
-  const profesionales = await ctx.db.query("profesionales").collect();
-  return profesionales;
+  return await ctx.db.query("profesionales").collect();
 });
 
-// CREAR  ✅ agrega `telefono`
 export const crear = mutation({
   args: {
     nombre: v.string(),
@@ -15,36 +28,84 @@ export const crear = mutation({
     matricula: v.string(),
     especialidadId: v.id("especialidades"),
     contacto: v.string(),
-    telefono: v.string(),                   // <-- NUEVO
+    telefono: v.string(),
     obrasSociales: v.array(v.id("obrasSociales")),
     estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
   },
-  handler: async (ctx, args) => {
-    return await ctx.db.insert("profesionales", { ...args });
+  handler: async (ctx, args): Promise<CrearResp> => {
+    const nombre = args.nombre.trim();
+    const contacto = args.contacto.trim();
+    const dni = onlyDigits(args.dni);
+    const matricula = onlyDigits(args.matricula);
+    const telefono = onlyDigits(args.telefono);
+
+    if (dni.length !== 8) return { ok: false, reason: "BAD_INPUT", message: "El DNI debe tener 8 dígitos." };
+    if (matricula.length !== 4) return { ok: false, reason: "BAD_INPUT", message: "La matrícula debe tener 4 dígitos." };
+    if (telefono.length !== 10) return { ok: false, reason: "BAD_INPUT", message: "El teléfono debe tener 10 dígitos." };
+
+    const dupDni = await ctx.db.query("profesionales").withIndex("por_dni", q => q.eq("dni", dni)).first();
+    if (dupDni) return { ok: false, reason: "DNI_DUP" };
+
+    const dupMat = await ctx.db.query("profesionales").withIndex("por_matricula", q => q.eq("matricula", matricula)).first();
+    if (dupMat) return { ok: false, reason: "MATRICULA_DUP" };
+
+    const dupTel = await ctx.db.query("profesionales").withIndex("por_telefono", q => q.eq("telefono", telefono)).first();
+    if (dupTel) return { ok: false, reason: "TELEFONO_DUP" };
+
+    const id = await ctx.db.insert("profesionales", {
+      ...args,
+      nombre,
+      contacto,
+      dni,
+      matricula,
+      telefono,
+    });
+    return { ok: true, id: id as any };
   },
 });
 
-// EDITAR  ✅ permite editar `telefono`
 export const editar = mutation({
   args: {
     id: v.id("profesionales"),
     nombre: v.optional(v.string()),
     especialidadId: v.optional(v.id("especialidades")),
     contacto: v.optional(v.string()),
-    telefono: v.optional(v.string()),       // <-- NUEVO
+    telefono: v.optional(v.string()),
     obrasSociales: v.optional(v.array(v.id("obrasSociales"))),
     estado: v.optional(v.union(v.literal("Activo"), v.literal("Inactivo"))),
   },
-  handler: async (ctx, { id, ...data }) => {
-    await ctx.db.patch(id, data);
-    return id;
+  handler: async (ctx, { id, ...data }): Promise<EditResp> => {
+    const actual = await ctx.db.get(id);
+    if (!actual) return { ok: false, reason: "NOT_FOUND" };
+
+    const patch: Record<string, any> = {};
+    if (data.nombre !== undefined) patch.nombre = data.nombre.trim();
+    if (data.contacto !== undefined) patch.contacto = data.contacto.trim();
+    if (data.especialidadId !== undefined) patch.especialidadId = data.especialidadId;
+    if (data.obrasSociales !== undefined) patch.obrasSociales = data.obrasSociales;
+    if (data.estado !== undefined) patch.estado = data.estado;
+
+    if (data.telefono !== undefined) {
+      const tel = onlyDigits(data.telefono);
+      if (tel.length !== 10) return { ok: false, reason: "BAD_INPUT", message: "El teléfono debe tener 10 dígitos." };
+      if (tel !== actual.telefono) {
+        const dup = await ctx.db.query("profesionales").withIndex("por_telefono", q => q.eq("telefono", tel)).first();
+        if (dup && dup._id !== id) return { ok: false, reason: "TELEFONO_DUP" };
+      }
+      patch.telefono = tel;
+    }
+
+    await ctx.db.patch(id, patch);
+    return { ok: true };
   },
 });
 
-// ELIMINAR (sin cambios)
 export const eliminar = mutation({
   args: { id: v.id("profesionales") },
-  handler: async (ctx, { id }) => {
+  handler: async (ctx, { id }): Promise<EliminarResp> => {
+    const ex = await ctx.db.get(id);
+    if (!ex) return { ok: false, reason: "NOT_FOUND" };
     await ctx.db.delete(id);
+    return { ok: true };
   },
 });
