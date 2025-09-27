@@ -12,6 +12,18 @@ type Props = {
   onCancel: () => void;
 };
 
+// Utilidades de validación
+const sanitizeNombre = (v: string) =>
+  v
+    // permite letras (con acentos y ñ), y espacios
+    .replace(/[^A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s]/g, "")
+    // colapsa espacios múltiples
+    .replace(/\s{2,}/g, " ")
+    // evita espacio inicial
+    .replace(/^\s+/, "");
+
+const isNombreValido = (v: string) => /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*$/.test(v);
+
 export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Props) {
   const especialidades = useQuery(api.especialidades.listar);
   const obrasSociales = useQuery(api.obrasSociales.listar);
@@ -27,6 +39,9 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
     initialData?.especialidadId ?? ""
   );
   const [contacto, setContacto] = useState(initialData?.contacto ?? "");
+  const [telefono, setTelefono] = useState(
+    (initialData?.telefono ?? "").replace(/\D/g, "").slice(0, 10)
+  );
   const [obrasSeleccionadas, setObrasSeleccionadas] = useState<Id<"obrasSociales">[]>(
     initialData?.obrasSociales ?? []
   );
@@ -41,7 +56,17 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Solo validar cuando es crear (no editar)
+    // Validaciones comunes
+    if (!isNombreValido(nombre.trim())) {
+      alert("El nombre solo puede contener letras y espacios (sin números ni símbolos).");
+      return;
+    }
+    if (telefono.length !== 10) {
+      alert("El teléfono debe tener exactamente 10 dígitos.");
+      return;
+    }
+
+    // Solo validar DNI y matrícula en creación
     if (!initialData) {
       if (dni.length !== 8) {
         alert("El DNI debe tener exactamente 8 dígitos");
@@ -54,9 +79,10 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
     }
 
     const data: any = {
-      nombre,
+      nombre: nombre.trim(),
       especialidadId: especialidadId as Id<"especialidades">,
       contacto,
+      telefono, // ya normalizado a 10 dígitos
       obrasSociales: obrasSeleccionadas,
       estado,
     };
@@ -74,10 +100,14 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
       {/* Nombre */}
       <input
         value={nombre}
-        onChange={(e) => setNombre(e.target.value)}
+        onChange={(e) => setNombre(sanitizeNombre(e.target.value))}
         placeholder="Nombre"
         className="w-full border rounded px-3 py-2"
         required
+        maxLength={60}
+        // ayuda al navegador para validar también
+        pattern="[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*"
+        title="Solo letras y espacios. Ej: Juan Pérez"
       />
 
       {/* DNI y Matrícula solo en crear */}
@@ -86,20 +116,24 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
           <input
             type="text"
             value={dni}
-            onChange={(e) => setDni(e.target.value.replace(/\D/g, ""))}
+            onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
             placeholder="DNI (8 dígitos)"
             className="w-full border rounded px-3 py-2"
             required
             maxLength={8}
+            pattern="\d{8}"
+            title="Debe contener 8 dígitos"
           />
           <input
             type="text"
             value={matricula}
-            onChange={(e) => setMatricula(e.target.value.replace(/\D/g, ""))}
+            onChange={(e) => setMatricula(e.target.value.replace(/\D/g, "").slice(0, 4))}
             placeholder="Matrícula (4 dígitos)"
             className="w-full border rounded px-3 py-2"
             required
             maxLength={4}
+            pattern="\d{4}"
+            title="Debe contener 4 dígitos"
           />
         </>
       )}
@@ -119,7 +153,7 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         ))}
       </select>
 
-      {/* Contacto */}
+      {/* Email / contacto */}
       <input
         type="email"
         value={contacto}
@@ -127,6 +161,20 @@ export default function ProfesionalForm({ initialData, onSubmit, onCancel }: Pro
         placeholder="Contacto (ej: usuario@gmail.com)"
         className="w-full border rounded px-3 py-2"
         required
+      />
+
+      {/* Teléfono */}
+      <input
+        type="tel"
+        inputMode="numeric"
+        value={telefono}
+        onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 10))}
+        placeholder="Teléfono (10 dígitos)"
+        className="w-full border rounded px-3 py-2"
+        required
+        maxLength={10}
+        pattern="\d{10}"
+        title="Debe contener exactamente 10 dígitos"
       />
 
       {/* Obras Sociales */}

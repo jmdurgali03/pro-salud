@@ -42,14 +42,16 @@ export default defineSchema({
   // Profesionales
   // -------------------------
   profesionales: defineTable({
-    nombre: v.string(),
-    dni: v.string(),        
-    matricula: v.string(), 
-    especialidadId: v.id("especialidades"),
-    contacto: v.string(),
-    obrasSociales: v.array(v.id("obrasSociales")), // puede atender varias
-    estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
-  }).index("por_nombre", ["nombre"]),
+  nombre: v.string(),
+  dni: v.string(),
+  matricula: v.string(),
+  especialidadId: v.id("especialidades"),
+  contacto: v.string(),   
+  telefono: v.string(),   
+  obrasSociales: v.array(v.id("obrasSociales")),
+  estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
+}).index("por_nombre", ["nombre"]),
+
 
   // -------------------------
   // Obras Sociales

@@ -13,6 +13,7 @@ export type Profesional = {
   matricula: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
+  telefono: string;
   obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
 
@@ -24,6 +25,7 @@ export type ProfesionalInput = {
   nombre: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
+  telefono: string;
   obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
 };
@@ -61,7 +63,10 @@ export default function ProfesionalesPage() {
     especialidades.find((e) => e._id === id)?.nombre || "—";
 
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
-    ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean).join(", ");
+    ids
+      .map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
+      .filter(Boolean)
+      .join(", ");
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
@@ -85,6 +90,7 @@ export default function ProfesionalesPage() {
               <th className="p-3 text-center">Nombre</th>
               <th className="p-3 text-center">Especialidad</th>
               <th className="p-3 text-center">Contacto</th>
+              <th className="p-3 text-center">Teléfono</th>
               <th className="p-3 text-center">Obras Sociales</th>
               <th className="p-3 text-center">Estado</th>
               <th className="p-3 text-center">Acciones</th>
@@ -96,24 +102,38 @@ export default function ProfesionalesPage() {
                 <td className="p-3 text-center">{prof.nombre}</td>
                 <td className="p-3 text-center">{getEspecialidadNombre(prof.especialidadId)}</td>
                 <td className="p-3 text-center">{prof.contacto}</td>
-                <td className="p-3 text-center">{getObrasSocialesNombres(prof.obrasSociales) || "—"}</td>
+                <td className="p-3 text-center">{prof.telefono}</td>
+                <td className="p-3 text-center">
+                  {getObrasSocialesNombres(prof.obrasSociales) || "—"}
+                </td>
                 <td className="p-3 text-center">
                   <span
-                    className={`px-2 py-1 rounded text-xs font-medium ${prof.estado === "Activo" ? "bg-green-500 text-white" : "bg-red-500 text-white"
-                      }`}
+                    className={`px-2 py-1 rounded text-xs font-medium ${
+                      prof.estado === "Activo"
+                        ? "bg-green-500 text-white"
+                        : "bg-red-500 text-white"
+                    }`}
                   >
                     {prof.estado}
                   </span>
                 </td>
                 <td className="p-3 space-x-3 text-center">
-                  <button onClick={() => setViendo(prof)} className="text-green-600 hover:underline">
+                  <button
+                    onClick={() => setViendo(prof)}
+                    className="text-green-600 hover:underline"
+                  >
                     Ver
                   </button>
-                  <button onClick={() => setEditando(prof)} className="text-blue-600 hover:underline">
+                  <button
+                    onClick={() => setEditando(prof)}
+                    className="text-blue-600 hover:underline"
+                  >
                     Editar
                   </button>
-
-                  <button onClick={() => handleEliminar(prof._id)} className="text-red-600 hover:underline hidden">
+                  <button
+                    onClick={() => handleEliminar(prof._id)}
+                    className="text-red-600 hover:underline hidden"
+                  >
                     Eliminar
                   </button>
                 </td>
@@ -121,7 +141,7 @@ export default function ProfesionalesPage() {
             ))}
             {profesionales.length === 0 && (
               <tr>
-                <td colSpan={6} className="p-4 text-center text-gray-400 italic">
+                <td colSpan={7} className="p-4 text-center text-gray-400 italic">
                   No hay profesionales registrados
                 </td>
               </tr>
@@ -154,13 +174,32 @@ export default function ProfesionalesPage() {
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
           <div className="bg-white text-black rounded-lg shadow-xl p-6 w-96 space-y-4">
             <h2 className="text-lg font-bold">Datos del Profesional</h2>
-            <p><strong>Nombre:</strong> {viendo.nombre}</p>
-            <p><strong>DNI:</strong> {viendo.dni}</p>
-            <p><strong>Matrícula:</strong> {viendo.matricula}</p>
-            <p><strong>Especialidad:</strong> {getEspecialidadNombre(viendo.especialidadId)}</p>
-            <p><strong>Contacto:</strong> {viendo.contacto}</p>
-            <p><strong>Obras Sociales:</strong> {getObrasSocialesNombres(viendo.obrasSociales)}</p>
-            <p><strong>Estado:</strong> {viendo.estado}</p>
+            <p>
+              <strong>Nombre:</strong> {viendo.nombre}
+            </p>
+            <p>
+              <strong>DNI:</strong> {viendo.dni}
+            </p>
+            <p>
+              <strong>Matrícula:</strong> {viendo.matricula}
+            </p>
+            <p>
+              <strong>Especialidad:</strong>{" "}
+              {getEspecialidadNombre(viendo.especialidadId)}
+            </p>
+            <p>
+              <strong>Contacto:</strong> {viendo.contacto}
+            </p>
+            <p>
+              <strong>Teléfono:</strong> {viendo.telefono}
+            </p>
+            <p>
+              <strong>Obras Sociales:</strong>{" "}
+              {getObrasSocialesNombres(viendo.obrasSociales)}
+            </p>
+            <p>
+              <strong>Estado:</strong> {viendo.estado}
+            </p>
             <div className="flex justify-end">
               <button
                 onClick={() => setViendo(null)}
