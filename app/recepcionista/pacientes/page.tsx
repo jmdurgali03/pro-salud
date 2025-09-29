@@ -6,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel"; // 🔹 Ahora necesitamos este import
 import { useMemo } from "react";
+import { PageWrapper } from "@/components/page-wrapper";
 
 // Tipo para el form
 type FormState = {
@@ -80,153 +81,158 @@ export default function PacientesPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 p-6 font-sans">
-      {/* Header */}
-      <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border mb-6">
-        <h1 className="text-2xl font-semibold text-gray-900">Gestión de Pacientes</h1>
-        <button
-          onClick={() => setModo("crear")}
-          className="flex items-center gap-2 rounded-lg px-4 py-2 bg-cyan-600 text-white font-medium shadow hover:bg-cyan-700 transition-colors"
-        >
-          + Añadir Paciente
-        </button>
-      </div>
+    <PageWrapper breadcrumbs={[
+      { label: "Inicio", href: "/recepcionista" },
+      { label: "Pacientes", href: "/recepcionista/pacientes" },
+    ]}>
+      <div className="min-h-screen bg-gray-50 p-6 font-sans">
+        {/* Header */}
+        <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border mb-6">
+          <h1 className="text-2xl font-semibold text-gray-900">Gestión de Pacientes</h1>
+          <button
+            onClick={() => setModo("crear")}
+            className="flex items-center gap-2 rounded-lg px-4 py-2 bg-cyan-600 text-white font-medium shadow hover:bg-cyan-700 transition-colors"
+          >
+            + Añadir Paciente
+          </button>
+        </div>
 
-      {/* Search */}
-      <div className="flex gap-4 bg-white p-4 rounded-lg shadow-sm border mb-6">
-        <input
-          placeholder="Buscar paciente por nombre, DNI..."
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="flex-1 rounded-lg border px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 text-gray-900 placeholder-gray-500"
-        />
-      </div>
+        {/* Search */}
+        <div className="flex gap-4 bg-white p-4 rounded-lg shadow-sm border mb-6">
+          <input
+            placeholder="Buscar paciente por nombre, DNI..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            className="flex-1 rounded-lg border px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 text-gray-900 placeholder-gray-500"
+          />
+        </div>
 
-      {/* Tabla */}
-      <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
-        <table className="min-w-full text-sm divide-y divide-gray-200">
-          <thead className="bg-gray-50 text-left text-gray-700">
-            <tr>
-              <th className="px-4 py-3">Nombre Completo</th>
-              <th className="px-4 py-3">DNI</th>
-              <th className="px-4 py-3">Teléfono</th>
-              <th className="px-4 py-3">Obras Sociales</th>
-              <th className="px-4 py-3 text-right">Acciones</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {filteredPacientes.length > 0 ? (
-              filteredPacientes.map((p) => (
-                <tr key={p._id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{p.nombreCompleto}</div>
-                    <div className="text-xs text-gray-500">{p.email ?? ""}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-900">{p.dni}</td>
-                  <td className="px-4 py-3 text-gray-900">{p.telefono ?? "-"}</td>
-                  <td className="px-4 py-3">
-                    {Array.isArray(p.obrasSocialesNombres) && p.obrasSocialesNombres.length > 0 ? (
-                      p.obrasSocialesNombres
-                        .filter((n): n is string => Boolean(n))
-                        .map((nombre, i) => (
-                          <span key={i} className={getBadgeClass(nombre)}>
-                            {nombre}
-                          </span>
-                        ))
-                    ) : (
-                      <span className={getBadgeClass("Particular")}>Particular</span>
-                    )}
-                  </td>
+        {/* Tabla */}
+        <div className="overflow-hidden rounded-lg border bg-white shadow-sm">
+          <table className="min-w-full text-sm divide-y divide-gray-200">
+            <thead className="bg-gray-50 text-left text-gray-700">
+              <tr>
+                <th className="px-4 py-3">Nombre Completo</th>
+                <th className="px-4 py-3">DNI</th>
+                <th className="px-4 py-3">Teléfono</th>
+                <th className="px-4 py-3">Obras Sociales</th>
+                <th className="px-4 py-3 text-right">Acciones</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-100">
+              {filteredPacientes.length > 0 ? (
+                filteredPacientes.map((p) => (
+                  <tr key={p._id} className="hover:bg-gray-50 transition-colors">
+                    <td className="px-4 py-3">
+                      <div className="font-medium text-gray-900">{p.nombreCompleto}</div>
+                      <div className="text-xs text-gray-500">{p.email ?? ""}</div>
+                    </td>
+                    <td className="px-4 py-3 text-gray-900">{p.dni}</td>
+                    <td className="px-4 py-3 text-gray-900">{p.telefono ?? "-"}</td>
+                    <td className="px-4 py-3">
+                      {Array.isArray(p.obrasSocialesNombres) && p.obrasSocialesNombres.length > 0 ? (
+                        p.obrasSocialesNombres
+                          .filter((n): n is string => Boolean(n))
+                          .map((nombre, i) => (
+                            <span key={i} className={getBadgeClass(nombre)}>
+                              {nombre}
+                            </span>
+                          ))
+                      ) : (
+                        <span className={getBadgeClass("Particular")}>Particular</span>
+                      )}
+                    </td>
 
-                  <td className="px-4 py-3 text-right space-x-2">
-                    <button
-                      onClick={() => {
-                        router.push(`/recepcionista/pacientes/${p._id}`);
-                      }}
-                      className="rounded-md px-3 py-1 text-sm text-cyan-600 hover:bg-cyan-50 transition-colors"
-                    >
-                      👁 Ver
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSeleccionado(p);
-                        setModo("editar");
-                      }}
-                      className="rounded-md px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
-                    >
-                      ✏️
-                    </button>
-                    <button
-                      onClick={() => {
-                        setSeleccionado(p);
-                        setModo("eliminar");
-                      }}
-                      disabled //ESTA FUERA DE SERVICIO
-                      className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors"
-                    >
-                      🗑
-                    </button>
+                    <td className="px-4 py-3 text-right space-x-2">
+                      <button
+                        onClick={() => {
+                          router.push(`/recepcionista/pacientes/${p._id}`);
+                        }}
+                        className="rounded-md px-3 py-1 text-sm text-cyan-600 hover:bg-cyan-50 transition-colors"
+                      >
+                        👁 Ver
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSeleccionado(p);
+                          setModo("editar");
+                        }}
+                        className="rounded-md px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        onClick={() => {
+                          setSeleccionado(p);
+                          setModo("eliminar");
+                        }}
+                        disabled //ESTA FUERA DE SERVICIO
+                        className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                      >
+                        🗑
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={5} className="px-4 py-6 text-center text-gray-500 italic">
+                    No se encontraron pacientes
                   </td>
                 </tr>
-              ))
-            ) : (
-              <tr>
-                <td colSpan={5} className="px-4 py-6 text-center text-gray-500 italic">
-                  No se encontraron pacientes
-                </td>
-              </tr>
+              )}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Modal para editar/crear/eliminar */}
+        {modo && (
+          <Modal
+            onClose={() => {
+              setModo(null);
+              setSeleccionado(null);
+            }}
+          >
+            {modo === "crear" && (
+              <PacienteForm
+                titulo="Nuevo paciente"
+                initial={{
+                  nombreCompleto: "",
+                  email: "",
+                  telefono: "",
+                  dni: "",
+                  fechaNacimiento: "",
+                  obrasSociales: [],
+                }}
+                obrasSociales={obrasSociales}
+                onSubmit={handleCrear}
+                onCancel={() => setModo(null)}
+              />
             )}
-          </tbody>
-        </table>
+
+            {modo === "editar" && seleccionado && (
+              <PacienteForm
+                titulo="Editar paciente"
+                initial={seleccionado}
+                obrasSociales={obrasSociales}
+                onSubmit={(form) => handleActualizar(seleccionado._id, form)}
+                onCancel={() => {
+                  setModo(null);
+                  setSeleccionado(null);
+                }}
+              />
+            )}
+
+            {modo === "eliminar" && seleccionado && (
+              <ConfirmacionModal
+                onConfirm={() => handleEliminar(seleccionado._id)}
+                onCancel={() => setModo(null)}
+              />
+            )}
+          </Modal>
+        )}
       </div>
-
-      {/* Modal para editar/crear/eliminar */}
-      {modo && (
-        <Modal
-          onClose={() => {
-            setModo(null);
-            setSeleccionado(null);
-          }}
-        >
-          {modo === "crear" && (
-            <PacienteForm
-              titulo="Nuevo paciente"
-              initial={{
-                nombreCompleto: "",
-                email: "",
-                telefono: "",
-                dni: "",
-                fechaNacimiento: "",
-                obrasSociales: [],
-              }}
-              obrasSociales={obrasSociales}
-              onSubmit={handleCrear}
-              onCancel={() => setModo(null)}
-            />
-          )}
-
-          {modo === "editar" && seleccionado && (
-            <PacienteForm
-              titulo="Editar paciente"
-              initial={seleccionado}
-              obrasSociales={obrasSociales}
-              onSubmit={(form) => handleActualizar(seleccionado._id, form)}
-              onCancel={() => {
-                setModo(null);
-                setSeleccionado(null);
-              }}
-            />
-          )}
-
-          {modo === "eliminar" && seleccionado && (
-            <ConfirmacionModal
-              onConfirm={() => handleEliminar(seleccionado._id)}
-              onCancel={() => setModo(null)}
-            />
-          )}
-        </Modal>
-      )}
-    </div>
+    </PageWrapper>
   );
 }
 

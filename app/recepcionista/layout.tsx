@@ -1,13 +1,15 @@
-import { Sidebar } from "./_components/sidebar";
+import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "./_components/sidebar-rec";
 
 export default function RecepcionistaLayout({ children }: { children: React.ReactNode }) {
     return (
-        <div className="flex">
-            <Sidebar />
-            <main className="flex-1 p-6">
-                <h1 className="text-3xl font-bold">Mesa de Entrada</h1>
-                {children}
-            </main>
-        </div>
+        <SidebarProvider>
+            <div className="flex w-full h-screen">
+                <AppSidebar />
+                <main className="flex-1 w-full">
+                    {children}
+                </main>
+            </div>
+        </SidebarProvider>
     );
 }
