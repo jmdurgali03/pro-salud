@@ -103,14 +103,16 @@ export default function ProfesionalesPage() {
       .filter(Boolean).join(", ");
 
   return (
-    <PageWrapper breadcrumbs={[
-      { label: "Inicio", href: "/recepcionista" },
-      { label: "Profesionales", href: "/recepcionista/profesional" }
-    ]}>
+
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Gestión de Profesionales</h1>
-
+          <button
+            onClick={() => { setModalError(null); setModalOpen(true); }}
+            className="px-4 py-2 rounded bg-zinc-300 text-black font-bold hover:bg-zinc-400"
+          >
+            + Añadir Profesional
+          </button>
         </div>
         <p className="text-gray-500">Administra los profesionales de tu institución.</p>
 
@@ -186,7 +188,9 @@ export default function ProfesionalesPage() {
               <p><strong>Nombre:</strong> {viendo.nombre}</p>
               <p><strong>DNI:</strong> {viendo.dni}</p>
               <p><strong>Matrícula:</strong> {viendo.matricula}</p>
-
+              <p><strong>Especialidad:</strong> {/* @ts-ignore */}
+                {especialidades.find(e => e._id === viendo.especialidadId)?.nombre || "—"}
+              </p>
               <p><strong>Contacto:</strong> {viendo.contacto}</p>
               <p><strong>Teléfono:</strong> {viendo.telefono}</p>
               <p><strong>Obras Sociales:</strong> {getObrasSocialesNombres(viendo.obrasSociales)}</p>
@@ -204,6 +208,5 @@ export default function ProfesionalesPage() {
           </div>
         )}
       </div>
-    </PageWrapper>
   );
 }
