@@ -182,7 +182,7 @@ export default function HistorialPacientePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto grid max-w-6xl grid-cols-[220px,1fr] gap-6 p-6 sm:grid-cols-[240px,1fr] md:grid-cols-[260px,1fr]">
         {/* Sidebar */}
-        <aside className="sticky top-4 h-fit rounded-xl border border-gray-200 bg-white p-4">
+        <aside className="h-fit rounded-xl border border-gray-200 bg-white p-4">
           <div className="mb-4">
             <div className="text-sm text-gray-500">Paciente:</div>
             <div className="font-semibold text-gray-900">{paciente.nombreCompleto}</div>

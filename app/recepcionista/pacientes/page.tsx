@@ -4,8 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
-import { Id } from "@/convex/_generated/dataModel"; // 🔹 Ahora necesitamos este import
-import { useMemo } from "react";
+import { Id } from "@/convex/_generated/dataModel";
+import { useMemo, useRef, useEffect } from "react";
 import { PageWrapper } from "@/components/page-wrapper";
 
 // Tipo para el form
@@ -24,11 +24,9 @@ export default function PacientesPage() {
   const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | null>(null);
   const router = useRouter();
 
-  // 🔹 Utiliza useQuery para obtener la lista de pacientes y obras sociales desde Convex
   const pacientesConvex = useQuery(api.pacientes.listar, { search });
   const obrasSociales = useQuery(api.obrasSociales.listar);
 
-  // 🔹 Usa useMemo para evitar re-cálculos innecesarios de la lista filtrada
   const filteredPacientes = useMemo(() => {
     return pacientesConvex || [];
   }, [pacientesConvex]);
@@ -166,7 +164,7 @@ export default function PacientesPage() {
                           setSeleccionado(p);
                           setModo("eliminar");
                         }}
-                        disabled //ESTA FUERA DE SERVICIO
+                        disabled
                         className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors"
                       >
                         🗑
@@ -283,6 +281,103 @@ function ConfirmacionModal({ onConfirm, onCancel }: { onConfirm: () => void; onC
   );
 }
 
+/* Componente Dropdown con Checklist */
+function ObrasSocialesDropdown({
+  obrasSociales,
+  selectedIds,
+  onToggle,
+  error,
+}: {
+  obrasSociales: any[];
+  selectedIds: Id<"obrasSociales">[];
+  onToggle: (id: Id<"obrasSociales">) => void;
+  error?: string;
+}) {
+  const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Cerrar dropdown al hacer click fuera
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setIsOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const selectedNames = obrasSociales
+    .filter((os) => selectedIds.includes(os._id))
+    .map((os) => os.nombre);
+
+  return (
+    <div ref={dropdownRef} className="relative">
+      <label className="text-sm text-gray-800 block mb-1">Obras Sociales</label>
+      <button
+        type="button"
+        onClick={() => setIsOpen(!isOpen)}
+        className={`w-full border rounded-lg p-2 text-left flex items-center justify-between bg-white hover:bg-gray-50 transition-colors ${
+          error ? "border-red-500" : "border-gray-300"
+        }`}
+      >
+        <span className="text-gray-900">
+          {selectedNames.length > 0 ? (
+            <span className="flex flex-wrap gap-1">
+              {selectedNames.map((name, i) => (
+                <span
+                  key={i}
+                  className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700"
+                >
+                  {name}
+                </span>
+              ))}
+            </span>
+          ) : (
+            <span className="text-gray-500">Seleccionar obras sociales...</span>
+          )}
+        </span>
+        <svg
+          className={`w-5 h-5 text-gray-400 transition-transform ${isOpen ? "rotate-180" : ""}`}
+          fill="none"
+          stroke="currentColor"
+          viewBox="0 0 24 24"
+        >
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+        </svg>
+      </button>
+
+      {isOpen && (
+        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          {obrasSociales.length > 0 ? (
+            obrasSociales.map((os) => (
+              <label
+                key={os._id}
+                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
+              >
+                <input
+                  type="checkbox"
+                  checked={selectedIds.includes(os._id)}
+                  onChange={() => onToggle(os._id)}
+                  className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300"
+                />
+                <span className="text-gray-900 flex-1">{os.nombre}</span>
+              </label>
+            ))
+          ) : (
+            <div className="px-4 py-3 text-sm text-gray-500 italic">
+              No hay obras sociales disponibles
+            </div>
+          )}
+        </div>
+      )}
+
+      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+    </div>
+  );
+}
+
 /* Formulario de paciente */
 function PacienteForm({
   titulo,
@@ -293,7 +388,7 @@ function PacienteForm({
 }: {
   titulo: string;
   initial: any;
-  obrasSociales: any; // Updated to `any`
+  obrasSociales: any;
   onSubmit: (form: FormState) => void;
   onCancel: () => void;
 }) {
@@ -335,7 +430,6 @@ function PacienteForm({
     if (!form.fechaNacimiento.trim()) {
       newErrors.fechaNacimiento = "La fecha de nacimiento es obligatoria.";
     }
-
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -380,8 +474,7 @@ function PacienteForm({
           <input
             value={form.dni}
             onChange={(e) => handleChange("dni", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.dni ? "border-red-500" : ""
-              }`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.dni ? "border-red-500" : ""}`}
             maxLength={8}
             required
           />
@@ -403,8 +496,7 @@ function PacienteForm({
             type="email"
             value={form.email}
             onChange={(e) => handleChange("email", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.email ? "border-red-500" : ""
-              }`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.email ? "border-red-500" : ""}`}
             required
           />
           {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
@@ -421,21 +513,12 @@ function PacienteForm({
           {errors.fechaNacimiento && <p className="text-xs text-red-500 mt-1">{errors.fechaNacimiento}</p>}
         </div>
         <div className="sm:col-span-2">
-          <label className="text-sm text-gray-800">Obras Sociales</label>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 mt-1">
-            {obrasSociales?.map((os: any) => (
-              <label key={os._id} className="flex items-center gap-2 text-gray-900">
-                <input
-                  type="checkbox"
-                  checked={form.obrasSociales.includes(os._id)}
-                  onChange={() => toggleObraSocial(os._id)}
-                  className="rounded text-cyan-600 focus:ring-cyan-500"
-                />
-                {os.nombre}
-              </label>
-            ))}
-          </div>
-          {errors.obrasSociales && <p className="text-xs text-red-500 mt-1">{errors.obrasSociales}</p>}
+          <ObrasSocialesDropdown
+            obrasSociales={obrasSociales || []}
+            selectedIds={form.obrasSociales}
+            onToggle={toggleObraSocial}
+            error={errors.obrasSociales}
+          />
         </div>
       </div>
       <div className="flex justify-end gap-2 pt-2">
