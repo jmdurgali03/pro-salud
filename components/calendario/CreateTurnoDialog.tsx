@@ -34,8 +34,8 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const editarTurno = useMutation(api.turnos.editar);
   const eliminarTurno = useMutation(api.turnos.eliminar);
   const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
-  const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
-
+const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
+const especialidades = useQuery(api.especialidades.listar, {}) ?? [];
   const [open, setOpen] = useState(false);
 
   // Campos
@@ -45,7 +45,10 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const [estado, setEstado] = useState<"Confirmado" | "Pendiente" | "Cancelado">("Pendiente");
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFin, setHoraFin] = useState("10:00");
-
+const profesionalesConEspecialidad = profesionales.map((p) => {
+  const esp = especialidades.find((e) => e._id === p.especialidadId);
+  return { ...p, especialidadNombre: esp?.nombre || "Sin especialidad" };
+});
   // 👉 estado para mensajes de error
   const [error, setError] = useState<string | null>(null);
 
@@ -190,11 +193,12 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
                 <SelectValue placeholder="Seleccionar profesional" />
               </SelectTrigger>
               <SelectContent>
-                {profesionales.map((p) => (
-                  <SelectItem key={p._id} value={p._id}>
-                    {p.nombre} – {p.especialidadNombre}
-                  </SelectItem>
-                ))}
+                {profesionalesConEspecialidad.map((p) => (
+  <SelectItem key={p._id} value={p._id}>
+    {p.nombre} – {p.especialidadNombre}
+  </SelectItem>
+))}
+
               </SelectContent>
             </Select>
           </div>
