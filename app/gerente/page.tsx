@@ -8,25 +8,34 @@ import { BriefcaseMedical } from "lucide-react";
 const actions = [
     {
         title: "Registrar Profesional",
+        description: "Alta de nuevo Especialista",
         icon: BriefcaseMedical,
         href: "/gerente/profesional",
-        color: "bg-purple-100 text-purple-600",
+        gradient: "from-purple-500 to-pink-500",
     },
 ];
 
 export default function GerenteHome() {
     return (
         <PageWrapper breadcrumbs={[{ label: "Inicio", href: "/gerente" }]}>
-            <div className="w-full max-w-7xl mx-auto py-10">
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {actions.map(({ title, icon: Icon, href, color }) => (
-                        <Link key={href} href={href} className="block">
-                            <Card className="hover:shadow-lg transition-shadow cursor-pointer rounded-xl">
-                                <CardContent className="flex flex-col items-center justify-center gap-4 p-8">
-                                    <div className={`w-16 h-16 rounded-full flex items-center justify-center ${color}`}>
-                                        <Icon size={28} />
+            <div className="w-full max-w-7xl mx-auto py-10 px-6">
+                {/* Header */}
+                <div className="mb-12">
+                    <h1 className="text-4xl font-bold text-gray-900 mb-2">Gerente</h1>
+                    <p className="text-gray-600">Gestiona turnos, pacientes y profesionales desde un solo lugar</p>
+                </div>
+
+                {/* Actions Cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
+                    {actions.map(({ title, description, icon: Icon, href, gradient }) => (
+                        <Link key={href} href={href} className="block group">
+                            <Card className="hover:shadow-2xl transition-all duration-300 border-0 overflow-hidden h-full group-hover:-translate-y-1">
+                                <CardContent className="p-6">
+                                    <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform duration-300`}>
+                                        <Icon size={28} className="text-white" />
                                     </div>
-                                    <span className="font-medium text-gray-900">{title}</span>
+                                    <h3 className="font-semibold text-lg text-gray-900 mb-2">{title}</h3>
+                                    <p className="text-sm text-gray-500">{description}</p>
                                 </CardContent>
                             </Card>
                         </Link>

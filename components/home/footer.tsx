@@ -1,6 +1,6 @@
 
 import Link from 'next/link'
-import { Logo } from './logo'
+import Image from 'next/image'
 
 const links = [
     {
@@ -33,12 +33,20 @@ export default function FooterHome() {
     return (
         <footer className="py-16 md:py-32">
             <div className="mx-auto max-w-5xl px-6">
-                <Link
-                    href="/"
-                    aria-label="go home"
-                    className="mx-auto block size-fit">
-                    <Logo />
-                </Link>
+                <div className='flex w-full items-center justify-between gap-12 lg:w-auto'>
+                    <Link
+                        href="/"
+                        aria-label="go home"
+                        className="mx-auto flex items-center gap-2 size-fit">
+                        <Image
+                            src={"/cora.png"}
+                            alt='Corazon header'
+                            width={40}
+                            height={40}
+                        />
+                        <span className='text-2xl font-bold'>ProSalud</span>
+                    </Link>
+                </div>
 
                 <div className="my-8 flex flex-wrap justify-center gap-6 text-sm">
                     {links.map((link, index) => (
