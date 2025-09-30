@@ -1,14 +1,13 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo, useRef, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useMemo, useRef, useEffect } from "react";
 import { PageWrapper } from "@/components/page-wrapper";
 
-// Tipo para el form
+/* --------------------------- Tipos --------------------------- */
 type FormState = {
   nombreCompleto: string;
   email: string;
@@ -18,31 +17,47 @@ type FormState = {
   obrasSociales: Id<"obrasSociales">[];
 };
 
+/* --------------------------- Hook: Debounce --------------------------- */
+function useDebouncedValue<T>(value: T, delay = 250) {
+  const [debounced, setDebounced] = useState(value);
+  useEffect(() => {
+    const id = setTimeout(() => setDebounced(value), delay);
+    return () => clearTimeout(id);
+  }, [value, delay]);
+  return debounced;
+}
+
+/* --------------------------- Página --------------------------- */
 export default function PacientesPage() {
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 250);
   const [seleccionado, setSeleccionado] = useState<any | null>(null);
   const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | null>(null);
   const router = useRouter();
 
-  const pacientesConvex = useQuery(api.pacientes.listar, { search });
+  // Queries (usar el valor debounced para evitar perder foco)
+  const pacientesConvex = useQuery(api.pacientes.listar, { search: debouncedSearch });
   const obrasSociales = useQuery(api.obrasSociales.listar);
 
+  // Cache de la última lista válida para que la tabla no parpadee
+  const prevPacientesRef = useRef<any[]>([]);
+  useEffect(() => {
+    if (Array.isArray(pacientesConvex)) {
+      prevPacientesRef.current = pacientesConvex;
+    }
+  }, [pacientesConvex]);
+
+  const isLoadingPac = pacientesConvex === undefined;
+  const isLoadingOS = obrasSociales === undefined;
+
   const filteredPacientes = useMemo(() => {
-    return pacientesConvex || [];
+    return (pacientesConvex ?? prevPacientesRef.current) || [];
   }, [pacientesConvex]);
 
   // Mutations
   const crearPaciente = useMutation(api.pacientes.crear);
   const actualizarPaciente = useMutation(api.pacientes.actualizar);
   const eliminarPaciente = useMutation(api.pacientes.eliminar);
-
-  if (pacientesConvex === undefined || obrasSociales === undefined) {
-    return (
-      <div className="flex justify-center items-center h-screen bg-gray-50">
-        <p className="text-gray-500 text-lg">Cargando pacientes...</p>
-      </div>
-    );
-  }
 
   const handleCrear = async (form: FormState) => {
     await crearPaciente(form);
@@ -79,10 +94,12 @@ export default function PacientesPage() {
   };
 
   return (
-    <PageWrapper breadcrumbs={[
-      { label: "Inicio", href: "/recepcionista" },
-      { label: "Pacientes", href: "/recepcionista/pacientes" },
-    ]}>
+    <PageWrapper
+      breadcrumbs={[
+        { label: "Inicio", href: "/recepcionista" },
+        { label: "Pacientes", href: "/recepcionista/pacientes" },
+      ]}
+    >
       <div className="min-h-screen bg-gray-50 p-6 font-sans">
         {/* Header */}
         <div className="flex items-center justify-between bg-white p-4 rounded-lg shadow-sm border mb-6">
@@ -90,6 +107,8 @@ export default function PacientesPage() {
           <button
             onClick={() => setModo("crear")}
             className="flex items-center gap-2 rounded-lg px-4 py-2 bg-cyan-600 text-white font-medium shadow hover:bg-cyan-700 transition-colors"
+            disabled={isLoadingOS}
+            title={isLoadingOS ? "Cargando obras sociales..." : ""}
           >
             + Añadir Paciente
           </button>
@@ -103,6 +122,9 @@ export default function PacientesPage() {
             onChange={(e) => setSearch(e.target.value)}
             className="flex-1 rounded-lg border px-4 py-2 shadow-sm focus:outline-none focus:ring-2 focus:ring-cyan-400 text-gray-900 placeholder-gray-500"
           />
+          {isLoadingPac && (
+            <div className="flex items-center text-sm text-gray-500">Buscando…</div>
+          )}
         </div>
 
         {/* Tabla */}
@@ -119,7 +141,7 @@ export default function PacientesPage() {
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredPacientes.length > 0 ? (
-                filteredPacientes.map((p) => (
+                filteredPacientes.map((p: any) => (
                   <tr key={p._id} className="hover:bg-gray-50 transition-colors">
                     <td className="px-4 py-3">
                       <div className="font-medium text-gray-900">{p.nombreCompleto}</div>
@@ -130,8 +152,8 @@ export default function PacientesPage() {
                     <td className="px-4 py-3">
                       {Array.isArray(p.obrasSocialesNombres) && p.obrasSocialesNombres.length > 0 ? (
                         p.obrasSocialesNombres
-                          .filter((n): n is string => Boolean(n))
-                          .map((nombre, i) => (
+                          .filter((n: any): n is string => Boolean(n))
+                          .map((nombre: string, i: number) => (
                             <span key={i} className={getBadgeClass(nombre)}>
                               {nombre}
                             </span>
@@ -140,13 +162,11 @@ export default function PacientesPage() {
                         <span className={getBadgeClass("Particular")}>Particular</span>
                       )}
                     </td>
-
                     <td className="px-4 py-3 text-right space-x-2">
                       <button
-                        onClick={() => {
-                          router.push(`/recepcionista/pacientes/${p._id}`);
-                        }}
+                        onClick={() => router.push(`/recepcionista/pacientes/${p._id}`)}
                         className="rounded-md px-3 py-1 text-sm text-cyan-600 hover:bg-cyan-50 transition-colors"
+                        title="Ver"
                       >
                         👁 Ver
                       </button>
@@ -156,6 +176,7 @@ export default function PacientesPage() {
                           setModo("editar");
                         }}
                         className="rounded-md px-3 py-1 text-sm text-blue-600 hover:bg-blue-50 transition-colors"
+                        title="Editar"
                       >
                         ✏️
                       </button>
@@ -165,7 +186,8 @@ export default function PacientesPage() {
                           setModo("eliminar");
                         }}
                         disabled
-                        className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors"
+                        className="rounded-md px-3 py-1 text-sm text-red-600 hover:bg-red-50 transition-colors disabled:opacity-50"
+                        title="Eliminar (deshabilitado)"
                       >
                         🗑
                       </button>
@@ -175,7 +197,7 @@ export default function PacientesPage() {
               ) : (
                 <tr>
                   <td colSpan={5} className="px-4 py-6 text-center text-gray-500 italic">
-                    No se encontraron pacientes
+                    {isLoadingPac ? "Cargando pacientes..." : "No se encontraron pacientes"}
                   </td>
                 </tr>
               )}
@@ -202,7 +224,7 @@ export default function PacientesPage() {
                   fechaNacimiento: "",
                   obrasSociales: [],
                 }}
-                obrasSociales={obrasSociales}
+                obrasSociales={obrasSociales || []}
                 onSubmit={handleCrear}
                 onCancel={() => setModo(null)}
               />
@@ -212,7 +234,7 @@ export default function PacientesPage() {
               <PacienteForm
                 titulo="Editar paciente"
                 initial={seleccionado}
-                obrasSociales={obrasSociales}
+                obrasSociales={obrasSociales || []}
                 onSubmit={(form) => handleActualizar(seleccionado._id, form)}
                 onCancel={() => {
                   setModo(null);
@@ -234,7 +256,7 @@ export default function PacientesPage() {
   );
 }
 
-/* Modal genérico */
+/* --------------------------- Modal genérico --------------------------- */
 function Modal({
   children,
   onClose,
@@ -257,7 +279,7 @@ function Modal({
   );
 }
 
-/* Modal de confirmación */
+/* --------------------------- Modal de confirmación --------------------------- */
 function ConfirmacionModal({ onConfirm, onCancel }: { onConfirm: () => void; onCancel: () => void }) {
   return (
     <div className="space-y-4 text-center">
@@ -281,7 +303,7 @@ function ConfirmacionModal({ onConfirm, onCancel }: { onConfirm: () => void; onC
   );
 }
 
-/* Componente Dropdown con Checklist */
+/* --------------------------- Dropdown Obras Sociales --------------------------- */
 function ObrasSocialesDropdown({
   obrasSociales,
   selectedIds,
@@ -303,12 +325,11 @@ function ObrasSocialesDropdown({
         setIsOpen(false);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const selectedNames = obrasSociales
+  const selectedNames = (obrasSociales || [])
     .filter((os) => selectedIds.includes(os._id))
     .map((os) => os.nombre);
 
@@ -350,7 +371,7 @@ function ObrasSocialesDropdown({
 
       {isOpen && (
         <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
-          {obrasSociales.length > 0 ? (
+          {(obrasSociales || []).length > 0 ? (
             obrasSociales.map((os) => (
               <label
                 key={os._id}
@@ -378,7 +399,7 @@ function ObrasSocialesDropdown({
   );
 }
 
-/* Formulario de paciente */
+/* --------------------------- Formulario Paciente --------------------------- */
 function PacienteForm({
   titulo,
   initial,
@@ -388,7 +409,7 @@ function PacienteForm({
 }: {
   titulo: string;
   initial: any;
-  obrasSociales: any;
+  obrasSociales: any[];
   onSubmit: (form: FormState) => void;
   onCancel: () => void;
 }) {
@@ -403,7 +424,7 @@ function PacienteForm({
   const [errors, setErrors] = useState<any>({});
 
   const validate = () => {
-    let newErrors: any = {};
+    const newErrors: any = {};
     if (!form.nombreCompleto.trim()) {
       newErrors.nombreCompleto = "El nombre completo es obligatorio.";
     }
@@ -418,7 +439,8 @@ function PacienteForm({
     if (!form.telefono.trim()) {
       newErrors.telefono = "El teléfono es obligatorio.";
     } else if (!/^\+?\d*$/.test(form.telefono)) {
-      newErrors.telefono = "El formato del teléfono no es válido. Solo puede contener números y un '+' opcional al inicio.";
+      newErrors.telefono =
+        "El formato del teléfono no es válido. Solo puede contener números y un '+' opcional al inicio.";
     }
 
     if (!form.email.trim()) {
@@ -427,7 +449,7 @@ function PacienteForm({
       newErrors.email = "El formato del email no es válido.";
     }
 
-    if (!form.fechaNacimiento.trim()) {
+    if (!form.fechaNacimiento?.trim()) {
       newErrors.fechaNacimiento = "La fecha de nacimiento es obligatoria.";
     }
 
@@ -450,9 +472,7 @@ function PacienteForm({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (validate()) {
-      onSubmit(form);
-    }
+    if (validate()) onSubmit(form);
   };
 
   return (
@@ -464,17 +484,23 @@ function PacienteForm({
           <input
             value={form.nombreCompleto}
             onChange={(e) => handleChange("nombreCompleto", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.nombreCompleto ? "border-red-500" : ""}`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
+              errors.nombreCompleto ? "border-red-500" : ""
+            }`}
             required
           />
-          {errors.nombreCompleto && <p className="text-xs text-red-500 mt-1">{errors.nombreCompleto}</p>}
+          {errors.nombreCompleto && (
+            <p className="text-xs text-red-500 mt-1">{errors.nombreCompleto}</p>
+          )}
         </div>
         <div>
           <label className="text-sm text-gray-800">DNI</label>
           <input
             value={form.dni}
             onChange={(e) => handleChange("dni", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.dni ? "border-red-500" : ""}`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
+              errors.dni ? "border-red-500" : ""
+            }`}
             maxLength={8}
             required
           />
@@ -485,10 +511,14 @@ function PacienteForm({
           <input
             value={form.telefono}
             onChange={(e) => handleChange("telefono", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.telefono ? "border-red-500" : ""}`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
+              errors.telefono ? "border-red-500" : ""
+            }`}
             required
           />
-          {errors.telefono && <p className="text-xs text-red-500 mt-1">{errors.telefono}</p>}
+          {errors.telefono && (
+            <p className="text-xs text-red-500 mt-1">{errors.telefono}</p>
+          )}
         </div>
         <div>
           <label className="text-sm text-gray-800">Email</label>
@@ -496,7 +526,9 @@ function PacienteForm({
             type="email"
             value={form.email}
             onChange={(e) => handleChange("email", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.email ? "border-red-500" : ""}`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
+              errors.email ? "border-red-500" : ""
+            }`}
             required
           />
           {errors.email && <p className="text-xs text-red-500 mt-1">{errors.email}</p>}
@@ -507,10 +539,14 @@ function PacienteForm({
             type="date"
             value={form.fechaNacimiento || ""}
             onChange={(e) => handleChange("fechaNacimiento", e.target.value)}
-            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${errors.fechaNacimiento ? "border-red-500" : ""}`}
+            className={`w-full border rounded-lg p-2 text-gray-900 placeholder-gray-500 ${
+              errors.fechaNacimiento ? "border-red-500" : ""
+            }`}
             required
           />
-          {errors.fechaNacimiento && <p className="text-xs text-red-500 mt-1">{errors.fechaNacimiento}</p>}
+          {errors.fechaNacimiento && (
+            <p className="text-xs text-red-500 mt-1">{errors.fechaNacimiento}</p>
+          )}
         </div>
         <div className="sm:col-span-2">
           <ObrasSocialesDropdown
