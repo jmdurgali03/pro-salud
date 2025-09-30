@@ -103,7 +103,10 @@ export default function ProfesionalesPage() {
       .filter(Boolean).join(", ");
 
   return (
-
+    <PageWrapper breadcrumbs={[
+      { label: "Inicio", href: "/recepcionista" },
+      { label: "Profesionales", href: "/recepcionista/profesional" }
+    ]}>
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Gestión de Profesionales</h1>
@@ -208,5 +211,6 @@ export default function ProfesionalesPage() {
           </div>
         )}
       </div>
+    </PageWrapper>
   );
 }

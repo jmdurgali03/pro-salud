@@ -11,6 +11,7 @@ import { useQuery } from 'convex/react'
 import { api } from '@/convex/_generated/api'
 import { useAuth } from '@clerk/clerk-react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 
 const menuItems = [
     { name: 'Inicio', href: '#main' },
