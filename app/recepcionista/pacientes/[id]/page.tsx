@@ -4,7 +4,7 @@ import { useParams, useRouter } from "next/navigation";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowLeft,
   Calendar,
@@ -133,10 +133,17 @@ export default function HistorialPacientePage() {
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
   const profesionales = useQuery(api.profesionales.listar) ?? [];
 
+  // 👉 Traigo especialidades y armo diccionario Id<"especialidades"> -> nombre
+  const especialidades = useQuery(api.especialidades.listar) ?? [];
+  const espNombrePorId = useMemo(() => {
+    const m = new Map<Id<"especialidades">, string>();
+    for (const e of especialidades) m.set(e._id, e.nombre);
+    return m;
+  }, [especialidades]);
+
   // Modales
   const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
-
 
   // Formularios
   const [motivo, setMotivo] = useState("");
@@ -176,7 +183,6 @@ export default function HistorialPacientePage() {
     setDxProf("");
     setOpenDx(false);
   };
-
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -292,11 +298,14 @@ export default function HistorialPacientePage() {
               <label className="mb-1 block text-sm text-gray-700">Profesional</label>
               <select value={profConsulta} onChange={(e) => setProfConsulta(e.target.value)} className="w-full rounded-lg border border-gray-300 p-2 text-gray-900">
                 <option value="">Seleccione un profesional</option>
-                {profesionales.map((p) => (
-                  <option key={p._id} value={p.nombre}>
-                    {p.nombre} {p.especialidadNombre ? `— ${p.especialidadNombre}` : ""}
-                  </option>
-                ))}
+                {profesionales.map((p) => {
+                  const espNombre = p.especialidadId ? espNombrePorId.get(p.especialidadId) : undefined;
+                  return (
+                    <option key={p._id} value={p.nombre}>
+                      {p.nombre}{espNombre ? ` — ${espNombre}` : ""}
+                    </option>
+                  );
+                })}
               </select>
             </div>
             <div>
@@ -322,11 +331,14 @@ export default function HistorialPacientePage() {
             <label className="mb-1 block text-sm text-gray-700">Profesional</label>
             <select value={dxProf} onChange={(e) => setDxProf(e.target.value)} className="w-full rounded-lg border border-gray-300 p-2 text-gray-900">
               <option value="">Seleccione un profesional</option>
-              {profesionales.map((p) => (
-                <option key={p._id} value={p.nombre}>
-                  {p.nombre} {p.especialidadNombre ? `— ${p.especialidadNombre}` : ""}
-                </option>
-              ))}
+              {profesionales.map((p) => {
+                const espNombre = p.especialidadId ? espNombrePorId.get(p.especialidadId) : undefined;
+                return (
+                  <option key={p._id} value={p.nombre}>
+                    {p.nombre}{espNombre ? ` — ${espNombre}` : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
           <div className="flex justify-end gap-2 pt-2">
