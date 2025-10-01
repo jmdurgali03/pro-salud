@@ -152,7 +152,7 @@ export default function CalendarioProSalud() {
                     key={v}
                     onClick={() => setView(v)}
                     className={`px-4 py-2 rounded-lg font-medium ${
-                      view === v ? "bg-white text-purple-600" : "bg-white/20 hover:bg-white/30"
+                      view === v ? "bg-white text-blue-600" : "bg-white/20 hover:bg-white/30"
                     }`}
                   >
                     {v === "month" ? "mes" : v === "week" ? "semana" : "día"}
@@ -177,7 +177,7 @@ export default function CalendarioProSalud() {
                       draggable
                       onDragStart={(e) => handleDragStart(e, event)}
                       onClick={() => setSelectedTurno(event)} // abrir modal
-                      className="bg-white text-purple-700 p-2 rounded-lg cursor-pointer hover:opacity-90 transition text-sm font-medium"
+                      className="bg-white text-blue-600 p-2 rounded-lg cursor-pointer hover:opacity-90 transition text-sm font-medium"
                     >
                       {event.pacienteNombre} - {event.profesionalNombre}
                     </div>
