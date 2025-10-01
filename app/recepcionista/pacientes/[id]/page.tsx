@@ -206,9 +206,6 @@ export default function HistorialPacientePage() {
             <a href="#tratamientos" className="pointer-events-none flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-400">
               <Pill className="h-4 w-4" />Tratamientos
             </a>
-            <a href="#notas" className="flex items-center gap-2 rounded-lg px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
-              <StickyNote className="h-4 w-4" />Notas
-            </a>
           </nav>
         </aside>
 
