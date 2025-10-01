@@ -40,6 +40,10 @@ export const HeroHeader = () => {
         })
         return () => unsubscribe()
     }, [scrollYProgress])
+const posibleDoctor = useQuery(
+  api.profesionales.existsUnlinkedByEmail,
+  currentUser?.email ? { email: currentUser.email } : "skip"
+);
 
     const handleRedirect = () => {
         if (!currentUser) return

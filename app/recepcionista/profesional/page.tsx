@@ -12,6 +12,7 @@ import { getObraSocialBadgeClass } from "../_components/obra-social-badge";
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
+  apellido: string;
   dni: string;
   matricula: string;
   especialidadId: Id<"especialidades">;
@@ -25,6 +26,7 @@ export type Profesional = {
 
 export type ProfesionalInput = {
   nombre: string;
+  apellido: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
   telefono: string;

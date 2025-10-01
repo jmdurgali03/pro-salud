@@ -11,6 +11,7 @@ import { Plus } from "lucide-react";
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
+  apellido: string;
   dni: string;
   matricula: string;
   especialidadId: Id<"especialidades">;
@@ -22,6 +23,7 @@ export type Profesional = {
 
 export type ProfesionalInput = {
   nombre: string;
+  apellido: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
   telefono: string;
@@ -70,7 +72,7 @@ export default function ProfesionalesPage() {
       setModalError(mapReason(res?.reason, res?.message));
     } else {
       setModalOpen(false);
-      setToast("Profesional creado con éxito.");
+      setToast(`Profesional creado. Usuario: ${res.usuario} | Contraseña: ${res.password}`);
     }
     setSaving(false);
   };
@@ -224,6 +226,7 @@ export default function ProfesionalesPage() {
             <div className="bg-white text-black rounded-lg shadow-xl p-6 w-96 space-y-4">
               <h2 className="text-lg font-bold">Datos del Profesional</h2>
               <p><strong>Nombre:</strong> {viendo.nombre}</p>
+              <p><strong>Apellido:</strong> {viendo.apellido}</p>
               <p><strong>DNI:</strong> {viendo.dni}</p>
               <p><strong>Matrícula:</strong> {viendo.matricula}</p>
               <p><strong>Especialidad:</strong> {especialidades.find(e => e._id === viendo.especialidadId)?.nombre || "—"}</p>

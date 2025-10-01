@@ -14,7 +14,7 @@ export const createUserIfNotExists = mutation({
   handler: async (ctx, args) => {
     const existing = await ctx.db
       .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
       .first();
 
     if (existing) return existing;
@@ -37,7 +37,7 @@ export const getCurrentUser = query({
   handler: async (ctx, args) => {
     return await ctx.db
       .query("users")
-      .withIndex("by_clerkId", (q) => q.eq("clerkId", args.clerkId))
+      .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
       .first();
   },
 });

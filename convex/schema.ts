@@ -6,15 +6,17 @@ export default defineSchema({
   // -------------------------
   // Usuarios
   // -------------------------
-  users: defineTable({
-    clerkId: v.string(),
-    nombre: v.string(),
-    apellido: v.string(),
-    email: v.string(),
-    dni: v.string(),
-    telefono: v.optional(v.string()),
-    role: v.string(), // "profesional", "recepcionista", "gerente", "paciente"
-  }).index("by_clerkId", ["clerkId"]),
+users: defineTable({
+  clerkId: v.string(),
+  nombre: v.string(),
+  apellido: v.string(),
+  email: v.string(),
+  dni: v.string(),
+  telefono: v.optional(v.string()),
+  role: v.string(), // "doctor", "recepcionista", "gerente", "paciente"
+})
+.index("byClerkId", ["clerkId"]),
+
 
   // -------------------------
   // Turnos médicos
@@ -32,25 +34,33 @@ export default defineSchema({
     actualizadoEn: v.number(),
   })
     .index("byStart", ["start"])
-    .index("byProfesional", ["profesionalId"]),
+    .index("byProfesional", ["profesionalId"])
+    .index("byPaciente", ["pacienteId"]),
 
   // -------------------------
   // Profesionales
   // -------------------------
-  profesionales: defineTable({
-    nombre: v.string(),
-    dni: v.string(),
-    matricula: v.string(),
-    especialidadId: v.id("especialidades"),
-    contacto: v.string(),
-    telefono: v.string(),
-    obrasSociales: v.array(v.id("obrasSociales")),
-    estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
-  })
-    .index("por_nombre", ["nombre"])
-    .index("por_dni", ["dni"])
-    .index("por_matricula", ["matricula"])
-    .index("por_telefono", ["telefono"]),
+profesionales: defineTable({
+  nombre: v.string(),
+  apellido: v.string(),
+  dni: v.string(),
+  matricula: v.string(),
+  especialidadId: v.id("especialidades"),
+  contacto: v.string(),
+  telefono: v.string(),
+  obrasSociales: v.array(v.id("obrasSociales")),
+  estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
+  usuario: v.string(),     
+  password: v.string(),  
+  clerkUserId: v.optional(v.string()),
+})
+  .index("por_nombre", ["nombre"])
+  .index("por_dni", ["dni"])
+  .index("por_matricula", ["matricula"])
+  .index("por_telefono", ["telefono"])
+  .index("byClerkUser", ["clerkUserId"])
+  .index("byUsuario", ["usuario"])
+.index("byContacto", ["contacto"]),
 
   // -------------------------
   // Obras Sociales
@@ -109,7 +119,8 @@ export default defineSchema({
     profesional: v.string(),
     notas: v.optional(v.string()),
     fecha: v.number(),
-  }).index("por_paciente", ["pacienteId"]),
+  }).index("por_paciente", ["pacienteId"])
+  .index("por_profesional", ["profesional"]),
 
   diagnosticos: defineTable({
     pacienteId: v.id("pacientes"),
