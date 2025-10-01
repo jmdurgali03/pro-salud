@@ -241,11 +241,7 @@ export default function HistorialPacientePage() {
           </section>
 
           {/* Consultas */}
-          <Section id="consultas" title="Consultas" right={
-            <button onClick={() => setOpenConsulta(true)} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700">
-              Agregar consulta
-            </button>
-          }>
+          <Section id="consultas" title="Consultas">
             <Table headers={["Fecha", "Motivo", "Médico", "Notas"]}>
               {(consultas ?? []).map((c) => (
                 <tr key={c._id} className="text-gray-800">
@@ -262,11 +258,7 @@ export default function HistorialPacientePage() {
           </Section>
 
           {/* Diagnósticos */}
-          <Section id="diagnosticos" title="Diagnósticos" right={
-            <button onClick={() => setOpenDx(true)} className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700">
-              Agregar diagnóstico
-            </button>
-          }>
+          <Section id="diagnosticos" title="Diagnósticos">
             <Table headers={["Fecha", "Diagnóstico", "Médico"]}>
               {(diagnosticos ?? []).map((d) => (
                 <tr key={d._id} className="text-gray-800">
