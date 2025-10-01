@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useQuery } from "convex/react";
 import type { Profesional, ProfesionalInput } from "./page";
 import { api } from "@/convex/_generated/api";
@@ -34,13 +34,28 @@ function ObrasSocialesDropdown({
   error?: string;
 }) {
   const [isOpen, setIsOpen] = useState(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // 👇 Detectar click fuera para cerrar
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   const selectedNames = (obrasSociales || [])
     .filter((os) => selectedIds.includes(os._id))
     .map((os) => os.nombre);
 
   return (
-    <div className="relative">
+    <div ref={dropdownRef} className="relative">
       <label className="text-sm text-gray-800 block mb-1">Obras Sociales</label>
       <button
         type="button"
