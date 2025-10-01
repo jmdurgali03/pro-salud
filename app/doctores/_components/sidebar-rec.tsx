@@ -41,7 +41,7 @@ import { User } from "@clerk/nextjs/server";
 
 const links = [
   { href: "/doctores", label: "Inicio", icon: Home },
-  { href: "/doctores/perfil", label: "Perfil", icon: BriefcaseMedical },
+  //{ href: "/doctores/perfil", label: "Perfil", icon: BriefcaseMedical },
   { href: "/doctores/pacientes", label: "Pacientes", icon: Users2 },
 ];
 
