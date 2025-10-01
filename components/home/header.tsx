@@ -40,23 +40,37 @@ export const HeroHeader = () => {
         })
         return () => unsubscribe()
     }, [scrollYProgress])
+const posibleDoctor = useQuery(
+  api.profesionales.existsUnlinkedByEmail,
+  currentUser?.email ? { email: currentUser.email } : "skip"
+);
 
     const handleRedirect = () => {
         if (!currentUser) return
 
         switch (currentUser.role) {
-            case "gerente":
-                router.push("/gerente")
-                break
-            case "profesional":
-                router.push("/profesional")
-                break
-            case "recepcionista":
-                router.push("/recepcionista")
-                break
-            default:
-                router.push("/") // fallback
-        }
+  case "gerente":
+    router.push("/gerente")
+    break
+  case "doctor":
+    router.push("/doctores")
+    break
+  case "recepcionista":
+    router.push("/recepcionista")
+    break
+  case "paciente":
+      
+      
+      if (posibleDoctor) {
+        router.push("/doctores/vincular");
+      } else {
+        router.push("/paciente");
+      }
+      break;
+    default:
+      router.push("/");
+  }
+
     }
 
     return (

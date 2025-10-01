@@ -145,3 +145,35 @@ export const eliminar = mutation({
     await ctx.db.delete(id);
   },
 });
+export const listarPorDoctor = query({
+  args: { profesionalId: v.id("profesionales") },
+  handler: async (ctx, { profesionalId }) => {
+    return await ctx.db.query("turnos")
+      .withIndex("byProfesional", q => q.eq("profesionalId", profesionalId))
+      .collect();
+  },
+});
+export const listarConNombres = query({
+  args: {},
+  handler: async (ctx) => {
+    const turnos = await ctx.db.query("turnos").collect();
+
+    // 🚑 Supongamos que cada turno tiene campos pacienteId y profesionalId
+    return Promise.all(
+      turnos.map(async (t) => {
+        const paciente = await ctx.db.get(t.pacienteId);
+        const profesional = await ctx.db.get(t.profesionalId);
+        const especialidad = profesional
+          ? await ctx.db.get(profesional.especialidadId)
+          : null;
+
+        return {
+          ...t,
+          pacienteNombre: paciente?.nombreCompleto || "Paciente sin nombre",
+          profesionalNombre: profesional?.nombre || "Profesional sin nombre",
+          especialidadNombre: especialidad?.nombre || "",
+        };
+      })
+    );
+  },
+});

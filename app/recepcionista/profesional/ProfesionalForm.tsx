@@ -21,6 +21,11 @@ const sanitizeNombre = (v: string) =>
 const isNombreValido = (v: string) =>
   /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*$/.test(v);
 
+const sanitizeApellido = (v: string) =>
+  v.replace(/[^A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s]/g, "").replace(/\s{2,}/g, " ").replace(/^\s+/, "");
+const isApellidoValido = (v: string) =>
+  /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*$/.test(v);
+
 /* --------------------------- Dropdown Obras Sociales --------------------------- */
 function ObrasSocialesDropdown({
   obrasSociales,
@@ -137,6 +142,7 @@ export default function ProfesionalForm({
     return <p className="text-gray-500">Cargando datos...</p>;
 
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
+  const [apellido, setApellido] = useState(initialData?.apellido ?? "");
   const [dni, setDni] = useState(initialData?.dni ?? "");
   const [matricula, setMatricula] = useState(initialData?.matricula ?? "");
   const [especialidadId, setEspecialidadId] = useState<Id<"especialidades"> | "">(
@@ -160,6 +166,8 @@ export default function ProfesionalForm({
 
     if (!isNombreValido(nombre.trim()))
       return fail("El nombre solo puede contener letras y espacios.");
+    if (!isApellidoValido(apellido.trim()))
+      return fail("El apellido solo puede contener letras y espacios.");
     if (telefono.length !== 10) return fail("El teléfono debe tener 10 dígitos.");
     if (!initialData) {
       if (dni.length !== 8) return fail("El DNI debe tener 8 dígitos.");
@@ -169,6 +177,7 @@ export default function ProfesionalForm({
 
     const data: any = {
       nombre: nombre.trim(),
+      apellido: apellido.trim(),
       especialidadId: especialidadId as Id<"especialidades">,
       contacto,
       telefono,
@@ -195,6 +204,16 @@ export default function ProfesionalForm({
         value={nombre}
         onChange={(e) => setNombre(sanitizeNombre(e.target.value))}
         placeholder="Nombre"
+        className="w-full border rounded px-3 py-2"
+        required
+        maxLength={60}
+      />
+
+      {/* Apellido */}
+      <input
+        value={apellido}
+        onChange={(e) => setApellido(sanitizeApellido(e.target.value))}
+        placeholder="Apellido"
         className="w-full border rounded px-3 py-2"
         required
         maxLength={60}

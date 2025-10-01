@@ -10,6 +10,7 @@ import { PageWrapper } from "@/components/page-wrapper";
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
+  apellido: string;
   dni: string;
   matricula: string;
   especialidadId: Id<"especialidades">;
@@ -23,6 +24,7 @@ export type Profesional = {
 
 export type ProfesionalInput = {
   nombre: string;
+  apellido: string;
   especialidadId: Id<"especialidades">;
   contacto: string;
   telefono: string;
@@ -71,7 +73,7 @@ export default function ProfesionalesPage() {
       setModalError(mapReason(res?.reason, res?.message));
     } else {
       setModalOpen(false);
-      setToast("Profesional creado con éxito.");
+      setToast(`Profesional creado. Usuario: ${res.usuario} | Contraseña: ${res.password}`);
     }
     setSaving(false);
   };
@@ -124,6 +126,8 @@ export default function ProfesionalesPage() {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-3 text-center">Nombre</th>
+                <th className="p-3 text-center">Apellido</th>
+                
                 <th className="p-3 text-center">Especialidad</th>
                 <th className="p-3 text-center">Contacto</th>
                 <th className="p-3 text-center">Teléfono</th>
@@ -136,6 +140,7 @@ export default function ProfesionalesPage() {
               {profesionales.map((prof: Profesional) => (
                 <tr key={prof._id.toString()} className="border-t hover:bg-gray-50">
                   <td className="p-3 text-center">{prof.nombre}</td>
+                  <td className="p-3 text-center">{prof.apellido}</td>
                   <td className="p-3 text-center">{getEspecialidadNombre(prof.especialidadId)}</td>
                   <td className="p-3 text-center">{prof.contacto}</td>
                   <td className="p-3 text-center">{prof.telefono}</td>
@@ -189,6 +194,7 @@ export default function ProfesionalesPage() {
             <div className="bg-white text-black rounded-lg shadow-xl p-6 w-96 space-y-4">
               <h2 className="text-lg font-bold">Datos del Profesional</h2>
               <p><strong>Nombre:</strong> {viendo.nombre}</p>
+              <p><strong>Apellido:</strong> {viendo.apellido}</p>
               <p><strong>DNI:</strong> {viendo.dni}</p>
               <p><strong>Matrícula:</strong> {viendo.matricula}</p>
               <p><strong>Especialidad:</strong> {/* @ts-ignore */}

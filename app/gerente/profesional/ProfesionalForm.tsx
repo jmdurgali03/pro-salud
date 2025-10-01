@@ -19,6 +19,12 @@ const sanitizeNombre = (v: string) =>
 const isNombreValido = (v: string) =>
   /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*$/.test(v);
 
+
+const sanitizeApellido = (v: string) =>
+  v.replace(/[^A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s]/g, "").replace(/\s{2,}/g, " ").replace(/^\s+/, "");
+const isApellidoValido = (v: string) =>
+  /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*$/.test(v);
+
 export default function ProfesionalForm({
   initialData,
   onSubmit,
@@ -32,6 +38,7 @@ export default function ProfesionalForm({
   if (!especialidades || !obrasSociales) return <p className="text-gray-500">Cargando datos...</p>;
 
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
+  const [apellido, setApellido] = useState(initialData?.apellido ?? "");
   const [dni, setDni] = useState(initialData?.dni ?? "");
   const [matricula, setMatricula] = useState(initialData?.matricula ?? "");
   const [especialidadId, setEspecialidadId] = useState<Id<"especialidades"> | "">(
@@ -54,6 +61,8 @@ export default function ProfesionalForm({
 
     if (!isNombreValido(nombre.trim()))
       return fail("El nombre solo puede contener letras y espacios (sin números ni símbolos).");
+    if (!isApellidoValido(apellido.trim()))
+      return fail("El apellido solo puede contener letras y espacios (sin números ni símbolos).");
     if (telefono.length !== 10) return fail("El teléfono debe tener exactamente 10 dígitos.");
     if (!initialData) {
       if (dni.length !== 8) return fail("El DNI debe tener exactamente 8 dígitos.");
@@ -63,6 +72,7 @@ export default function ProfesionalForm({
 
     const data: any = {
       nombre: nombre.trim(),
+      apellido: apellido.trim(),
       especialidadId: especialidadId as Id<"especialidades">,
       contacto,
       telefono,
@@ -78,7 +88,9 @@ export default function ProfesionalForm({
       <input value={nombre} onChange={(e) => setNombre(sanitizeNombre(e.target.value))}
         placeholder="Nombre" className="w-full border rounded px-3 py-2" required maxLength={60}
         pattern="[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*" title="Solo letras y espacios. Ej: Juan Pérez" />
-
+      <input value={apellido} onChange={(e) => setApellido(sanitizeApellido(e.target.value))}
+        placeholder="Apellido" className="w-full border rounded px-3 py-2" required maxLength={60}
+        pattern="[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*" title="Solo letras y espacios. Ej: Juan Pérez" />
       {!initialData && (
         <>
           <input type="text" value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}

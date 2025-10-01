@@ -209,3 +209,39 @@ export const getById = query({
     };
   },
 });
+export const listarPorDoctor = query({
+  args: { doctorId: v.id("profesionales") },
+  handler: async (ctx, { doctorId }) => {
+    // 🔹 Buscar todos los turnos de este doctor
+    const turnos = await ctx.db
+      .query("turnos")
+      .withIndex("byProfesional", (q) => q.eq("profesionalId", doctorId))
+      .collect();
+
+    const pacienteIds = [...new Set(turnos.map((t) => t.pacienteId))];
+
+    // 🔹 Traer los pacientes de esos IDs
+    const pacientes = await Promise.all(
+      pacienteIds.map((pid) => ctx.db.get(pid))
+    );
+
+    // 🔹 Buscar última consulta por cada paciente
+    return pacientes
+      .filter((p) => !!p)
+      .map((p) => {
+        const ultimaConsulta = turnos
+          .filter((t) => t.pacienteId === p!._id)
+          .map((t) => t.start)
+          .sort((a, b) => b - a)[0];
+
+        return {
+          _id: p!._id,
+          nombreCompleto: p!.nombreCompleto,
+          dni: p!.dni,
+          telefono: p!.telefono,
+          email: p!.email,
+          ultimaConsulta,
+        };
+      });
+  },
+});
