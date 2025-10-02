@@ -35,8 +35,8 @@ export default function ProfesionalModal({
       .filter(Boolean);
 
   return (
-    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-hidden animate-in fade-in zoom-in duration-200">
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-start justify-center z-50 p-4 overflow-y-auto">
+      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8 overflow-hidden animate-in fade-in slide-in-from-top-4 duration-200">
         {/* Header */}
         <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-6 flex items-center justify-between">
           <h2 className="text-2xl font-bold text-white">{title}</h2>
@@ -60,7 +60,7 @@ export default function ProfesionalModal({
         )}
 
         {/* Content */}
-        <div className="px-8 py-6 overflow-y-auto max-h-[calc(90vh-140px)]">
+        <div className="px-8 py-6 overflow-y-auto max-h-[calc(80vh-140px)]">
           {viewMode && initialData ? (
             <div className="space-y-5">
               {/* Nombre */}
@@ -153,8 +153,8 @@ export default function ProfesionalModal({
                 </label>
                 <div className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
                   <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${initialData.estado === "Activo"
-                      ? "bg-green-100 text-green-700 border border-green-200"
-                      : "bg-red-100 text-red-700 border border-red-200"
+                    ? "bg-green-100 text-green-700 border border-green-200"
+                    : "bg-red-100 text-red-700 border border-red-200"
                     }`}>
                     {initialData.estado}
                   </span>

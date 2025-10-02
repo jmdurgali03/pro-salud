@@ -6,7 +6,7 @@ import ProfesionalModal from "./ProfesionalModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
-import { MoreVertical, Eye, Edit, ChevronLeft, ChevronRight } from "lucide-react";
+import { Eye, Edit, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 
 export type Profesional = {
   _id: Id<"profesionales">;
@@ -42,7 +42,7 @@ const mapReason = (r: string, fallback?: string) => {
   }
 };
 
-// Componente de menú de acciones
+// Componente de menú de acciones mejorado
 function ActionsMenu({ profesional, onVer, onEditar, isLast }: {
   profesional: Profesional;
   onVer: () => void;
@@ -51,10 +51,12 @@ function ActionsMenu({ profesional, onVer, onEditar, isLast }: {
 }) {
   const [isOpen, setIsOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -62,23 +64,55 @@ function ActionsMenu({ profesional, onVer, onEditar, isLast }: {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  useEffect(() => {
+    if (isOpen && buttonRef.current) {
+      const buttonRect = buttonRef.current.getBoundingClientRect();
+      const menuHeight = 88; // Altura aproximada del menú (2 items × 40px aprox)
+      const viewportHeight = window.innerHeight;
+      const spaceBelow = viewportHeight - buttonRect.bottom;
+
+      // Si no hay espacio suficiente abajo, el menú se abrirá hacia arriba automáticamente
+      // gracias al cálculo de posición en el style
+    }
+  }, [isOpen]);
+
   return (
-    <div ref={menuRef} className="relative">
+    <div className="relative inline-block">
       <button
+        ref={buttonRef}
         onClick={() => setIsOpen(!isOpen)}
         className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        aria-label="Acciones"
       >
-        <MoreVertical className="w-5 h-5 text-gray-600" />
+        <MoreHorizontal className="w-5 h-5 text-gray-600" />
       </button>
 
-      {isOpen && (
-        <div className={`absolute ${isLast ? 'bottom-full mb-1' : 'top-full mt-1'} right-0 w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-10`}>
+      {isOpen && buttonRef.current && (
+        <div
+          ref={menuRef}
+          className="fixed w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
+          style={{
+            top: (() => {
+              const buttonRect = buttonRef.current!.getBoundingClientRect();
+              const menuHeight = 88;
+              const spaceBelow = window.innerHeight - buttonRect.bottom;
+
+              // Si hay poco espacio abajo, abre hacia arriba
+              if (spaceBelow < menuHeight + 10) {
+                return buttonRect.top - menuHeight - 4;
+              }
+              // Si no, abre hacia abajo
+              return buttonRect.bottom + 4;
+            })(),
+            right: window.innerWidth - buttonRef.current.getBoundingClientRect().right
+          }}
+        >
           <button
             onClick={() => {
               onVer();
               setIsOpen(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
           >
             <Eye className="w-4 h-4" />
             Ver detalles
@@ -88,7 +122,7 @@ function ActionsMenu({ profesional, onVer, onEditar, isLast }: {
               onEditar();
               setIsOpen(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2"
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
           >
             <Edit className="w-4 h-4" />
             Editar
@@ -131,11 +165,6 @@ export default function ProfesionalesPage() {
       setEditando(null);
     }
     setSaving(false);
-  };
-
-  const handleEliminar = async (id?: Id<"profesionales">) => {
-    if (!id) return;
-    await eliminar({ id });
   };
 
   const getEspecialidadNombre = (id: Id<"especialidades">) =>
@@ -211,8 +240,8 @@ export default function ProfesionalesPage() {
                       </td>
                       <td className="px-6 py-4 text-center">
                         <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${prof.estado === "Activo"
-                            ? "bg-green-100 text-green-700 border border-green-200"
-                            : "bg-red-100 text-red-700 border border-red-200"
+                          ? "bg-green-100 text-green-700 border border-green-200"
+                          : "bg-red-100 text-red-700 border border-red-200"
                           }`}>
                           {prof.estado}
                         </span>
@@ -263,8 +292,8 @@ export default function ProfesionalesPage() {
                       key={page}
                       onClick={() => setCurrentPage(page)}
                       className={`min-w-[40px] h-10 px-3 rounded-lg font-medium text-sm transition-colors ${currentPage === page
-                          ? "bg-blue-600 text-white"
-                          : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
+                        ? "bg-blue-600 text-white"
+                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
                         }`}
                     >
                       {page}
