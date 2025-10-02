@@ -55,7 +55,7 @@ export const HeroHeader = () => {
                 router.push("/recepcionista")
                 break
             default:
-                router.push("/") // fallback
+                router.push("/")
         }
     }
 
@@ -127,14 +127,28 @@ export const HeroHeader = () => {
                                             className='cursor-pointer'
                                             onClick={handleRedirect}
                                         >
-                                            Turnos
+                                            Ingresar
                                         </Button>
                                     </div>
                                 ) : (
                                     <div className='flex items-center gap-3'>
-                                        <Button>
-                                            <Link href={"/sign-up"}>
-                                                Registrarse
+                                        <Button
+                                            asChild
+                                            size={"sm"}
+                                            variant={"outline"}
+                                        >
+                                            <Link href={"/sign-in"}>
+                                                <span>Iniciar Sesion</span>
+                                            </Link>
+                                        </Button>
+
+                                        <Button
+                                            asChild
+                                            size={"sm"}
+                                            className='bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-sm normal-case'
+                                        >
+                                            <Link href="/sign-up">
+                                                <span>Registrar</span>
                                             </Link>
                                         </Button>
                                     </div>

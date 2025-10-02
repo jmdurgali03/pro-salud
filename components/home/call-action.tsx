@@ -26,14 +26,24 @@ export default function CallToAction() {
                                 </Link>
                             </Button>
                         ) : (
-                            <Button
-                                asChild
-                                size="lg"
-                                variant="outline">
-                                <Link href="/">
-                                    <span>Iniciar Sesion</span>
-                                </Link>
-                            </Button>
+                            <>
+                                <Button
+                                    asChild
+                                    size="lg">
+                                    <Link href="/sign-up">
+                                        <span>Registrar</span>
+                                    </Link>
+                                </Button>
+
+                                <Button
+                                    asChild
+                                    size="lg"
+                                    variant="outline">
+                                    <Link href="/sign-in">
+                                        <span>Iniciar Sesion</span>
+                                    </Link>
+                                </Button>
+                            </>
                         )}
                     </div>
                 </div>
