@@ -1,11 +1,14 @@
 import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 
+// Define las rutas públicas (sign-in y sign-up)
 const isPublicRoute = createRouteMatcher([
   '/sign-in(.*)',
-  '/sign-up(.*)'
+  '/sign-up(.*)',
+  '/', // Opcional: si quieres que la landing sea pública
 ])
 
 export default clerkMiddleware(async (auth, req) => {
+  // Solo protege las rutas que NO son públicas
   if (!isPublicRoute(req)) {
     await auth.protect()
   }

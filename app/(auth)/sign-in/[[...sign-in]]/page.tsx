@@ -1,5 +1,14 @@
 import { SignIn } from '@clerk/nextjs'
 
-export default function Page() {
-    return <SignIn />
+export default function SignInPage() {
+    return (
+        <SignIn
+            appearance={{
+                elements: {
+                    rootBox: "w-full",
+                    card: "shadow-none border-0 p-0",
+                }
+            }}
+        />
+    )
 }
