@@ -5,8 +5,8 @@ import { useQuery } from "convex/react";
 import type { Profesional, ProfesionalInput } from "./page";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { ChevronDown, Check } from "lucide-react";
 
-/* --------------------------- Props --------------------------- */
 type Props = {
   initialData?: Profesional;
   onSubmit: (data: ProfesionalInput & { dni?: string; matricula?: string }) => void;
@@ -15,13 +15,11 @@ type Props = {
   onClientError?: (msg: string | null) => void;
 };
 
-/* --------------------------- Validador --------------------------- */
 const sanitizeNombre = (v: string) =>
   v.replace(/[^A-Za-zÁÉÍÓÚÜáéíóúüÑñ\s]/g, "").replace(/\s{2,}/g, " ").replace(/^\s+/, "");
 const isNombreValido = (v: string) =>
   /^[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*$/.test(v);
 
-/* --------------------------- Dropdown Obras Sociales --------------------------- */
 function ObrasSocialesDropdown({
   obrasSociales,
   selectedIds,
@@ -36,13 +34,9 @@ function ObrasSocialesDropdown({
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  // 👇 Detectar click fuera para cerrar
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
-      ) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setIsOpen(false);
       }
     };
@@ -56,73 +50,79 @@ function ObrasSocialesDropdown({
 
   return (
     <div ref={dropdownRef} className="relative">
-      <label className="text-sm text-gray-800 block mb-1">Obras Sociales</label>
+      <label className="text-sm font-medium text-gray-700 block mb-2">
+        Obras Sociales
+      </label>
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full border rounded-lg p-2 text-left flex items-center justify-between bg-white hover:bg-gray-50 transition-colors ${
-          error ? "border-red-500" : "border-gray-300"
-        }`}
+        className={`w-full border rounded-xl px-4 py-3 text-left flex items-center justify-between bg-white hover:border-blue-400 transition-all ${error ? "border-red-300 focus:border-red-500 focus:ring-red-200" : "border-gray-300 focus:border-blue-500 focus:ring-blue-200"
+          } focus:outline-none focus:ring-2`}
       >
-        <span className="text-gray-900">
+        <span className="flex-1">
           {selectedNames.length > 0 ? (
-            <span className="flex flex-wrap gap-1">
+            <span className="flex flex-wrap gap-2">
               {selectedNames.map((name, i) => (
                 <span
                   key={i}
-                  className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700"
+                  className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-cyan-50 to-blue-50 text-cyan-700 border border-cyan-200"
                 >
                   {name}
                 </span>
               ))}
             </span>
           ) : (
-            <span className="text-gray-500">Seleccionar obras sociales...</span>
+            <span className="text-gray-400">Seleccionar obras sociales...</span>
           )}
         </span>
-        <svg
-          className={`w-5 h-5 text-gray-400 transition-transform ${
-            isOpen ? "rotate-180" : ""
-          }`}
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-        </svg>
+        <ChevronDown
+          className={`w-5 h-5 text-gray-400 transition-transform ml-2 flex-shrink-0 ${isOpen ? "rotate-180" : ""
+            }`}
+        />
       </button>
 
       {isOpen && (
-        <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+        <div className="absolute z-20 w-full mt-2 bg-white border border-gray-200 rounded-xl shadow-xl max-h-64 overflow-y-auto">
           {(obrasSociales || []).length > 0 ? (
-            obrasSociales.map((os) => (
-              <label
-                key={os._id}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedIds.includes(os._id)}
-                  onChange={() => onToggle(os._id)}
-                  className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300"
-                />
-                <span className="text-gray-900 flex-1">{os.nombre}</span>
-              </label>
-            ))
+            obrasSociales.map((os) => {
+              const isSelected = selectedIds.includes(os._id);
+              return (
+                <label
+                  key={os._id}
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-blue-50 cursor-pointer transition-colors border-b border-gray-100 last:border-b-0"
+                >
+                  <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${isSelected
+                      ? "bg-blue-600 border-blue-600"
+                      : "border-gray-300"
+                    }`}>
+                    {isSelected && <Check className="w-3.5 h-3.5 text-white" strokeWidth={3} />}
+                  </div>
+                  <span className="text-gray-900 flex-1 text-sm font-medium">{os.nombre}</span>
+                  <input
+                    type="checkbox"
+                    checked={isSelected}
+                    onChange={() => onToggle(os._id)}
+                    className="sr-only"
+                  />
+                </label>
+              );
+            })
           ) : (
-            <div className="px-4 py-3 text-sm text-gray-500 italic">
+            <div className="px-4 py-6 text-sm text-gray-500 text-center italic">
               No hay obras sociales disponibles
             </div>
           )}
         </div>
       )}
 
-      {error && <p className="text-xs text-red-500 mt-1">{error}</p>}
+      {error && <p className="text-xs text-red-500 mt-2 flex items-center gap-1">
+        <span className="w-1 h-1 bg-red-500 rounded-full"></span>
+        {error}
+      </p>}
     </div>
   );
 }
 
-/* --------------------------- Formulario --------------------------- */
 export default function ProfesionalForm({
   initialData,
   onSubmit,
@@ -134,7 +134,11 @@ export default function ProfesionalForm({
   const obrasSociales = useQuery(api.obrasSociales.listar);
 
   if (!especialidades || !obrasSociales)
-    return <p className="text-gray-500">Cargando datos...</p>;
+    return (
+      <div className="flex items-center justify-center py-12">
+        <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600"></div>
+      </div>
+    );
 
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
   const [dni, setDni] = useState(initialData?.dni ?? "");
@@ -189,72 +193,109 @@ export default function ProfesionalForm({
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
+    <form onSubmit={handleSubmit} className="space-y-5">
       {/* Nombre */}
-      <input
-        value={nombre}
-        onChange={(e) => setNombre(sanitizeNombre(e.target.value))}
-        placeholder="Nombre"
-        className="w-full border rounded px-3 py-2"
-        required
-        maxLength={60}
-      />
+      <div>
+        <label className="text-sm font-medium text-gray-700 block mb-2">
+          Nombre completo
+        </label>
+        <input
+          value={nombre}
+          onChange={(e) => setNombre(sanitizeNombre(e.target.value))}
+          placeholder="Ej: Juan Pérez"
+          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+          required
+          maxLength={60}
+        />
+      </div>
 
       {/* DNI + Matrícula + Especialidad solo al crear */}
       {!initialData && (
         <>
-          <input
-            type="text"
-            value={dni}
-            onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
-            placeholder="DNI (8 dígitos)"
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-          <input
-            type="text"
-            value={matricula}
-            onChange={(e) => setMatricula(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            placeholder="Matrícula (4 dígitos)"
-            className="w-full border rounded px-3 py-2"
-            required
-          />
-          <select
-            value={especialidadId}
-            onChange={(e) => setEspecialidadId(e.target.value as Id<"especialidades">)}
-            className="w-full border rounded px-3 py-2"
-            required
-          >
-            <option value="">Seleccionar especialidad</option>
-            {especialidades.map((esp) => (
-              <option key={esp._id} value={esp._id}>
-                {esp.nombre}
-              </option>
-            ))}
-          </select>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">
+                DNI
+              </label>
+              <input
+                type="text"
+                value={dni}
+                onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
+                placeholder="12345678"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                required
+              />
+            </div>
+            <div>
+              <label className="text-sm font-medium text-gray-700 block mb-2">
+                Matrícula
+              </label>
+              <input
+                type="text"
+                value={matricula}
+                onChange={(e) => setMatricula(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                placeholder="1234"
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+                required
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-sm font-medium text-gray-700 block mb-2">
+              Especialidad
+            </label>
+            <div className="relative">
+              <select
+                value={especialidadId}
+                onChange={(e) => setEspecialidadId(e.target.value as Id<"especialidades">)}
+                className="w-full border border-gray-300 rounded-xl px-4 py-3 pr-10 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all appearance-none bg-white"
+                required
+              >
+                <option value="">Seleccionar especialidad</option>
+                {especialidades.map((esp) => (
+                  <option key={esp._id} value={esp._id}>
+                    {esp.nombre}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown className="absolute right-4 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400 pointer-events-none" />
+            </div>
+          </div>
         </>
       )}
 
       {/* Contacto */}
-      <input
-        type="email"
-        value={contacto}
-        onChange={(e) => setContacto(e.target.value)}
-        placeholder="Contacto (ej: usuario@gmail.com)"
-        className="w-full border rounded px-3 py-2"
-        required
-      />
+      <div>
+        <label className="text-sm font-medium text-gray-700 block mb-2">
+          Correo electrónico
+        </label>
+        <input
+          type="email"
+          value={contacto}
+          onChange={(e) => setContacto(e.target.value)}
+          placeholder="usuario@ejemplo.com"
+          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+          required
+        />
+      </div>
 
       {/* Teléfono */}
-      <input
-        type="tel"
-        inputMode="numeric"
-        value={telefono}
-        onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 10))}
-        placeholder="Teléfono (10 dígitos)"
-        className="w-full border rounded px-3 py-2"
-        required
-      />
+      <div>
+        <label className="text-sm font-medium text-gray-700 block mb-2">
+          Teléfono
+        </label>
+        <input
+          type="tel"
+          inputMode="numeric"
+          value={telefono}
+          onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 10))}
+          placeholder="1234567890"
+          className="w-full border border-gray-300 rounded-xl px-4 py-3 focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-200 transition-all"
+          required
+        />
+        <p className="text-xs text-gray-500 mt-1.5">10 dígitos sin espacios ni guiones</p>
+      </div>
 
       {/* Obras Sociales Dropdown */}
       <ObrasSocialesDropdown
@@ -264,31 +305,57 @@ export default function ProfesionalForm({
       />
 
       {/* Estado */}
-      <select
-        value={estado}
-        onChange={(e) => setEstado(e.target.value as "Activo" | "Inactivo")}
-        className="w-full border rounded px-3 py-2"
-      >
-        <option value="Activo">Activo</option>
-        <option value="Inactivo">Inactivo</option>
-      </select>
+      <div>
+        <label className="text-sm font-medium text-gray-700 block mb-2">
+          Estado
+        </label>
+        <div className="flex gap-3">
+          <button
+            type="button"
+            onClick={() => setEstado("Activo")}
+            className={`flex-1 py-3 px-4 rounded-xl border-2 font-medium transition-all ${estado === "Activo"
+                ? "border-green-500 bg-green-50 text-green-700"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+              }`}
+          >
+            Activo
+          </button>
+          <button
+            type="button"
+            onClick={() => setEstado("Inactivo")}
+            className={`flex-1 py-3 px-4 rounded-xl border-2 font-medium transition-all ${estado === "Inactivo"
+                ? "border-red-500 bg-red-50 text-red-700"
+                : "border-gray-200 bg-white text-gray-600 hover:border-gray-300"
+              }`}
+          >
+            Inactivo
+          </button>
+        </div>
+      </div>
 
       {/* Botones */}
-      <div className="flex justify-end gap-2 pt-2">
+      <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-60"
+          className="px-6 py-2.5 rounded-xl bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           disabled={submitting}
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-60"
+          className="px-6 py-2.5 rounded-xl bg-gradient-to-r from-blue-600 to-blue-700 text-white font-medium hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-all shadow-lg shadow-blue-500/30"
           disabled={submitting}
         >
-          {submitting ? "Guardando..." : "Guardar"}
+          {submitting ? (
+            <span className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+              Guardando...
+            </span>
+          ) : (
+            "Guardar"
+          )}
         </button>
       </div>
     </form>
