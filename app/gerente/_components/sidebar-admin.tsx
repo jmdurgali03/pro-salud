@@ -43,18 +43,18 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
   const { signOut } = useAuth();
 
   return (
-    <Sidebar {...props}>
+    <Sidebar {...props} className="border-r bg-gradient-to-b from-white to-gray-50/50">
       {/* Header con logo */}
-      <SidebarHeader className="flex items-center gap-2 px-4 py-3 border-b">
-        <div className="p-2 bg-blue-100 rounded-md">
-          <HeartPulse className="w-6 h-6 text-blue-600" />
+      <SidebarHeader className="flex items-center gap-3 px-6 py-5 border-b border-gray-200/60">
+        <div className="p-2.5 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg shadow-blue-500/30">
+          <HeartPulse className="w-6 h-6 text-white" strokeWidth={2.5} />
         </div>
-        <span className="font-semibold text-gray-800">ProSalud</span>
+        <span className="font-bold text-xl text-gray-800 tracking-tight">ProSalud</span>
       </SidebarHeader>
 
       {/* Links principales */}
-      <SidebarContent>
-        <SidebarMenu>
+      <SidebarContent className="px-3 py-4">
+        <SidebarMenu className="space-y-1">
           {links.map(({ href, label, icon: Icon }) => {
             const isActive = pathname === href;
             return (
@@ -62,17 +62,23 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                 <SidebarMenuButton asChild isActive={isActive}>
                   <Link
                     href={href}
-                    className={`flex items-center gap-3 px-3 py-2 rounded-md transition-colors
+                    className={`flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 group
                       ${isActive
-                        ? "bg-blue-50 text-blue-600 shadow-sm"
-                        : "text-gray-700 hover:bg-gray-100"}
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-[1.02]"
+                        : "text-gray-700 hover:bg-gray-100 hover:scale-[1.01]"}
                     `}
                   >
                     <Icon
                       size={20}
-                      className={isActive ? "text-blue-600" : "text-gray-600"}
+                      strokeWidth={2.5}
+                      className={`transition-transform duration-200 ${isActive
+                        ? "text-white"
+                        : "text-gray-500 group-hover:text-blue-600 group-hover:scale-110"
+                        }`}
                     />
-                    <span className="text-sm font-medium">{label}</span>
+                    <span className={`text-sm font-semibold ${isActive ? "text-white" : ""}`}>
+                      {label}
+                    </span>
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -82,39 +88,41 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
       </SidebarContent>
 
       {/* Footer con user y logout */}
-      <div className="mt-auto border-t p-4 flex flex-col gap-2">
-        <div className="flex justify-center">
-          <UserButton />
-        </div>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button
-              className="w-full hover:bg-red-50 hover:text-red-600 flex items-center justify-center gap-2"
-              variant="ghost"
-            >
-              <LogOut className="w-5 h-5" />
-              <span>Salir</span>
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>¿Cerrar sesión?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Se cerrará tu sesión actual y tendrás que volver a iniciar sesión
-                para acceder nuevamente.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction
-                className="bg-red-600 hover:bg-red-700 text-white"
-                onClick={() => signOut({ redirectUrl: "/" })}
+      <div className="mt-auto border-t border-gray-200/60 bg-white/50 backdrop-blur-sm">
+        <div className="p-4 flex flex-col gap-3">
+          <div className="flex justify-center p-2">
+            <UserButton />
+          </div>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                className="w-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center justify-center gap-2 rounded-xl transition-all duration-200 border border-gray-200 bg-white shadow-sm hover:shadow-md group"
+                variant="ghost"
               >
-                Cerrar sesión
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+                <LogOut className="w-4 h-4 transition-transform group-hover:scale-110" />
+                <span className="font-medium">Salir</span>
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent className="rounded-2xl">
+              <AlertDialogHeader>
+                <AlertDialogTitle className="text-xl">¿Cerrar sesión?</AlertDialogTitle>
+                <AlertDialogDescription className="text-gray-600">
+                  Se cerrará tu sesión actual y tendrás que volver a iniciar sesión
+                  para acceder nuevamente.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel className="rounded-xl">Cancelar</AlertDialogCancel>
+                <AlertDialogAction
+                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl shadow-lg shadow-red-600/30"
+                  onClick={() => signOut({ redirectUrl: "/" })}
+                >
+                  Cerrar sesión
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
       </div>
 
       <SidebarRail />

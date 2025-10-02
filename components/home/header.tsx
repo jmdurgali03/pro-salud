@@ -127,7 +127,7 @@ export const HeroHeader = () => {
                                             className='cursor-pointer'
                                             onClick={handleRedirect}
                                         >
-                                            Iniciar
+                                            Turnos
                                         </Button>
                                     </div>
                                 ) : (

@@ -5,6 +5,7 @@ import Image from 'next/image'
 import { TextEffect } from '@/components/ui/text-effect'
 import { AnimatedGroup } from '@/components/ui/animated-group'
 import { HeroHeader } from './header'
+import CallToAction from './call-action'
 
 const transitionVariants = {
     item: {
@@ -63,7 +64,7 @@ export default function HeroSection() {
                                     La plataforma digital que conecta pacientes, profesionales y recursos en un solo lugar.
                                 </TextEffect>
 
-                                <div className="mt-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
+                                <div className="mt-8 mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
                                     <div className="p-4 rounded-xl border shadow-sm bg-background/50">
                                         <h3 className="font-semibold text-primary flex items-center gap-2">🗓️ Agenda</h3>
                                         <p className="text-sm text-muted-foreground">Turnos rápidos y organizados</p>
@@ -104,6 +105,10 @@ export default function HeroSection() {
                                 </div>
                             </div>
                         </AnimatedGroup>
+
+                        <div className='mt-8'>
+                            <CallToAction />
+                        </div>
                     </div>
                 </section>
             </main>
