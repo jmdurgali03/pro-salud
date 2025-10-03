@@ -13,7 +13,10 @@ import { PacientesTable } from "./_components/pacientes-table";
 import { PacienteForm, PacienteFormValues } from "./_components/paciente-form";
 import { ModalContainer } from "../_components/modal-container";
 import { ConfirmDialog } from "../_components/confirm-dialog";
+import { PacientesPagination } from "./_components/pacientes-pagination";
 import { PacienteRecord } from "./types";
+
+const ITEMS_PER_PAGE = 10;
 
 export default function PacientesPage() {
   const [search, setSearch] = useState("");
@@ -29,6 +32,7 @@ export default function PacientesPage() {
     [obrasSocialesQuery]
   );
   const [selectedObrasSociales, setSelectedObrasSociales] = useState<Id<"obrasSociales">[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const prevPacientesRef = useRef<PacienteRecord[]>([]);
   useEffect(() => {
@@ -92,6 +96,30 @@ export default function PacientesPage() {
     return lista.filter((paciente) => coincideConBusqueda(paciente) && coincideConObras(paciente));
   }, [pacientesConvex, debouncedSearch, selectedObrasSociales]);
 
+  const totalPages = useMemo(() => {
+    const count = filteredPacientes.length;
+    if (count === 0) return 1;
+    return Math.ceil(count / ITEMS_PER_PAGE);
+  }, [filteredPacientes.length]);
+
+  const clampedPage = Math.min(currentPage, totalPages);
+
+  const paginatedPacientes = useMemo(() => {
+    const start = (clampedPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filteredPacientes.slice(start, end);
+  }, [filteredPacientes, clampedPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedObrasSociales]);
+
+  useEffect(() => {
+    if (currentPage !== clampedPage) {
+      setCurrentPage(clampedPage);
+    }
+  }, [currentPage, clampedPage]);
+
   const crearPaciente = useMutation(api.pacientes.crear);
   const actualizarPaciente = useMutation(api.pacientes.actualizar);
   const eliminarPaciente = useMutation(api.pacientes.eliminar);
@@ -150,7 +178,7 @@ const sanitizeForm = (form: PacienteFormValues) => ({
             isLoadingObrasSociales={isLoadingOS}
           />
           <PacientesTable
-            pacientes={filteredPacientes}
+            pacientes={paginatedPacientes}
             onView={handleVer}
             onEdit={(paciente) => {
               setSeleccionado(paciente);
@@ -162,6 +190,13 @@ const sanitizeForm = (form: PacienteFormValues) => ({
             }}
             searchTerm={debouncedSearch}
             isLoading={isLoadingPac}
+          />
+          <PacientesPagination
+            currentPage={clampedPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            pageSize={ITEMS_PER_PAGE}
+            totalItems={filteredPacientes.length}
           />
         </div>
 
