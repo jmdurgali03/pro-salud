@@ -17,6 +17,7 @@ import {
   FlaskConical,
   Pill,
   StickyNote,
+  Venus,
 } from "lucide-react";
 
 /* --------------------------- UI helpers --------------------------- */
@@ -59,6 +60,7 @@ export type PacienteExtendido = {
   telefono?: string;
   dni: string;
   fechaNacimiento?: string;
+  genero?: "Masculino" | "Femenino";
   creadoEn: number;
   actualizadoEn: number;
   obrasSociales: Id<"obrasSociales">[];
@@ -233,6 +235,7 @@ export default function HistorialPacientePage() {
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
               <DataItem icon={<User className="h-4 w-4" />} label="Nombre completo" value={paciente.nombreCompleto} />
               <DataItem icon={<IdCard className="h-4 w-4" />} label="DNI" value={paciente.dni} />
+              <DataItem icon={<Venus className="h-4 w-4" />} label="Género" value={paciente.genero} />
               <DataItem icon={<Phone className="h-4 w-4" />} label="Teléfono" value={paciente.telefono ?? "—"} />
               <DataItem icon={<Mail className="h-4 w-4" />} label="Email" value={paciente.email ?? "—"} />
               <DataItem icon={<Stethoscope className="h-4 w-4" />} label="Obras sociales" value={paciente.obrasSocialesNombres?.join(", ") || "Particular"} />
