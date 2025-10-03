@@ -106,13 +106,13 @@ export default function ProfesionalesPage() {
       { label: "Inicio", href: "/gerente" },
       { label: "Profesionales", href: "/gerente/profesional" }
     ]}>
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-8">
+      <div className="w-full px-16 py-10 space-y-10">
         
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-1.5 h-8 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Profesionales</h1>
+            <h1 className="text-4xl font-bold text-gray-900">Gestión de Profesionales</h1>
           </div>
           <p className="text-gray-600 text-lg ml-5">
             Administra la información de todos los profesionales registrados
@@ -124,50 +124,50 @@ export default function ProfesionalesPage() {
           <input
             type="text"
             placeholder="Buscar por nombre, DNI, matrícula, especialidad u obra social..."
-            className="flex-1 mr-4 px-4 py-2 rounded-lg border border-gray-200 shadow-sm focus:ring-2 focus:ring-green-500 outline-none"
+            className="flex-1 mr-4 px-5 py-3 rounded-lg border border-gray-200 shadow-sm focus:ring-2 focus:ring-green-500 outline-none text-base"
           />
           <button
             onClick={() => { setModalError(null); setModalOpen(true); }}
-            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 shadow"
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 shadow text-base"
           >
-            <Plus size={18} /> Nuevo Profesional
+            <Plus size={20} /> Nuevo Profesional
           </button>
         </div>
 
         {/* Tabla */}
-        <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm bg-white">
-          <table className="w-full text-sm text-gray-700">
+        <div className="overflow-hidden rounded-xl border border-gray-200 shadow bg-white">
+          <table className="w-full text-base text-gray-700">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-3 text-left">Nombre</th>
-                <th className="p-3 text-left">Especialidad</th>
-                <th className="p-3 text-left">Contacto</th>
-                <th className="p-3 text-left">Teléfono</th>
-                <th className="p-3 text-left">Obras Sociales</th>
-                <th className="p-3 text-center">Estado</th>
-                <th className="p-3 text-center">Acciones</th>
+                <th className="p-5 text-left min-w-[180px]">Nombre</th>
+                <th className="p-5 text-left min-w-[180px]">Especialidad</th>
+                <th className="p-5 text-left min-w-[220px]">Contacto</th>
+                <th className="p-5 text-left min-w-[150px]">Teléfono</th>
+                <th className="p-5 text-left min-w-[220px]">Obras Sociales</th>
+                <th className="p-5 text-center min-w-[120px]">Estado</th>
+                <th className="p-5 text-center min-w-[150px]">Acciones</th>
               </tr>
             </thead>
             <tbody>
               {profesionales.map((prof) => (
                 <tr key={prof._id.toString()} className="border-t hover:bg-gray-50">
-                  <td className="p-3 font-semibold">{prof.nombre}</td>
-                  <td className="p-3">{getEspecialidadNombre(prof.especialidadId)}</td>
-                  <td className="p-3">{prof.contacto}</td>
-                  <td className="p-3">{prof.telefono}</td>
-                  <td className="p-3 flex flex-wrap gap-2">
+                  <td className="p-5 font-semibold">{prof.nombre}</td>
+                  <td className="p-5">{getEspecialidadNombre(prof.especialidadId)}</td>
+                  <td className="p-5">{prof.contacto}</td>
+                  <td className="p-5">{prof.telefono}</td>
+                  <td className="p-5 flex flex-wrap gap-2">
                     {getObrasSocialesNombres(prof.obrasSociales).map((os) => (
                       <span
                         key={os}
-                        className="px-2 py-1 text-xs rounded-full bg-gray-100 border text-gray-700"
+                        className="px-3 py-1 text-sm rounded-full bg-gray-100 border text-gray-700"
                       >
                         {os}
                       </span>
                     ))}
                   </td>
-                  <td className="p-3 text-center">
+                  <td className="p-5 text-center">
                     <span
-                      className={`px-2 py-1 rounded-full text-xs font-medium ${
+                      className={`px-3 py-1 rounded-full text-sm font-medium ${
                         prof.estado === "Activo"
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
@@ -176,7 +176,7 @@ export default function ProfesionalesPage() {
                       {prof.estado}
                     </span>
                   </td>
-                  <td className="p-3 text-center space-x-3">
+                  <td className="p-5 text-center space-x-4">
                     <button onClick={() => setViendo(prof)} className="text-green-600 hover:underline">Ver</button>
                     <button onClick={() => setEditando(prof)} className="text-blue-600 hover:underline">Editar</button>
                   </td>
@@ -184,7 +184,7 @@ export default function ProfesionalesPage() {
               ))}
               {profesionales.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-4 text-center text-gray-400 italic">
+                  <td colSpan={7} className="p-6 text-center text-gray-400 italic">
                     No hay profesionales registrados
                   </td>
                 </tr>
@@ -221,8 +221,8 @@ export default function ProfesionalesPage() {
         {/* Modal ver */}
         {viendo && (
           <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-            <div className="bg-white text-black rounded-lg shadow-xl p-6 w-96 space-y-4">
-              <h2 className="text-lg font-bold">Datos del Profesional</h2>
+            <div className="bg-white text-black rounded-lg shadow-xl p-6 w-[30rem] space-y-4">
+              <h2 className="text-xl font-bold">Datos del Profesional</h2>
               <p><strong>Nombre:</strong> {viendo.nombre}</p>
               <p><strong>DNI:</strong> {viendo.dni}</p>
               <p><strong>Matrícula:</strong> {viendo.matricula}</p>
@@ -232,7 +232,7 @@ export default function ProfesionalesPage() {
               <p><strong>Obras Sociales:</strong> {getObrasSocialesNombres(viendo.obrasSociales).join(", ")}</p>
               <p><strong>Estado:</strong> {viendo.estado}</p>
               <div className="flex justify-end">
-                <button onClick={() => setViendo(null)} className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300">Cerrar</button>
+                <button onClick={() => setViendo(null)} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Cerrar</button>
               </div>
             </div>
           </div>
