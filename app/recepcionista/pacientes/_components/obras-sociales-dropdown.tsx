@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
+import { getObraSocialBadgeClass } from "../../_components/obra-social-badge";
 
 type ObrasSocial = {
   _id: Id<"obrasSociales">;
@@ -55,10 +56,7 @@ export function ObrasSocialesDropdown({
           {selectedNames.length > 0 ? (
             <div className="flex flex-wrap gap-1.5">
               {selectedNames.map((name, i) => (
-                <span
-                  key={i}
-                  className="inline-block px-3 py-1 rounded-full text-xs font-semibold bg-green-100 text-green-700 border border-green-200"
-                >
+                <span key={`${name}-${i}`} className={getObraSocialBadgeClass(name)}>
                   {name}
                 </span>
               ))}
