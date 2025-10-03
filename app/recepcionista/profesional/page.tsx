@@ -182,16 +182,13 @@ export default function ProfesionalesPage() {
       { label: "Profesionales", href: "/recepcionista/profesional" }
     ]}>
       <div className="w-full px-6 py-8 space-y-6">
+
         {/* Header */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
-              <h1 className="text-3xl font-bold text-gray-900">Gestión de Profesionales</h1>
-            </div>
-            <p className="text-gray-600 text-base md:ml-5">
-              Administra los profesionales de tu institución
-            </p>
+            <h1 className="text-3xl font-bold text-gray-900">Gestión de Profesionales</h1>
+            <p className="text-gray-600 mt-1">Administra los profesionales de tu institución</p>
           </div>
         </div>
 
