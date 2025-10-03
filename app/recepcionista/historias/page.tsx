@@ -13,6 +13,12 @@ export default function HistoriasClinicasListaPage() {
   const pacientes = useQuery(api.pacientes.listar, q ? { search: q } : {});
 
   return (
+    <PageWrapper
+      breadcrumbs={[
+        { label: "Inicio", href: "/recepcionista" },
+        { label: "Historias Clinicas", href: "/recepcionista/Historias Clinicas" },
+      ]}
+    >
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto max-w-6xl p-6 space-y-6">
         <header className="flex items-center justify-between">
@@ -88,5 +94,7 @@ export default function HistoriasClinicasListaPage() {
         </section>
       </div>
     </div>
+    </PageWrapper>
   );
+  
 }
