@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, UserPlus, BriefcaseMedical, ArrowRight, Home, Users } from "lucide-react";
+import { Calendar, UserPlus, BriefcaseMedical, ArrowRight, Home, Users, NotepadTextDashed} from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import ProximosTurnosHoy from "./_components/prox-turnos";
 import { AppSidebar } from "@/components/sidebar";
@@ -42,6 +42,8 @@ const links = [
     { href: "/recepcionista/cal-turnos", label: "Turnos", icon: Calendar },
     { href: "/recepcionista/pacientes", label: "Pacientes", icon: Users },
     { href: "/recepcionista/profesional", label: "Profesionales", icon: BriefcaseMedical },
+    { href: "/recepcionista/historias", label: "Historias Clinicas", icon: NotepadTextDashed },
+
 ];
 
 export default function RecepcionistaHome() {
