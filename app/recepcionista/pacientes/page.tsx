@@ -251,6 +251,7 @@ export default function PacientesPage() {
             )}
           </Modal>
         )}
+
       </div>
     </PageWrapper>
   );
