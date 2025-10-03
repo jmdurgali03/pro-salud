@@ -6,7 +6,7 @@ export const listarPorPaciente = query({
   handler: async (ctx, { pacienteId }) => {
     return await ctx.db
       .query("consultas")
-      .withIndex("por_paciente", (q) => q.eq("pacienteId", pacienteId))
+      .withIndex("por_paciente", q => q.eq("pacienteId", pacienteId))
       .order("desc")
       .collect();
   },
@@ -21,9 +21,10 @@ export const crear = mutation({
     fecha: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    return await ctx.db.insert("consultas", {
+    const id = await ctx.db.insert("consultas", {
       ...args,
       fecha: args.fecha ?? Date.now(),
     });
+    return id;
   },
 });
