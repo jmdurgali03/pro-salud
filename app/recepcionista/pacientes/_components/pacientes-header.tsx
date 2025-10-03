@@ -14,13 +14,10 @@ export function PacientesHeader({ onCreate, disableCreate = false }: PacientesHe
                 <div className="flex items-center gap-3 mb-6">
           <div className="w-1.5 h-8 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
           <div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Profesionales</h1>
-            <p className="text-gray-600 mt-1">Administra los profesionales de tu institución</p>
+            <h1 className="text-3xl font-bold text-gray-900">Gestión de Pacientes</h1>
+            <p className="text-gray-600 mt-1">Administra la información de todos los pacientes registrados</p>
           </div>
         </div>
-        <p className="text-gray-600 text-base md:ml-5">
-          Administra la información de todos los pacientes registrados
-        </p>
       </div>
       <button
         onClick={onCreate}

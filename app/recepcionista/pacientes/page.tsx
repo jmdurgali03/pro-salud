@@ -195,10 +195,15 @@ const sanitizeForm = (form: PacienteFormValues) => ({
         {totalPages > 1 && (
           <div className="px-6 pb-10">
             <div className="flex flex-col gap-3 rounded-xl border border-gray-200 bg-white p-4 shadow-sm sm:flex-row sm:items-center sm:justify-between">
-              <p className="text-sm text-gray-600">
-                Mostrando {filteredPacientes.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} -
-                {Math.min(currentPage * pageSize, filteredPacientes.length)} de {filteredPacientes.length} pacientes
-              </p>
+              <div className="space-y-1">
+                <p className="text-sm text-gray-600">
+                  Mostrando {filteredPacientes.length === 0 ? 0 : (currentPage - 1) * pageSize + 1} -
+                  {Math.min(currentPage * pageSize, filteredPacientes.length)} de {filteredPacientes.length} pacientes
+                </p>
+                <p className="text-xs font-medium text-gray-500">
+                  Página {currentPage} de {totalPages}
+                </p>
+              </div>
               <div className="flex flex-wrap items-center gap-2">
                 <button
                   onClick={() => setCurrentPage((page) => Math.max(1, page - 1))}
