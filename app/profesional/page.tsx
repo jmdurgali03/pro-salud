@@ -5,6 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, UserPlus, BriefcaseMedical, ArrowRight, Home, Users } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
+import { AppSidebar } from "@/components/sidebar";
 
 const actions = [
     {
@@ -47,6 +48,7 @@ export default function ProfesionalHome() {
 
     return (
         <>
+            <AppSidebar links={links} panelName="Panel Profesional" />
             <PageWrapper breadcrumbs={[{ label: "Inicio", href: "/profesional" }]}>
                 <div className="w-full min-h-screen bg-white">
                     <div className="max-w-7xl mx-auto py-8 px-6">

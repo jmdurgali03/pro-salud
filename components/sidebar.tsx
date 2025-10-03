@@ -3,14 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-    Calendar,
-    Users,
-    BriefcaseMedical,
-    Home,
-    LogOut,
-    HeartPulse,
-} from "lucide-react";
+import { LogOut, HeartPulse, LucideIcon } from "lucide-react";
 import { UserButton, useAuth } from "@clerk/nextjs";
 
 import {
@@ -35,13 +28,18 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 
-const links = [
-    { href: "/profesional", label: "Inicio", icon: Home },
-    { href: "/profesional/cal-turnos", label: "Turnos", icon: Calendar },
-    { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
-];
+export type SidebarLink = {
+    href: string;
+    label: string;
+    icon: LucideIcon;
+};
 
-export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+type AppSidebarProps = {
+    links: SidebarLink[];
+    panelName: string;
+} & React.ComponentProps<typeof Sidebar>;
+
+export function AppSidebar({ links, panelName, ...props }: AppSidebarProps) {
     const pathname = usePathname();
     const { signOut } = useAuth();
 
@@ -53,7 +51,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                     <HeartPulse className="w-6 h-6 text-white" strokeWidth={2.5} />
                 </div>
                 <span className="font-bold text-xl text-gray-800 tracking-tight">ProSalud</span>
-                <span className="text-xs text-slate-500">Panel Profesional</span>
+                <span className="text-xs text-slate-500">{panelName}</span>
             </SidebarHeader>
 
             {/* Links principales */}
@@ -109,9 +107,9 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                         </AlertDialogTrigger>
                         <AlertDialogContent className="rounded-2xl">
                             <AlertDialogHeader>
-                                <AlertDialogTitle className="text-xl">Â¿Cerrar sesiÃ³n?</AlertDialogTitle>
+                                <AlertDialogTitle className="text-xl">¿Cerrar sesión?</AlertDialogTitle>
                                 <AlertDialogDescription className="text-gray-600">
-                                    Se cerrarÃ¡ tu sesiÃ³n actual y tendrÃ¡s que volver a iniciar sesiÃ³n
+                                    Se cerrará tu sesión actual y tendrás que volver a iniciar sesión
                                     para acceder nuevamente.
                                 </AlertDialogDescription>
                             </AlertDialogHeader>
@@ -121,7 +119,7 @@ export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
                                     className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl shadow-lg shadow-red-600/30"
                                     onClick={() => signOut({ redirectUrl: "/" })}
                                 >
-                                    Cerrar sesiÃ³n
+                                    Cerrar sesión
                                 </AlertDialogAction>
                             </AlertDialogFooter>
                         </AlertDialogContent>
