@@ -9,6 +9,7 @@ const links = [
   { href: "/recepcionista/cal-turnos", label: "Turnos", icon: Calendar  },
   { href: "/recepcionista/pacientes", label: "Pacientes", icon: Users },
   { href: "/recepcionista/profesional", label: "Profesionales", icon: BriefcaseMedical },
+  { href: "/recepcionista/historias", label: "Historias Clinicas", icon: BriefcaseMedical },
 ];
 
 export default function RecepcionistaLayout({ children }: { children: React.ReactNode }) {
