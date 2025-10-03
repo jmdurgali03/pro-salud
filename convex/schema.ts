@@ -125,9 +125,32 @@ profesionales: defineTable({
   .index("por_profesional", ["profesional"]),
 
   diagnosticos: defineTable({
+      pacienteId: v.id("pacientes"),
+      consultaId: v.id("consultas"),
+      descripcion: v.string(),
+      profesional: v.string(),
+      estado: v.union(v.literal("Presuntivo"), v.literal("Definitivo")),
+      fecha: v.number(),
+    })
+      .index("por_paciente", ["pacienteId"])
+      .index("por_consulta", ["consultaId"]),
+      
+  tratamientos: defineTable({
+      pacienteId: v.id("pacientes"),
+      profesional: v.string(),
+      titulo: v.string(),          // p.ej. "Amoxicilina 500mg c/8h"
+      indicaciones: v.optional(v.string()),
+      fechaInicio: v.number(),
+      fechaFin: v.optional(v.number()),
+      estado: v.union(v.literal("Activo"), v.literal("Suspendido"), v.literal("Finalizado")),
+    }).index("por_paciente", ["pacienteId"]),
+
+  historialClinico: defineTable({
     pacienteId: v.id("pacientes"),
-    descripcion: v.string(),
-    profesional: v.string(),
-    fecha: v.number(),
+    antecedentesFamiliares: v.optional(v.string()),
+    antecedentesPersonales: v.optional(v.string()),
+    alergias: v.optional(v.string()),
+    otrasNotas: v.optional(v.string()),
+    actualizadoEn: v.number(),
   }).index("por_paciente", ["pacienteId"]),
 });
