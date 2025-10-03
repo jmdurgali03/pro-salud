@@ -28,7 +28,8 @@ export default function ProfesionalForm({
 }: Props) {
   const especialidades = useQuery(api.especialidades.listar);
   const obrasSociales = useQuery(api.obrasSociales.listar);
-  const isLoading = !especialidades || !obrasSociales;
+
+  if (!especialidades || !obrasSociales) return <p className="text-gray-500">Cargando datos...</p>;
 
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
   const [dni, setDni] = useState(initialData?.dni ?? "");
@@ -42,8 +43,6 @@ export default function ProfesionalForm({
     initialData?.obrasSociales ?? []
   );
   const [estado, setEstado] = useState<"Activo" | "Inactivo">(initialData?.estado ?? "Activo");
-
-  if (isLoading) return <p className="text-gray-500">Cargando datos...</p>;
 
   const handleObraSocialChange = (id: Id<"obrasSociales">) => {
     setObrasSeleccionadas(prev => (prev.includes(id) ? prev.filter(os => os !== id) : [...prev, id]));
