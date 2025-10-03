@@ -9,27 +9,41 @@ export const listar = query({
     const obras = await ctx.db.query("obrasSociales").collect();
     const relaciones = await ctx.db.query("pacientes_obrasSociales").collect();
 
-    const filtrados = !args.search
-      ? pacientes
-      : pacientes.filter(
-          (p) =>
-            p.nombreCompleto.toLowerCase().includes(args.search!.toLowerCase()) ||
-            p.dni.includes(args.search!)
-        );
-
-    return filtrados.map((p) => {
-      // Buscar obras sociales relacionadas
+    const pacientesConObras = pacientes.map((p) => {
       const rels = relaciones.filter((r) => r.pacienteId === p._id);
       const obrasIds = rels.map((r) => r.obraSocialId);
+      const obrasNombres = obrasIds
+        .map((id) => obras.find((o) => o._id === id)?.nombre)
+        .filter((nombre): nombre is string => Boolean(nombre));
 
       return {
         ...p,
-        obrasSociales: obrasIds, // array de Id<"obrasSociales">
-        obrasSocialesNombres: obrasIds
-          .map((id) => obras.find((o) => o._id === id)?.nombre)
-          .filter(Boolean), // nombres listos para mostrar
+        obrasSociales: obrasIds,
+        obrasSocialesNombres: obrasNombres,
       };
     });
+
+    const termino = args.search?.trim().toLowerCase();
+
+    if (!termino) {
+      return pacientesConObras;
+    }
+
+    const coincide = (valor?: string | number | null) => {
+      if (valor === undefined || valor === null) return false;
+      const comoTexto = typeof valor === "string" ? valor.trim() : String(valor);
+      return comoTexto.toLowerCase().includes(termino);
+    };
+
+    return pacientesConObras.filter((p) =>
+      coincide(p.nombreCompleto) ||
+      coincide(p.dni) ||
+      coincide(p.email) ||
+      coincide(p.telefono) ||
+      coincide(p.fechaNacimiento) ||
+      coincide(p.genero) ||
+      (p.obrasSocialesNombres ?? []).some((nombre) => coincide(nombre))
+    );
   },
 });
 
@@ -41,24 +55,26 @@ export const crear = mutation({
     telefono: v.optional(v.string()),
     dni: v.string(),
     fechaNacimiento: v.optional(v.string()),
+    genero: v.union(v.literal("Masculino"), v.literal("Femenino")),
     obrasSociales: v.array(v.id("obrasSociales")),
   },
   handler: async (ctx, args) => {
     const ahora = Date.now();
-    let { obrasSociales, ...pacienteData } = args;
+    const { obrasSociales, ...pacienteData } = args;
 
-    // 🔹 Si no seleccionaron obra social, asignar "Particular"
+    // Validar que se haya seleccionado al menos una obra social
     if (obrasSociales.length === 0) {
-      const particular = await ctx.db
-        .query("obrasSociales")
-        .withIndex("por_nombre", (q) => q.eq("nombre", "Particular"))
-        .unique();
+      throw new Error("Debe seleccionar al menos una obra social (incluyendo 'Particular' si no tiene cobertura)");
+    }
 
-      if (!particular) {
-        throw new Error("No existe la obra social 'Particular' en la base.");
-      }
+    // Verificar si ya existe un paciente con ese DNI
+    const existente = await ctx.db
+      .query("pacientes")
+      .withIndex("por_dni", (q) => q.eq("dni", pacienteData.dni))
+      .unique();
 
-      obrasSociales = [particular._id];
+    if (existente) {
+      throw new Error("Ya existe un paciente con ese DNI");
     }
 
     const pacienteId = await ctx.db.insert("pacientes", {
@@ -67,6 +83,7 @@ export const crear = mutation({
       actualizadoEn: ahora,
     });
 
+    // Insertar relaciones con obras sociales
     for (const osId of obrasSociales) {
       await ctx.db.insert("pacientes_obrasSociales", {
         pacienteId,
@@ -87,11 +104,18 @@ export const actualizar = mutation({
     telefono: v.optional(v.string()),
     dni: v.string(),
     fechaNacimiento: v.optional(v.string()),
+    genero: v.union(v.literal("Masculino"), v.literal("Femenino")),
     obrasSociales: v.array(v.id("obrasSociales")),
   },
   handler: async (ctx, args) => {
     const { id, obrasSociales, ...resto } = args;
 
+    // Validar que se haya seleccionado al menos una obra social
+    if (obrasSociales.length === 0) {
+      throw new Error("Debe seleccionar al menos una obra social (incluyendo 'Particular' si no tiene cobertura)");
+    }
+
+    // Verificar si ya existe otro paciente con ese DNI
     const duplicado = await ctx.db
       .query("pacientes")
       .withIndex("por_dni", (q) => q.eq("dni", resto.dni))
@@ -106,7 +130,7 @@ export const actualizar = mutation({
       actualizadoEn: Date.now(),
     });
 
-    // resetear relaciones
+    // Resetear relaciones
     const actuales = await ctx.db
       .query("pacientes_obrasSociales")
       .withIndex("por_paciente", (q) => q.eq("pacienteId", id))
@@ -116,22 +140,8 @@ export const actualizar = mutation({
       await ctx.db.delete(rel._id);
     }
 
-    // 🔹 Si está vacío, asignar "Particular"
-    let obras = obrasSociales;
-    if (obras.length === 0) {
-      const particular = await ctx.db
-        .query("obrasSociales")
-        .withIndex("por_nombre", (q) => q.eq("nombre", "Particular"))
-        .unique();
-
-      if (!particular) {
-        throw new Error("No existe la obra social 'Particular' en la base.");
-      }
-
-      obras = [particular._id];
-    }
-
-    for (const osId of obras) {
+    // Insertar nuevas relaciones
+    for (const osId of obrasSociales) {
       await ctx.db.insert("pacientes_obrasSociales", {
         pacienteId: id,
         obraSocialId: osId,
@@ -161,7 +171,7 @@ export const eliminar = mutation({
   },
 });
 
-// 🔹 Obtener paciente por ID con sus obras sociales
+// Obtener paciente por ID con sus obras sociales
 export const getByIdConObras = query({
   args: { id: v.id("pacientes") },
   handler: async (ctx, { id }) => {

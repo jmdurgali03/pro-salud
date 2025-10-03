@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
 import { Eye, Edit, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { getObraSocialBadgeClass } from "../_components/obra-social-badge";
 
 export type Profesional = {
   _id: Id<"profesionales">;
@@ -171,8 +172,9 @@ export default function ProfesionalesPage() {
     especialidades.find((e) => e._id === id)?.nombre || "—";
 
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
-    ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
-      .filter(Boolean).join(", ");
+    ids
+      .map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
+      .filter((nombre): nombre is string => Boolean(nombre));
 
   return (
     <PageWrapper breadcrumbs={[
@@ -222,6 +224,7 @@ export default function ProfesionalesPage() {
               <tbody className="divide-y divide-gray-100">
                 {currentItems.map((prof: Profesional, index: number) => {
                   const isLast = index === currentItems.length - 1 || index >= currentItems.length - 3;
+                  const obrasSocialesNombres = getObrasSocialesNombres(prof.obrasSociales);
                   return (
                     <tr key={prof._id.toString()} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
@@ -234,8 +237,16 @@ export default function ProfesionalesPage() {
                       <td className="px-6 py-4 text-sm text-gray-700">{prof.contacto}</td>
                       <td className="px-6 py-4 text-sm text-gray-700">{prof.telefono}</td>
                       <td className="px-6 py-4">
-                        <div className="text-sm text-gray-700 max-w-xs truncate">
-                          {getObrasSocialesNombres(prof.obrasSociales) || "—"}
+                        <div className="flex flex-wrap gap-2">
+                          {obrasSocialesNombres.length === 0 ? (
+                            <span className="text-gray-400 text-sm italic">Sin obra social asignada</span>
+                          ) : (
+                            obrasSocialesNombres.map((nombre, i) => (
+                              <span key={i} className={getObraSocialBadgeClass(nombre)}>
+                                {nombre}
+                              </span>
+                            ))
+                          )}
                         </div>
                       </td>
                       <td className="px-6 py-4 text-center">

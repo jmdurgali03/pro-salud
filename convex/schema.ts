@@ -75,6 +75,7 @@ export default defineSchema({
     telefono: v.optional(v.string()),
     dni: v.string(),
     fechaNacimiento: v.optional(v.string()),
+    genero: v.optional(v.union(v.literal("Masculino"), v.literal("Femenino"))),
     creadoEn: v.number(),
     actualizadoEn: v.number(),
   })
