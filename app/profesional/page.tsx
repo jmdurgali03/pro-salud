@@ -2,16 +2,35 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { BriefcaseMedical, ArrowRight, Home } from "lucide-react";
+import { Calendar, UserPlus, BriefcaseMedical, ArrowRight, Home, Users } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
+import { useUser } from "@clerk/nextjs";
 import { AppSidebar } from "@/components/sidebar";
 
 const actions = [
     {
-        title: "Registrar Profesional",
-        description: "Alta de nuevo Especialista",
+        title: "Vista Agenda",
+        description: "Visualiza los turnos ocupados y disponibles.",
+        icon: Calendar,
+        href: "/profesional/cal-turnos",
+        gradient: "from-blue-500 to-cyan-500",
+        bgLight: "bg-blue-50",
+        shadowColor: "shadow-blue-500/20",
+    },
+    {
+        title: "Registrar Paciente",
+        description: "Alta de nuevos pacientes",
+        icon: UserPlus,
+        href: "/profesional/pacientes",
+        gradient: "from-green-500 to-emerald-500",
+        bgLight: "bg-green-50",
+        shadowColor: "shadow-green-500/20",
+    },
+    {
+        title: "Datos Profesional",
+        description: "Información de especialistas",
         icon: BriefcaseMedical,
-        href: "/gerente/profesional",
+        href: "/profesional/profesional",
         gradient: "from-purple-500 to-pink-500",
         bgLight: "bg-purple-50",
         shadowColor: "shadow-purple-500/20",
@@ -19,27 +38,30 @@ const actions = [
 ];
 
 const links = [
-    { href: "/gerente", label: "Inicio", icon: Home },
-    { href: "/gerente/profesional", label: "Profesionales", icon: BriefcaseMedical },
+    { href: "/profesional", label: "Inicio", icon: Home },
+    { href: "/profesional/cal-turnos", label: "Turnos", icon: Calendar },
+    { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
 ];
 
-export default function GerenteHome() {
+export default function ProfesionalHome() {
+    const { user } = useUser();
+
     return (
         <>
-            <AppSidebar links={links} panelName="Panel Gerente" />
-            <PageWrapper breadcrumbs={[{ label: "Inicio", href: "/gerente" }]}>
+            <AppSidebar links={links} panelName="Panel Profesional" />
+            <PageWrapper breadcrumbs={[{ label: "Inicio", href: "/profesional" }]}>
                 <div className="w-full min-h-screen bg-white">
                     <div className="max-w-7xl mx-auto py-8 px-6">
                         {/* Header Section */}
                         <div className="mb-10">
                             <div className="flex items-center gap-3 mb-3">
-                                <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+                                <div className="w-1.5 h-8 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full"></div>
                                 <h1 className="text-4xl font-bold text-gray-900">
-                                    Gerente
+                                    Bienvenido {user?.fullName}
                                 </h1>
                             </div>
                             <p className="text-gray-600 text-lg ml-5">
-                                Gestiona turnos, pacientes y profesionales desde un solo lugar
+                                Gestiona la informacion de tus pacientes y administra tus turnos.
                             </p>
                         </div>
 
@@ -85,6 +107,7 @@ export default function GerenteHome() {
                                 ))}
                             </div>
                         </div>
+
                     </div>
                 </div>
             </PageWrapper>

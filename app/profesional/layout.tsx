@@ -1,6 +1,6 @@
 import { SidebarProvider } from "@/components/ui/sidebar";
 
-export default function GerenteLayout({ children }: { children: React.ReactNode }) {
+export default function ProfesionalLayout({ children }: { children: React.ReactNode }) {
     return (
         <SidebarProvider>
             <div className="flex w-full h-screen">
@@ -9,5 +9,5 @@ export default function GerenteLayout({ children }: { children: React.ReactNode 
                 </main>
             </div>
         </SidebarProvider>
-    )
+    );
 }
