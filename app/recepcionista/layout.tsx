@@ -1,13 +1,25 @@
+"use client";
+
 import { SidebarProvider } from "@/components/ui/sidebar";
+import { AppSidebar } from "@/components/sidebar";
+import { Home, BriefcaseMedical, Users, Calendar } from "lucide-react";
+
+const links = [
+  { href: "/recepcionista", label: "Inicio", icon: Home },
+  { href: "/recepcionista/cal-turnos", label: "Turnos", icon: Calendar  },
+  { href: "/recepcionista/pacientes", label: "Pacientes", icon: Users },
+  { href: "/recepcionista/profesional", label: "Profesionales", icon: BriefcaseMedical },
+];
 
 export default function RecepcionistaLayout({ children }: { children: React.ReactNode }) {
-    return (
-        <SidebarProvider>
-            <div className="flex w-full h-screen">
-                <main className="flex-1 w-full">
-                    {children}
-                </main>
-            </div>
-        </SidebarProvider>
-    );
+  return (
+    <SidebarProvider>
+      <div className="flex w-full h-screen">
+        <AppSidebar links={links} panelName="Panel Recepcionista" />
+        <main className="flex-1 w-full overflow-y-auto">
+          {children}
+        </main>
+      </div>
+    </SidebarProvider>
+  );
 }
