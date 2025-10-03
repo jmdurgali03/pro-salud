@@ -1,5 +1,11 @@
-export const getObraSocialBadgeClass = (nombre: string) => {
-  const base = "inline-block px-3 py-1 mr-1.5 mb-1.5 rounded-full text-xs font-semibold";
+type BadgeOptions = {
+  compact?: boolean;
+};
+
+export const getObraSocialBadgeClass = (nombre: string, options: BadgeOptions = {}) => {
+  const base = options.compact
+    ? "inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold"
+    : "inline-block px-3 py-1 mr-1.5 mb-1.5 rounded-full text-xs font-semibold";
   switch (nombre) {
     case "OSDE":
     case "OSDE 310":

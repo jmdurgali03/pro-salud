@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,7 +8,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { PacientesHeader } from "./_components/pacientes-header";
-import { PacientesSearchBar } from "./_components/pacientes-search";
+import { PacientesSearchBar, ObraSocialOption } from "./_components/pacientes-search";
 import { PacientesTable } from "./_components/pacientes-table";
 import { PacienteForm, PacienteFormValues } from "./_components/paciente-form";
 import { ModalContainer } from "../_components/modal-container";
@@ -24,10 +24,11 @@ export default function PacientesPage() {
 
   const pacientesConvex = useQuery(api.pacientes.listar, {}) as PacienteRecord[] | undefined;
   const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
-  const obrasSociales = (obrasSocialesQuery ?? []) as Array<{
-    _id: Id<"obrasSociales">;
-    nombre: string;
-  }>;
+  const obrasSociales = useMemo(
+    () => (obrasSocialesQuery ?? []) as ObraSocialOption[],
+    [obrasSocialesQuery]
+  );
+  const [selectedObrasSociales, setSelectedObrasSociales] = useState<Id<"obrasSociales">[]>([]);
 
   const prevPacientesRef = useRef<PacienteRecord[]>([]);
   useEffect(() => {
@@ -39,12 +40,29 @@ export default function PacientesPage() {
   const isLoadingPac = pacientesConvex === undefined;
   const isLoadingOS = obrasSocialesQuery === undefined;
 
+  useEffect(() => {
+    setSelectedObrasSociales((current) => {
+      const filtered = current.filter((id) =>
+        obrasSociales.some((obra) => obra._id === id)
+      );
+      return filtered.length === current.length ? current : filtered;
+    });
+  }, [obrasSociales]);
+
+  const toggleObraSocial = useCallback((id: Id<"obrasSociales">) => {
+    setSelectedObrasSociales((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }, []);
+
+  const clearObrasSociales = useCallback(() => {
+    setSelectedObrasSociales([]);
+  }, []);
+
   const filteredPacientes = useMemo(() => {
     const base = (pacientesConvex ?? prevPacientesRef.current) || [];
     const lista = Array.isArray(base) ? (base as PacienteRecord[]) : [];
     const termino = debouncedSearch.trim();
-    if (!termino) return lista;
-
     const terminoNormalizado = termino.toLowerCase();
     const coincide = (valor?: string | number | null) => {
       if (valor === undefined || valor === null) return false;
@@ -52,16 +70,27 @@ export default function PacientesPage() {
       return comoTexto.toLowerCase().includes(terminoNormalizado);
     };
 
-    return lista.filter((paciente) =>
-      coincide(paciente.nombreCompleto) ||
-      coincide(paciente.dni) ||
-      coincide(paciente.email) ||
-      coincide(paciente.telefono) ||
-      coincide(paciente.fechaNacimiento) ||
-      coincide(paciente.genero) ||
-      (paciente.obrasSocialesNombres ?? []).some((nombre) => coincide(nombre))
-    );
-  }, [pacientesConvex, debouncedSearch]);
+    const coincideConBusqueda = (paciente: PacienteRecord) => {
+      if (!termino) return true;
+      return (
+        coincide(paciente.nombreCompleto) ||
+        coincide(paciente.dni) ||
+        coincide(paciente.email) ||
+        coincide(paciente.telefono) ||
+        coincide(paciente.fechaNacimiento) ||
+        coincide(paciente.genero) ||
+        (paciente.obrasSocialesNombres ?? []).some((nombre) => coincide(nombre))
+      );
+    };
+
+    const coincideConObras = (paciente: PacienteRecord) => {
+      if (selectedObrasSociales.length === 0) return true;
+      const obras = Array.isArray(paciente.obrasSociales) ? paciente.obrasSociales : [];
+      return obras.some((obraId) => selectedObrasSociales.includes(obraId));
+    };
+
+    return lista.filter((paciente) => coincideConBusqueda(paciente) && coincideConObras(paciente));
+  }, [pacientesConvex, debouncedSearch, selectedObrasSociales]);
 
   const crearPaciente = useMutation(api.pacientes.crear);
   const actualizarPaciente = useMutation(api.pacientes.actualizar);
@@ -110,7 +139,16 @@ const sanitizeForm = (form: PacienteFormValues) => ({
       <div className="w-full">
         <div className="w-full px-6 py-8 space-y-6">
           <PacientesHeader onCreate={() => setModo("crear")} disableCreate={isLoadingOS} />
-          <PacientesSearchBar value={search} onChange={setSearch} isLoading={isLoadingPac} />
+          <PacientesSearchBar
+            value={search}
+            onChange={setSearch}
+            isLoading={isLoadingPac}
+            obrasSociales={obrasSociales}
+            selectedObrasSociales={selectedObrasSociales}
+            onToggleObraSocial={toggleObraSocial}
+            onClearObrasSociales={clearObrasSociales}
+            isLoadingObrasSociales={isLoadingOS}
+          />
           <PacientesTable
             pacientes={filteredPacientes}
             onView={handleVer}
