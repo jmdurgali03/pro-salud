@@ -131,37 +131,38 @@ export function PacienteForm({
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-        <div className="sm:col-span-2">
-          <label className="text-sm font-semibold text-gray-700 block mb-2">Nombres</label>
-          <input
-            value={form.nombre}
-            onChange={(e) => handleChange("nombre", e.target.value)}
-            className={`w-full border rounded-xl p-3 text-gray-900 placeholder-gray-400 transition-all duration-200 ${
-              errors.nombreCompleto ? "border-red-300 ring-2 ring-red-200" : "border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-400"
-            }`}
-            placeholder="Ej: Juan Jose"
-            required
-          />
-          {errors.nombre && (
-            <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.nombreCompleto}</p>
-          )}
-        </div>
+       <div className="sm:col-span-2">
+  <label className="text-sm font-semibold text-gray-700 block mb-2">Nombres</label>
+  <input
+    value={form.nombre}
+    onChange={(e) => handleChange("nombre", e.target.value)}
+    className={`w-full border rounded-xl p-3 text-gray-900 placeholder-gray-400 transition-all duration-200 ${
+      errors.nombre ? "border-red-300 ring-2 ring-red-200" : "border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-400"
+    }`}
+    placeholder="Ej: Juan Jose"
+    required
+  />
+  {errors.nombre && (
+    <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.nombre}</p>
+  )}
+</div>
 
-        <div className="sm:col-span-2">
- <label className="text-sm font-semibold text-gray-700 block mb-2">Apellidos</label>
-          <input
-            value={form.apellido}
-            onChange={(e) => handleChange("nombre", e.target.value)}
-            className={`w-full border rounded-xl p-3 text-gray-900 placeholder-gray-400 transition-all duration-200 ${
-              errors.apellido ? "border-red-300 ring-2 ring-red-200" : "border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-400"
-            }`}
-            placeholder="Ej: Gonzalez Pérez"
-            required
-          />
-          {errors.apellido && (
-            <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.apellido}</p>
-          )}
-        </div>
+<div className="sm:col-span-2">
+  <label className="text-sm font-semibold text-gray-700 block mb-2">Apellidos</label>
+  <input
+    value={form.apellido}
+    onChange={(e) => handleChange("apellido", e.target.value)}
+    className={`w-full border rounded-xl p-3 text-gray-900 placeholder-gray-400 transition-all duration-200 ${
+      errors.apellido ? "border-red-300 ring-2 ring-red-200" : "border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-400"
+    }`}
+    placeholder="Ej: Gonzalez Pérez"
+    required
+  />
+  {errors.apellido && (
+    <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.apellido}</p>
+  )}
+</div>
+
         <div>
           <label className="text-sm font-semibold text-gray-700 block mb-2">DNI</label>
           <input

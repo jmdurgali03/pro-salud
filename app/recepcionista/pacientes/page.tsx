@@ -218,6 +218,7 @@ export default function PacientesPage() {
                 title="Editar Paciente"
                 initialValues={{
                   ...seleccionado,
+                  nombre: seleccionado.nombre ?? "",
                   apellido: seleccionado.apellido ?? "",
                   email: seleccionado.email ?? "",
                   telefono: seleccionado.telefono ?? "",
