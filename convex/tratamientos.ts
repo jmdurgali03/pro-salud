@@ -4,7 +4,6 @@ import { v } from "convex/values";
 export const listarPorPaciente = query({
   args: { pacienteId: v.id("pacientes") },
   handler: async (ctx, { pacienteId }) => {
-    // Si no hay registros, devuelve []
     return await ctx.db
       .query("tratamientos")
       .withIndex("por_paciente", (q) => q.eq("pacienteId", pacienteId))
@@ -18,9 +17,12 @@ export const crear = mutation({
     pacienteId: v.id("pacientes"),
     profesional: v.string(),
     titulo: v.string(),
-    indicaciones: v.optional(v.string()),
+    indicaciones: v.string(),
     fechaInicio: v.optional(v.number()),
-    fechaFin: v.optional(v.number()),
+    fechaFin: v.optional(v.union(v.number(), v.null())),
+    estado: v.optional(v.union(v.literal("Activo"), v.literal("Suspendido"), v.literal("Finalizado"))),
+    cronico: v.optional(v.boolean()),
+    notas: v.optional(v.string()),
   },
   handler: async (ctx, args) => {
     const id = await ctx.db.insert("tratamientos", {
@@ -29,8 +31,10 @@ export const crear = mutation({
       titulo: args.titulo,
       indicaciones: args.indicaciones,
       fechaInicio: args.fechaInicio ?? Date.now(),
-      fechaFin: args.fechaFin,
-      estado: "Activo",
+      fechaFin: args.cronico ? null : args.fechaFin,
+      estado: args.estado ?? "Activo",
+      cronico: args.cronico ?? false,
+      notas: args.notas,
     });
     return id;
   },
@@ -39,11 +43,7 @@ export const crear = mutation({
 export const cambiarEstado = mutation({
   args: {
     id: v.id("tratamientos"),
-    estado: v.union(
-      v.literal("Activo"),
-      v.literal("Suspendido"),
-      v.literal("Finalizado")
-    ),
+    estado: v.union(v.literal("Activo"), v.literal("Suspendido"), v.literal("Finalizado")),
   },
   handler: async (ctx, { id, estado }) => {
     await ctx.db.patch(id, { estado });

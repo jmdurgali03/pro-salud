@@ -23,6 +23,7 @@ import ConsultasTable from "../../pacientes/_components/ConsultasTable";
 import NuevaConsultaModal from "../../pacientes/_components/NuevaConsultaModal";
 import NuevoDiagnosticoModal from "../../pacientes/_components/NuevoDiagnosticoModal";
 import NuevoTratamientoModal from "../../pacientes/_components/NuevoTratamientoModal";
+import TratamientosTable from "../../pacientes/_components/TratamientosTable";
 
 /* -------------------- Tipos locales -------------------- */
 type PacienteExtendido = {
@@ -63,10 +64,12 @@ type Tratamiento = {
   pacienteId: Id<"pacientes">;
   profesional: string;
   titulo: string;
-  indicaciones?: string;
+  indicaciones: string;
   fechaInicio: number;
-  fechaFin?: number;
+  fechaFin?: number | null;
   estado: "Activo" | "Suspendido" | "Finalizado";
+  cronico?: boolean;
+  notas?: string;
 };
 /* ------------------------------------------------------ */
 
@@ -75,15 +78,13 @@ export default function HistorialPacientePage() {
   const router = useRouter();
   const pacienteId = id as Id<"pacientes">;
 
-  // Queries (siempre se llaman en el mismo orden)
+  // Queries
   const paciente = useQuery(api.pacientes.getById, { id: pacienteId }) as PacienteExtendido | null;
   const consultasQ = useQuery(api.consultas.listarPorPaciente, { pacienteId }) as Consulta[] | undefined;
   const diagnosticosQ = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as Diagnostico[] | undefined;
-
   const tratamientosQ = useQuery(api.tratamientos.listarPorPaciente, { pacienteId }) as Tratamiento[] | undefined;
 
   const profesionales = useQuery(api.profesionales.listar) ?? [];
-
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const espNombrePorId = useMemo(() => {
     const m = new Map<Id<"especialidades">, string>();
@@ -91,29 +92,29 @@ export default function HistorialPacientePage() {
     return m;
   }, [especialidades]);
 
-  // Mutations (orden fijo)
+  // Mutations
   const crearConsulta = useMutation(api.consultas.crear);
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
   const crearTratamiento = useMutation(api.tratamientos.crear);
   const cambiarEstadoTrat = useMutation(api.tratamientos.cambiarEstado);
 
-  // Estado UI (orden fijo)
+  // UI state
   const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
   const [openTrat, setOpenTrat] = useState(false);
 
-  // scroll a resumen al entrar
+  // Scroll a resumen al entrar
   const resumenRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     resumenRef.current?.scrollIntoView({ block: "start" });
   }, []);
 
-  // Normalizo datos mientras cargan para no condicionar hooks
+  // Normalización mientras cargan
   const consultas = consultasQ ?? [];
   const diagnosticos = diagnosticosQ ?? [];
   const tratamientos = tratamientosQ ?? [];
 
-  // Mapa de diagnósticos por consulta (sin useMemo para evitar cambios de orden de hooks)
+  // Mapa de diagnósticos por consulta
   const dxPorConsulta = (() => {
     const m = new Map<string, Diagnostico[]>();
     for (const dx of diagnosticos) {
@@ -126,9 +127,9 @@ export default function HistorialPacientePage() {
 
   // Handlers
   const submitConsulta = async (data: { motivo: string; profesionalId: Id<"profesionales">; notas?: string }) => {
-  await crearConsulta({ pacienteId, ...data });
-  setOpenConsulta(false);
-};
+    await crearConsulta({ pacienteId, ...data });
+    setOpenConsulta(false);
+  };
 
   const submitDiagnostico = async (data: {
     consultaId: Id<"consultas">;
@@ -144,28 +145,28 @@ export default function HistorialPacientePage() {
   const submitTratamiento = async (data: {
     titulo: string;
     profesional: string;
-    indicaciones?: string;
+    indicaciones: string;
     fechaInicio?: number;
-    fechaFin?: number;
+    fechaFin?: number | null;
+    estado: "Activo" | "Suspendido" | "Finalizado";
+    cronico?: boolean;
+    notas?: string;
   }) => {
     await crearTratamiento({ pacienteId, ...data } as any);
     setOpenTrat(false);
   };
 
   const hayConsultas = consultas.length > 0;
-
-  // Loading suave sin cortar hooks
   const loading = !paciente;
 
   return (
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto grid max-w-6xl grid-cols-[220px,1fr] gap-6 p-6 sm:grid-cols-[240px,1fr] md:grid-cols-[260px,1fr]">
         {/* Sidebar */}
-       <SidebarPaciente
-  nombre={paciente?.nombre ?? "Paciente"}
-  apellido={paciente?.apellido ?? ""}
-/>
-
+        <SidebarPaciente
+          nombre={paciente?.nombre ?? "Paciente"}
+          apellido={paciente?.apellido ?? ""}
+        />
 
         {/* Main */}
         <main className="min-w-0 space-y-6">
@@ -178,10 +179,7 @@ export default function HistorialPacientePage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                 {loading
-  ? "Historia clínica"
-  : `Historia clínica de ${paciente!.nombre} ${paciente!.apellido}`}
-
+                  {loading ? "Historia clínica" : `Historia clínica de ${paciente!.nombre} ${paciente!.apellido}`}
                 </h1>
                 <p className="text-sm text-gray-500">Consultas, diagnósticos (al desplegar) y tratamientos.</p>
               </div>
@@ -203,12 +201,7 @@ export default function HistorialPacientePage() {
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <DataItem
-  icon={<User className="h-4 w-4" />}
-  label="Nombre completo"
-  value={paciente ? `${paciente.nombre} ${paciente.apellido}` : "—"}
-/>
-
+              <DataItem icon={<User className="h-4 w-4" />} label="Nombre completo" value={paciente ? `${paciente.nombre} ${paciente.apellido}` : "—"} />
               <DataItem icon={<IdCard className="h-4 w-4" />} label="DNI" value={paciente?.dni ?? "—"} />
               <DataItem icon={<Venus className="h-4 w-4" />} label="Género" value={paciente?.genero ?? "—"} />
               <DataItem icon={<Phone className="h-4 w-4" />} label="Teléfono" value={paciente?.telefono ?? "—"} />
@@ -218,7 +211,7 @@ export default function HistorialPacientePage() {
             </div>
           </section>
 
-          {/* Consultas (tabla solo consultas; diagnósticos se despliegan desde cada fila) */}
+          {/* Consultas */}
           <Section
             id="consultas"
             title="Consultas"
@@ -245,60 +238,18 @@ export default function HistorialPacientePage() {
               </div>
             }
           >
-            <ConsultasTable
-              data={consultas}
-              dxByConsulta={dxPorConsulta}
-            />
+            <ConsultasTable data={consultas} dxByConsulta={dxPorConsulta} />
           </Section>
 
           {/* Tratamientos */}
           <Section id="tratamientos" title="Tratamientos">
-            <div className="overflow-hidden rounded-lg border">
-              <table className="w-full text-sm">
-                <thead className="bg-gray-50">
-                  <tr>
-                    <th className="px-3 py-2 text-left">Título</th>
-                    <th className="px-3 py-2 text-left">Profesional</th>
-                    <th className="px-3 py-2 text-left">Estado</th>
-                    <th className="px-3 py-2 text-left">Inicio</th>
-                    <th className="px-3 py-2 text-left">Acciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {tratamientos.map((t) => (
-                    <tr key={t._id} className="border-t">
-                      <td className="px-3 py-2">{t.titulo}</td>
-                      <td className="px-3 py-2">{t.profesional}</td>
-                      <td className="px-3 py-2">{t.estado}</td>
-                      <td className="px-3 py-2">{new Date(t.fechaInicio).toLocaleDateString()}</td>
-                      <td className="px-3 py-2">
-                        <select
-                          className="rounded-md border border-gray-300 p-1 text-sm"
-                          value={t.estado}
-                          onChange={(e) =>
-                            cambiarEstadoTrat({
-                              id: t._id,
-                              estado: e.target.value as Tratamiento["estado"],
-                            })
-                          }
-                        >
-                          <option value="Activo">Activo</option>
-                          <option value="Suspendido">Suspendido</option>
-                          <option value="Finalizado">Finalizado</option>
-                        </select>
-                      </td>
-                    </tr>
-                  ))}
-                  {tratamientos.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="px-3 py-6 text-center text-gray-500">
-                        Sin tratamientos asignados.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <TratamientosTable
+              data={tratamientos}
+              // ⬇️ Envolvemos la mutación para que el handler sea Promise<void>
+              onChangeEstado={async ({ id, estado }) => {
+                await cambiarEstadoTrat({ id, estado });
+              }}
+            />
           </Section>
         </main>
       </div>
@@ -312,7 +263,6 @@ export default function HistorialPacientePage() {
         espNombrePorId={espNombrePorId}
       />
 
-      {/* Pasa TODAS las consultas para elegir una al crear diagnóstico */}
       <NuevoDiagnosticoModal
         open={openDx}
         onClose={() => setOpenDx(false)}
