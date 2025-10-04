@@ -14,6 +14,7 @@ export default defineSchema({
     dni: v.string(),
     telefono: v.optional(v.string()),
     role: v.string(), // "doctor", "recepcionista", "gerente", "paciente"
+    creadoEn: v.optional(v.number()),
   }).index("byClerkId", ["clerkId"]),
 
   // -------------------------

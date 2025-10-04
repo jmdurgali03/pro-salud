@@ -5,11 +5,29 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
-import { ShieldCheck, Search, CheckCircle2, AlertCircle } from "lucide-react";
+import {
+  ShieldCheck,
+  Search,
+  CheckCircle2,
+  AlertCircle,
+  Trash2,
+} from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogTrigger,
+  AlertDialogContent,
+  AlertDialogHeader,
+  AlertDialogFooter,
+  AlertDialogTitle,
+  AlertDialogDescription,
+  AlertDialogAction,
+  AlertDialogCancel,
+} from "@/components/ui/alert-dialog";
 
 export default function PermisosPage() {
   const usuarios = useQuery(api.users.listar, {}) ?? [];
   const actualizarRol = useMutation(api.users.actualizarRol);
+  const eliminarUsuario = useMutation(api.users.eliminar);
 
   const [busqueda, setBusqueda] = useState("");
   const [roles, setRoles] = useState<Record<string, string>>({});
@@ -39,18 +57,34 @@ export default function PermisosPage() {
   const paginaActual = filtrados.slice(desde, hasta);
 
   /* -------------------- ACTUALIZAR ROL -------------------- */
-  const handleActualizarRol = async (id: Id<"users">, role: string) => {
+  const handleActualizarRol = async (
+  id: Id<"users">,
+  role: "paciente" | "profesional" | "recepcionista" | "gerente"
+) => {
+  try {
+    await actualizarRol({ id, role });
+    setToast({ mensaje: " Rol actualizado correctamente", tipo: "success" });
+    setRoles((prev) => {
+      const nuevo = { ...prev };
+      delete nuevo[id.toString()];
+      return nuevo;
+    });
+    setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
+  } catch (err) {
+    setToast({ mensaje: "❌ Error al actualizar rol", tipo: "error" });
+    setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
+  }
+};
+
+
+  /* -------------------- ELIMINAR USUARIO -------------------- */
+  const handleEliminarUsuario = async (id: Id<"users">) => {
     try {
-      await actualizarRol({ id, role });
-      setToast({ mensaje: "Rol actualizado correctamente", tipo: "success" });
-      setRoles((prev) => {
-        const nuevo = { ...prev };
-        delete nuevo[id.toString()];
-        return nuevo;
-      });
+      await eliminarUsuario({ id });
+      setToast({ mensaje: " Usuario eliminado correctamente", tipo: "success" });
       setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
     } catch (err) {
-      setToast({ mensaje: "❌ Error al actualizar rol", tipo: "error" });
+      setToast({ mensaje: " Error al eliminar usuario", tipo: "error" });
       setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
     }
   };
@@ -137,12 +171,13 @@ export default function PermisosPage() {
                         ? new Date(u._creationTime).toLocaleDateString("es-AR")
                         : "—"}
                     </td>
-                    <td className="p-4 text-center">
+                    <td className="p-4 text-center flex justify-center items-center gap-2">
                       <button
                         disabled={!modificado}
-                        onClick={() =>
-                          handleActualizarRol(u._id as Id<"users">, rolActual)
+                        onClick={() => handleActualizarRol(u._id as Id<"users">,
+                          rolActual as "paciente" | "profesional" | "recepcionista" | "gerente" )
                         }
+
                         className={`px-4 py-1 rounded-lg text-sm transition-all ${
                           modificado
                             ? "bg-blue-600 hover:bg-blue-700 text-white shadow"
@@ -151,6 +186,32 @@ export default function PermisosPage() {
                       >
                         Guardar
                       </button>
+
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <button hidden className="px-3 py-1 rounded-lg bg-red-100 text-red-600 hover:bg-red-200 transition-all text-sm font-medium flex items-center gap-1">
+                            <Trash2 className="w-4 h-4" /> Eliminar
+                          </button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>¿Eliminar usuario?</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Esta acción no se puede deshacer. Se eliminará permanentemente{" "}
+                              <strong>{u.nombre} {u.apellido}</strong> del sistema.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => handleEliminarUsuario(u._id as Id<"users">)}
+                              className="bg-red-600 hover:bg-red-700 text-white"
+                            >
+                              Eliminar
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
                     </td>
                   </tr>
                 );
