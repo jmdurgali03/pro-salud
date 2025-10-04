@@ -2,11 +2,19 @@
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
-import { Home, BriefcaseMedical } from "lucide-react";
+import { Home, BriefcaseMedical, Users, Cross, Stethoscope, ChartLine } from "lucide-react";
 
 const links = [
   { href: "/gerente", label: "Inicio", icon: Home },
   { href: "/gerente/profesional", label: "Profesionales", icon: BriefcaseMedical },
+  { href: "/gerente/pacientes", label: "Pacientes", icon: Users },
+  { href: "/gerente/obras-sociales", label: "Obras Sociales", icon: Cross },
+  { href: "/gerente/especialidades", label: "Especialidades", icon: Stethoscope},
+  {href: "/gerente/reportes", label: "Reportes", icon: ChartLine},
+
+
+
+
 ];
 
 export default function GerenteLayout({ children }: { children: React.ReactNode }) {

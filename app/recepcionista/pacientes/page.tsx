@@ -232,14 +232,7 @@ export default function PacientesPage() {
               />
             )}
 
-            {modo === "eliminar" && seleccionado && (
-              <ConfirmDialog
-                description="Esta acción no se puede deshacer. El paciente será eliminado permanentemente."
-                confirmLabel="Eliminar"
-                onConfirm={() => handleEliminar(seleccionado._id)}
-                onCancel={closeModal}
-              />
-            )}
+            
           </ModalContainer>
         )}
       </div>

@@ -196,13 +196,7 @@ function ActionsMenu({ onView, onEdit, onDelete }: ActionsMenuProps) {
             <Edit2 className="w-4 h-4" />
             Editar datos
           </button>
-          <button
-            onClick={() => triggerAction(onDelete)}
-            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Eliminar paciente
-          </button>
+          
         </div>
       )}
     </div>

@@ -194,3 +194,30 @@ export const listarConNombres = query({
     );
   },
 });
+
+// ----------------------------
+// Listar todos los turnos (simple, para dashboard)
+// ----------------------------
+export const listar = query({
+  args: {},
+  handler: async (ctx) => {
+    const turnos = await ctx.db.query("turnos").collect();
+
+    return Promise.all(
+      turnos.map(async (t) => {
+        const paciente = await ctx.db.get(t.pacienteId);
+        const profesional = await ctx.db.get(t.profesionalId);
+        const especialidad = profesional
+          ? await ctx.db.get(profesional.especialidadId)
+          : null;
+
+        return {
+          ...t,
+          pacienteNombre: paciente?.nombre || "—",
+          profesionalNombre: profesional?.nombre || "—",
+          especialidadNombre: especialidad?.nombre || "—",
+        };
+      })
+    );
+  },
+});
