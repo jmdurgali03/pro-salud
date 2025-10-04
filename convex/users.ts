@@ -1,7 +1,9 @@
-import { query } from "./_generated/server";
+import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
-import { mutation } from "./_generated/server";
 
+/* ------------------------------
+   Crear usuario si no existe
+-------------------------------- */
 export const createUserIfNotExists = mutation({
   args: {
     clerkId: v.string(),
@@ -31,13 +33,29 @@ export const createUserIfNotExists = mutation({
   },
 });
 
-
-export const getCurrentUser = query({
-  args: { clerkId: v.string() },
-  handler: async (ctx, args) => {
-    return await ctx.db
-      .query("users")
-      .withIndex("byClerkId", (q) => q.eq("clerkId", args.clerkId))
-      .first();
+/* ------------------------------
+   Listar usuarios
+-------------------------------- */
+export const listar = query({
+  handler: async (ctx) => {
+    return await ctx.db.query("users").collect();
   },
 });
+
+/* ------------------------------
+   Actualizar rol
+-------------------------------- */
+export const actualizarRol = mutation({
+  args: {
+    id: v.id("users"),
+    role: v.string(),
+  },
+  handler: async (ctx, { id, role }) => {
+    const user = await ctx.db.get(id);
+    if (!user) throw new Error("Usuario no encontrado");
+
+    await ctx.db.patch(id, { role });
+    return { ok: true };
+  },
+});
+

@@ -2,7 +2,7 @@
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
-import { Home, BriefcaseMedical, Users, Cross, Stethoscope, ChartLine } from "lucide-react";
+import { Home, BriefcaseMedical, Users, Cross, Stethoscope, ChartLine, BadgeCheck} from "lucide-react";
 
 const links = [
   { href: "/gerente", label: "Inicio", icon: Home },
@@ -11,6 +11,8 @@ const links = [
   { href: "/gerente/obras-sociales", label: "Obras Sociales", icon: Cross },
   { href: "/gerente/especialidades", label: "Especialidades", icon: Stethoscope},
   {href: "/gerente/reportes", label: "Reportes", icon: ChartLine},
+  { href: "/gerente/permisos", label: "Permisos", icon: BadgeCheck},
+
 
 
 

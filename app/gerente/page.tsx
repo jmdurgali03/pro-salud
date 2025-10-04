@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { BriefcaseMedical, ArrowRight, Home, Users, Cross, Stethoscope, ChartLine} from "lucide-react";
+import { BriefcaseMedical, ArrowRight, Home, Users, Cross, Stethoscope, ChartLine, BadgeCheck} from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
 import { AppSidebar } from "@/components/sidebar";
@@ -28,6 +28,7 @@ const links = [
   { href: "/gerente/obras-sociales", label: "Obras Sociales", icon: Cross},
   { href: "/gerente/especialidades", label: "Especialidades", icon: Stethoscope},
   { href: "/gerente/reportes", label: "Reportes", icon: ChartLine},
+  { href: "/gerente/permisos", label: "Permisos", icon: BadgeCheck},
 
 
 
