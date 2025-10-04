@@ -27,7 +27,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
 
-// 🔹 Tipo enriquecido con joins
+// 🔹 Definimos el tipo enriquecido que devuelve la query
 type TurnoConJoin = {
   _id: Id<"turnos">;
   start: number;
@@ -38,24 +38,24 @@ type TurnoConJoin = {
   pacienteNombre: string;
   pacienteApellido: string;
   profesionalNombre: string;
-  profesionalApellido: string;
+  profesionalApellido: string; 
   profesionalEstado: "Activo" | "Inactivo";
   especialidadNombre: string;
-  obrasSocialesPaciente: string[];
+  obrasSocialesPaciente: string[]; // ⚡ array de obras sociales
 };
 
 export default function TurnosPage() {
   const [view, setView] = useState<"day" | "week" | "month">("month");
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // 🔹 Query Convex
+  // 🔹 Query Convex ya devuelve nombres resueltos
   const turnos =
     (useQuery(api.turnos.listarRango, {
-      from: new Date(2025, 0, 1).getTime(), // Enero 2025
-      to: new Date(2025, 11, 31).getTime(), // Diciembre 2025
+      from: new Date(2025, 0, 1).getTime(), // desde enero 2025
+      to: new Date(2025, 11, 31).getTime(), // hasta diciembre 2025
     }) as TurnoConJoin[]) ?? [];
 
-  // 🔹 Filtrar por fecha según vista
+  // 🔹 Filtrar turnos según vista
   let turnosFiltrados: TurnoConJoin[] = [];
   if (selectedDate) {
     if (view === "day") {
@@ -82,17 +82,11 @@ export default function TurnosPage() {
     }
   }
 
-  // 🔹 Filtrar solo profesionales activos
-  turnosFiltrados = turnosFiltrados.filter(
-    (t) => t.profesionalEstado === "Activo"
-  );
-
   return (
-    <PageWrapper
-      breadcrumbs={[
-        { label: "Inicio", href: "/recepcionista" },
-        { label: "Turnos", href: "/recepcionista/cal-turnos" },
-      ]}
+    <PageWrapper breadcrumbs={[
+      { label: "Inicio", href: "/recepcionista" },
+      { label: "Turnos", href: "/recepcionista/cal-turnos" },
+    ]}
     >
       <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
         {/* Header con botón crear */}
@@ -110,11 +104,10 @@ export default function TurnosPage() {
             <button
               key={tab}
               onClick={() => setView(tab)}
-              className={`pb-2 capitalize ${
-                view === tab
-                  ? "border-b-2 border-blue-500 text-blue-500"
-                  : "text-gray-500 hover:text-gray-700"
-              }`}
+              className={`pb-2 capitalize ${view === tab
+                ? "border-b-2 border-blue-500 text-blue-500"
+                : "text-gray-500 hover:text-gray-700"
+                }`}
             >
               {tab === "day" ? "Día" : tab === "week" ? "Semana" : "Mes"}
             </button>
@@ -178,51 +171,48 @@ export default function TurnosPage() {
                       {new Date(t.start).toLocaleTimeString("es-AR", {
                         hour: "2-digit",
                         minute: "2-digit",
-                        hour12: false,
                       })}{" "}
                       -{" "}
                       {new Date(t.end).toLocaleTimeString("es-AR", {
                         hour: "2-digit",
                         minute: "2-digit",
-                        hour12: false,
                       })}
                     </TableCell>
+                    <TableCell>{t.pacienteNombre} {t.pacienteApellido}</TableCell>
 
-                    <TableCell>
-                      {t.pacienteNombre} {t.pacienteApellido}
-                    </TableCell>
 
                     <TableCell className="text-blue-600">
                       {t.profesionalNombre} {t.profesionalApellido}
                     </TableCell>
                     <TableCell>{t.especialidadNombre}</TableCell>
-                    <TableCell>{t.obrasSocialesPaciente.join(", ") || "—"}</TableCell>
-                    <TableCell>{t.tipo}</TableCell>
 
+                    <TableCell>{t.obrasSocialesPaciente.join(", ") || "—"}</TableCell>
+
+                    <TableCell>{t.tipo}</TableCell>
                     <TableCell>
                       <Badge
                         className={
                           t.estado === "Confirmado"
                             ? "bg-green-500 text-white hover:bg-green-600"
                             : t.estado === "Pendiente"
-                            ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                            : "bg-red-500 text-white hover:bg-red-600"
+                              ? "bg-yellow-500 text-black hover:bg-yellow-600"
+                              : "bg-red-500 text-white hover:bg-red-600"
                         }
                       >
                         {t.estado}
                       </Badge>
                     </TableCell>
-
                     <TableCell>
                       <TurnoDialog
                         turno={t}
                         trigger={
-                          <Button variant="outline">
+                          <Button variant="outline" disabled className=" cursor-not-allowed">
                             Editar
                           </Button>
                         }
                       />
                     </TableCell>
+
                   </TableRow>
                 ))
               ) : (

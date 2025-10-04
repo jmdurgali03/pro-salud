@@ -33,9 +33,11 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const crearTurno = useMutation(api.turnos.crear);
   const editarTurno = useMutation(api.turnos.editar);
   const eliminarTurno = useMutation(api.turnos.eliminar);
+
   const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
-const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
-const especialidades = useQuery(api.especialidades.listar, {}) ?? [];
+  const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
+  const especialidades = useQuery(api.especialidades.listar, {}) ?? [];
+
   const [open, setOpen] = useState(false);
 
   // Campos
@@ -45,12 +47,15 @@ const especialidades = useQuery(api.especialidades.listar, {}) ?? [];
   const [estado, setEstado] = useState<"Confirmado" | "Pendiente" | "Cancelado">("Pendiente");
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFin, setHoraFin] = useState("10:00");
-const profesionalesConEspecialidad = profesionales.map((p) => {
-  const esp = especialidades.find((e) => e._id === p.especialidadId);
-  return { ...p, especialidadNombre: esp?.nombre || "Sin especialidad" };
-});
-  // 👉 estado para mensajes de error
   const [error, setError] = useState<string | null>(null);
+
+  // 🔹 Filtrar solo profesionales activos y agregar nombre de especialidad
+  const profesionalesConEspecialidad = profesionales
+    .filter((p) => p.estado === "Activo")
+    .map((p) => {
+      const esp = especialidades.find((e) => e._id === p.especialidadId);
+      return { ...p, especialidadNombre: esp?.nombre || "Sin especialidad" };
+    });
 
   // Cargar datos al editar o resetear en nuevo
   useEffect(() => {
@@ -75,7 +80,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
     }
   }, [turno, open]);
 
-  // 👇 Nuevo efecto: actualiza automáticamente la horaFin a +1 hora de horaInicio
+  // 👇 Actualiza hora fin automáticamente
   useEffect(() => {
     if (horaInicio) {
       const [h, m] = horaInicio.split(":").map(Number);
@@ -84,7 +89,6 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
 
       const hh = nuevaHora.getHours().toString().padStart(2, "0");
       const mm = nuevaHora.getMinutes().toString().padStart(2, "0");
-
       setHoraFin(`${hh}:${mm}`);
     }
   }, [horaInicio]);
@@ -93,20 +97,18 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
     e.preventDefault();
     setError(null);
 
-    // ✅ Validaciones obligatorias
+    // ✅ Validaciones
     if (!pacienteId) return setError("Debe seleccionar un paciente");
     if (!profesionalId) return setError("Debe seleccionar un profesional");
     if (!tipo) return setError("Debe seleccionar un tipo de consulta");
     if (!estado) return setError("Debe seleccionar un estado");
 
     const baseDate = defaultDate || (turno ? new Date(turno.start) : new Date());
-
     const [h1, m1] = horaInicio.split(":").map(Number);
     const [h2, m2] = horaFin.split(":").map(Number);
 
     const start = new Date(baseDate);
     start.setHours(h1, m1, 0, 0);
-
     const end = new Date(baseDate);
     end.setHours(h2, m2, 0, 0);
 
@@ -138,9 +140,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
       }
       setOpen(false);
     } catch (err: any) {
-      // 👇 Capturamos ConvexError limpio
       setError(err.data || "Ocurrió un error al guardar el turno");
-      return;
     }
   };
 
@@ -182,7 +182,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
             </Select>
           </div>
 
-          {/* Profesional */}
+          {/* Profesional (solo activos) */}
           <div>
             <Label>Profesional</Label>
             <Select
@@ -194,11 +194,10 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
               </SelectTrigger>
               <SelectContent>
                 {profesionalesConEspecialidad.map((p) => (
-  <SelectItem key={p._id} value={p._id}>
-    {p.nombre} {p.apellido} – {p.especialidadNombre}
-  </SelectItem>
-))}
-
+                  <SelectItem key={p._id} value={p._id}>
+                    {p.nombre} {p.apellido} – {p.especialidadNombre}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </div>
@@ -234,7 +233,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
             </Select>
           </div>
 
-          {/* Horario */}
+          {/* Horarios */}
           <div className="grid grid-cols-2 gap-4">
             <div>
               <Label>Hora inicio</Label>
@@ -242,7 +241,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
             </div>
             <div>
               <Label>Hora fin</Label>
-              <Input type="time" value={horaFin} readOnly required /> {/* 👈 ahora solo lectura */}
+              <Input type="time" value={horaFin} readOnly required />
             </div>
           </div>
 
@@ -258,7 +257,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
             </Button>
           </div>
 
-          {/* Mensaje de error elegante */}
+          {/* Error */}
           {error && (
             <div className="mt-3 p-2 bg-red-100 text-red-700 rounded">
               {error}
