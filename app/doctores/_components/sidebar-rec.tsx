@@ -40,9 +40,9 @@ import { Button } from "@/components/ui/button";
 import { User } from "@clerk/nextjs/server";
 
 const links = [
-  { href: "/doctores", label: "Inicio", icon: Home },
+  { href: "/profesional", label: "Inicio", icon: Home },
   //{ href: "/doctores/perfil", label: "Perfil", icon: BriefcaseMedical },
-  { href: "/doctores/pacientes", label: "Pacientes", icon: Users2 },
+  { href: "/profesional/pacientes", label: "Pacientes", icon: Users2 },
 ];
 
 export function DoctorSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {

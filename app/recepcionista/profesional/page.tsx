@@ -204,7 +204,7 @@ export default function ProfesionalesPage() {
               <thead>
                 <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Nombre
+                    Nombre y Apellido
                   </th>
                   <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                     Especialidad
@@ -233,7 +233,7 @@ export default function ProfesionalesPage() {
                   return (
                     <tr key={prof._id.toString()} className="hover:bg-gray-50 transition-colors">
                       <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{prof.nombre}</div>
+                        <div className="text-sm font-medium text-gray-900">{prof.nombre} {prof.apellido}</div>
                         <div className="text-xs text-gray-500">DNI: {prof.dni}</div>
                       </td>
                       <td className="px-6 py-4 text-sm text-gray-700">
