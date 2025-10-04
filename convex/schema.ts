@@ -6,17 +6,15 @@ export default defineSchema({
   // -------------------------
   // Usuarios
   // -------------------------
-users: defineTable({
-  clerkId: v.string(),
-  nombre: v.string(),
-  apellido: v.string(),
-  email: v.string(),
-  dni: v.string(),
-  telefono: v.optional(v.string()),
-  role: v.string(), // "doctor", "recepcionista", "gerente", "paciente"
-})
-.index("byClerkId", ["clerkId"]),
-
+  users: defineTable({
+    clerkId: v.string(),
+    nombre: v.string(),
+    apellido: v.string(),
+    email: v.string(),
+    dni: v.string(),
+    telefono: v.optional(v.string()),
+    role: v.string(), // "doctor", "recepcionista", "gerente", "paciente"
+  }).index("byClerkId", ["clerkId"]),
 
   // -------------------------
   // Turnos médicos
@@ -26,7 +24,12 @@ users: defineTable({
     pacienteId: v.id("pacientes"),
     profesionalId: v.id("profesionales"),
     tipo: v.string(),
-    estado: v.union(v.literal("Confirmado"), v.literal("Pendiente"), v.literal("Cancelado"), v.literal("Finalizado")),
+    estado: v.union(
+      v.literal("Confirmado"),
+      v.literal("Pendiente"),
+      v.literal("Cancelado"),
+      v.literal("Finalizado")
+    ),
     start: v.number(),
     end: v.number(),
     notas: v.optional(v.string()),
@@ -41,27 +44,27 @@ users: defineTable({
   // -------------------------
   // Profesionales
   // -------------------------
-profesionales: defineTable({
-  nombre: v.string(),
-  apellido: v.string(),
-  dni: v.string(),
-  matricula: v.string(),
-  especialidadId: v.id("especialidades"),
-  contacto: v.string(),
-  telefono: v.string(),
-  obrasSociales: v.array(v.id("obrasSociales")),
-  estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
-  usuario: v.string(),     
-  password: v.string(),  
-  clerkUserId: v.optional(v.string()),
-})
-  .index("por_nombre", ["nombre"])
-  .index("por_dni", ["dni"])
-  .index("por_matricula", ["matricula"])
-  .index("por_telefono", ["telefono"])
-  .index("byClerkUser", ["clerkUserId"])
-  .index("byUsuario", ["usuario"])
-.index("byContacto", ["contacto"]),
+  profesionales: defineTable({
+    nombre: v.string(),
+    apellido: v.string(),
+    dni: v.string(),
+    matricula: v.string(),
+    especialidadId: v.id("especialidades"),
+    contacto: v.string(),
+    telefono: v.string(),
+    obrasSociales: v.array(v.id("obrasSociales")),
+    estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
+    usuario: v.string(),
+    password: v.string(),
+    clerkUserId: v.optional(v.string()),
+  })
+    .index("por_nombre", ["nombre"])
+    .index("por_dni", ["dni"])
+    .index("por_matricula", ["matricula"])
+    .index("por_telefono", ["telefono"])
+    .index("byClerkUser", ["clerkUserId"])
+    .index("byUsuario", ["usuario"])
+    .index("byContacto", ["contacto"]),
 
   // -------------------------
   // Obras Sociales
@@ -81,7 +84,7 @@ profesionales: defineTable({
   // Pacientes
   // -------------------------
   pacientes: defineTable({
-    nombre : v.string(),
+    nombre: v.string(),
     apellido: v.string(),
     email: v.optional(v.string()),
     telefono: v.optional(v.string()),
@@ -116,38 +119,54 @@ profesionales: defineTable({
     creadoEn: v.number(),
   }).index("por_paciente", ["pacienteId"]),
 
-diagnosticos: defineTable({
-  pacienteId: v.id("pacientes"),
-  consultaId: v.id("consultas"),
-  profesionalId: v.id("profesionales"), // 🔹 ID del profesional
-  descripcion: v.string(),
-  estado: v.union(v.literal("Presuntivo"), v.literal("Definitivo")),
-  fecha: v.optional(v.number()),
-})
-.index("byPaciente", ["pacienteId"])
-.index("byProfesional", ["profesionalId"]),
+  // -------------------------
+  // Diagnósticos
+  // -------------------------
+  diagnosticos: defineTable({
+    pacienteId: v.id("pacientes"),
+    consultaId: v.id("consultas"),
+    profesionalId: v.id("profesionales"),
+    descripcion: v.string(),
+    estado: v.union(v.literal("Presuntivo"), v.literal("Definitivo")),
+    fecha: v.optional(v.number()),
+  })
+    .index("byPaciente", ["pacienteId"])
+    .index("byProfesional", ["profesionalId"])
+    .index("byConsulta", ["consultaId"]),
 
-consultas: defineTable({
-  pacienteId: v.id("pacientes"),
-  motivo: v.string(),
-  profesionalId: v.id("profesionales"), // 🔹 ID del profesional
-  notas: v.optional(v.string()),
-  fecha: v.optional(v.number()),
-})
-.index("byPaciente", ["pacienteId"])
-.index("byProfesional", ["profesionalId"]),
+  // -------------------------
+  // Consultas
+  // -------------------------
+  consultas: defineTable({
+    pacienteId: v.id("pacientes"),
+    motivo: v.string(),
+    profesionalId: v.id("profesionales"),
+    notas: v.optional(v.string()),
+    fecha: v.optional(v.number()),
+  })
+    .index("byPaciente", ["pacienteId"])
+    .index("byProfesional", ["profesionalId"]),
 
-
+  // -------------------------
+  // Tratamientos
+  // -------------------------
   tratamientos: defineTable({
-      pacienteId: v.id("pacientes"),
-      profesional: v.string(),
-      titulo: v.string(),          // p.ej. "Amoxicilina 500mg c/8h"
-      indicaciones: v.optional(v.string()),
-      fechaInicio: v.number(),
-      fechaFin: v.optional(v.number()),
-      estado: v.union(v.literal("Activo"), v.literal("Suspendido"), v.literal("Finalizado")),
-    }).index("por_paciente", ["pacienteId"]),
+    pacienteId: v.id("pacientes"),
+    profesional: v.string(),
+    titulo: v.string(),
+    indicaciones: v.optional(v.string()),
+    fechaInicio: v.number(),
+    fechaFin: v.optional(v.number()),
+    estado: v.union(
+      v.literal("Activo"),
+      v.literal("Suspendido"),
+      v.literal("Finalizado")
+    ),
+  }).index("por_paciente", ["pacienteId"]),
 
+  // -------------------------
+  // Historial clínico
+  // -------------------------
   historialClinico: defineTable({
     pacienteId: v.id("pacientes"),
     antecedentesFamiliares: v.optional(v.string()),

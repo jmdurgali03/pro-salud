@@ -1,3 +1,4 @@
+// app/recepcionista/historias/[id]/page.tsx
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
@@ -38,15 +39,14 @@ type PacienteExtendido = {
   genero?: "Masculino" | "Femenino";
   creadoEn: number;
   actualizadoEn: number;
-  obrasSociales: Id<"obrasSociales">[];
-  obrasSocialesNombres: string[];
+  obrasSocialesNombres: string[]; // asumimos que tu query ya lo arma
 };
 
 type Consulta = {
   _id: Id<"consultas">;
   motivo: string;
   fecha: number;
-  profesional: string;
+  profesionalId: Id<"profesionales">;
   notas?: string;
 };
 
@@ -54,7 +54,7 @@ type Diagnostico = {
   _id: Id<"diagnosticos">;
   consultaId: Id<"consultas">;
   descripcion: string;
-  profesional: string;
+  profesionalId: Id<"profesionales">;
   estado: "Presuntivo" | "Definitivo";
   fecha: number;
 };
@@ -64,7 +64,7 @@ type Tratamiento = {
   pacienteId: Id<"pacientes">;
   profesional: string;
   titulo: string;
-  indicaciones: string;
+  indicaciones?: string;
   fechaInicio: number;
   fechaFin?: number | null;
   estado: "Activo" | "Suspendido" | "Finalizado";
@@ -86,11 +86,18 @@ export default function HistorialPacientePage() {
 
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
+
   const espNombrePorId = useMemo(() => {
     const m = new Map<Id<"especialidades">, string>();
     for (const e of especialidades) m.set(e._id, e.nombre);
     return m;
   }, [especialidades]);
+
+  const profNombrePorId = useMemo(() => {
+    const m = new Map<Id<"profesionales">, string>();
+    for (const p of profesionales) m.set(p._id, `${p.apellido}, ${p.nombre}`);
+    return m;
+  }, [profesionales]);
 
   // Mutations
   const crearConsulta = useMutation(api.consultas.crear);
@@ -126,7 +133,11 @@ export default function HistorialPacientePage() {
   })();
 
   // Handlers
-  const submitConsulta = async (data: { motivo: string; profesionalId: Id<"profesionales">; notas?: string }) => {
+  const submitConsulta = async (data: {
+    motivo: string;
+    profesionalId: Id<"profesionales">;
+    notas?: string;
+  }) => {
     await crearConsulta({ pacienteId, ...data });
     setOpenConsulta(false);
   };
@@ -134,11 +145,11 @@ export default function HistorialPacientePage() {
   const submitDiagnostico = async (data: {
     consultaId: Id<"consultas">;
     descripcion: string;
-    profesional: string;
+    profesionalId: Id<"profesionales">;
     estado: "Presuntivo" | "Definitivo";
     fecha?: number;
   }) => {
-    await crearDiagnostico({ pacienteId, ...data } as any);
+    await crearDiagnostico({ pacienteId, ...data });
     setOpenDx(false);
   };
 
@@ -238,14 +249,17 @@ export default function HistorialPacientePage() {
               </div>
             }
           >
-            <ConsultasTable data={consultas} dxByConsulta={dxPorConsulta} />
+            <ConsultasTable
+              data={consultas}
+              dxByConsulta={dxPorConsulta}
+              getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+            />
           </Section>
 
           {/* Tratamientos */}
           <Section id="tratamientos" title="Tratamientos">
             <TratamientosTable
               data={tratamientos}
-              // ⬇️ Envolvemos la mutación para que el handler sea Promise<void>
               onChangeEstado={async ({ id, estado }) => {
                 await cambiarEstadoTrat({ id, estado });
               }}
@@ -268,8 +282,8 @@ export default function HistorialPacientePage() {
         onClose={() => setOpenDx(false)}
         onSubmit={submitDiagnostico}
         profesionales={profesionales}
-        espNombrePorId={espNombrePorId}
         consultas={consultas}
+        getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
       />
 
       <NuevoTratamientoModal
