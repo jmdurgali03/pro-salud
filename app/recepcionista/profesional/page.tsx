@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { useQuery, useMutation } from "convex/react";
-import ProfesionalModal from "./ProfesionalModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Eye, Edit, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
+import { Eye, Edit, ChevronLeft, ChevronRight, MoreHorizontal, Filter } from "lucide-react";
+import ProfesionalModal from "./ProfesionalModal";
 import { getObraSocialBadgeClass } from "../_components/obra-social-badge";
 
+/* ---------------- Tipos ---------------- */
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
@@ -20,8 +21,6 @@ export type Profesional = {
   telefono: string;
   obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
-  especialidadNombre?: string;
-  obrasSocialesNombres?: string[];
 };
 
 export type ProfesionalInput = {
@@ -34,101 +33,46 @@ export type ProfesionalInput = {
   estado: "Activo" | "Inactivo";
 };
 
-const mapReason = (r: string, fallback?: string) => {
-  switch (r) {
-    case "DNI_DUP": return "Ya existe un profesional con ese DNI.";
-    case "MATRICULA_DUP": return "Ya existe un profesional con esa matrícula.";
-    case "TELEFONO_DUP": return "Ya existe un profesional con ese teléfono.";
-    case "BAD_INPUT": return fallback ?? "Datos inválidos.";
-    case "NOT_FOUND": return "Registro no encontrado.";
-    default: return "No se pudo completar la operación.";
-  }
-};
-
-// Componente de menú de acciones mejorado
-function ActionsMenu({ profesional, onVer, onEditar, isLast }: {
-  profesional: Profesional;
-  onVer: () => void;
-  onEditar: () => void;
-  isLast: boolean;
-}) {
-  const [isOpen, setIsOpen] = useState(false);
-  const menuRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+/* ---------------- Menu acciones ---------------- */
+function ActionsMenu({ onVer, onEditar }: { onVer: () => void; onEditar: () => void }) {
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node) &&
-        buttonRef.current && !buttonRef.current.contains(event.target as Node)) {
-        setIsOpen(false);
-      }
+    const close = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
     };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", close);
+    return () => document.removeEventListener("mousedown", close);
   }, []);
 
-  useEffect(() => {
-    if (isOpen && buttonRef.current) {
-      const buttonRect = buttonRef.current.getBoundingClientRect();
-      const menuHeight = 88; // Altura aproximada del menú (2 items × 40px aprox)
-      const viewportHeight = window.innerHeight;
-      const spaceBelow = viewportHeight - buttonRect.bottom;
-
-      // Si no hay espacio suficiente abajo, el menú se abrirá hacia arriba automáticamente
-      // gracias al cálculo de posición en el style
-    }
-  }, [isOpen]);
-
   return (
-    <div className="relative inline-block">
+    <div className="relative" ref={ref}>
       <button
-        ref={buttonRef}
-        onClick={() => setIsOpen(!isOpen)}
-        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
-        aria-label="Acciones"
+        onClick={() => setOpen(!open)}
+        className="p-2 hover:bg-gray-100 rounded-lg transition"
       >
         <MoreHorizontal className="w-5 h-5 text-gray-600" />
       </button>
-
-      {isOpen && buttonRef.current && (
-        <div
-          ref={menuRef}
-          className="fixed w-40 bg-white rounded-lg shadow-lg border border-gray-200 py-1 z-50"
-          style={{
-            top: (() => {
-              const buttonRect = buttonRef.current!.getBoundingClientRect();
-              const menuHeight = 88;
-              const spaceBelow = window.innerHeight - buttonRect.bottom;
-
-              // Si hay poco espacio abajo, abre hacia arriba
-              if (spaceBelow < menuHeight + 10) {
-                return buttonRect.top - menuHeight - 4;
-              }
-              // Si no, abre hacia abajo
-              return buttonRect.bottom + 4;
-            })(),
-            right: window.innerWidth - buttonRef.current.getBoundingClientRect().right
-          }}
-        >
+      {open && (
+        <div className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow border border-gray-200 z-50">
           <button
             onClick={() => {
               onVer();
-              setIsOpen(false);
+              setOpen(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
           >
-            <Eye className="w-4 h-4" />
-            Ver detalles
+            <Eye className="w-4 h-4" /> Ver
           </button>
           <button
             onClick={() => {
               onEditar();
-              setIsOpen(false);
+              setOpen(false);
             }}
-            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
           >
-            <Edit className="w-4 h-4" />
-            Editar
+            <Edit className="w-4 h-4" /> Editar
           </button>
         </div>
       )}
@@ -136,223 +80,233 @@ function ActionsMenu({ profesional, onVer, onEditar, isLast }: {
   );
 }
 
+/* ---------------- Página principal ---------------- */
 export default function ProfesionalesPage() {
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
 
   const editar = useMutation(api.profesionales.editar);
-  const eliminar = useMutation(api.profesionales.eliminar);
 
   const [editando, setEditando] = useState<Profesional | null>(null);
   const [viendo, setViendo] = useState<Profesional | null>(null);
 
-  // Paginación
-  const [currentPage, setCurrentPage] = useState(1);
-  const itemsPerPage = 20;
-  const totalPages = Math.ceil(profesionales.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
-  const currentItems = profesionales.slice(startIndex, endIndex);
+  /* ---------------- Buscador y filtros ---------------- */
+  const [busqueda, setBusqueda] = useState("");
+  const [filtroObras, setFiltroObras] = useState<Id<"obrasSociales">[]>([]);
+  const [filtrosOpen, setFiltrosOpen] = useState(false);
+  const filtroRef = useRef<HTMLDivElement>(null);
 
-  const [modalError, setModalError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (filtroRef.current && !filtroRef.current.contains(e.target as Node)) setFiltrosOpen(false);
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
 
-  const handleEditar = async (data: ProfesionalInput) => {
-    if (!editando?._id) return;
-    setSaving(true); setModalError(null);
-    const res: any = await editar({ id: editando._id, ...data });
-    if (!res?.ok) {
-      setModalError(mapReason(res?.reason, res?.message));
-    } else {
-      setEditando(null);
-    }
-    setSaving(false);
+  const filtrar = (prof: Profesional) => {
+    const q = busqueda.toLowerCase();
+    const especialidad =
+      especialidades.find((e) => e._id === prof.especialidadId)?.nombre.toLowerCase() || "";
+    const obras = prof.obrasSociales
+      .map((id) => obrasSociales.find((o) => o._id === id)?.nombre.toLowerCase())
+      .join(" ");
+
+    const coincideTexto =
+      prof.nombre.toLowerCase().includes(q) ||
+      prof.apellido.toLowerCase().includes(q) ||
+      prof.dni.toLowerCase().includes(q) ||
+      especialidad.includes(q) ||
+      obras.includes(q);
+
+    const coincideObra =
+      filtroObras.length === 0 ||
+      prof.obrasSociales.some((id) => filtroObras.includes(id));
+
+    return coincideTexto && coincideObra;
   };
 
+  const filtrados = useMemo(() => profesionales.filter(filtrar), [busqueda, filtroObras, profesionales]);
+
+  /* ---------------- Paginación ---------------- */
+  const [page, setPage] = useState(1);
+  const porPagina = 10;
+  const totalPaginas = Math.ceil(filtrados.length / porPagina);
+  const visibles = filtrados.slice((page - 1) * porPagina, page * porPagina);
+
+  /* ---------------- Aux ---------------- */
   const getEspecialidadNombre = (id: Id<"especialidades">) =>
     especialidades.find((e) => e._id === id)?.nombre || "—";
-
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
-    ids
-      .map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
-      .filter((nombre): nombre is string => Boolean(nombre));
+    ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean);
 
+  /* ---------------- Render ---------------- */
   return (
     <PageWrapper breadcrumbs={[
       { label: "Inicio", href: "/recepcionista" },
-      { label: "Profesionales", href: "/recepcionista/profesional" }
+      { label: "Profesionales", href: "/recepcionista/profesional" },
     ]}>
-      <div className="w-full px-6 py-8 space-y-6">
+      <div className="px-10 py-8 space-y-8">
         {/* Header */}
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
+        <div className="flex items-center justify-between flex-wrap gap-4">
           <div>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+            <div className="flex items-center gap-3 mb-1">
+              <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full" />
               <h1 className="text-3xl font-bold text-gray-900">Gestión de Profesionales</h1>
             </div>
-            <p className="text-gray-600 text-base md:ml-5">
+            <p className="text-gray-600 text-sm ml-5">
               Administra los profesionales de tu institución
             </p>
+          </div>
+
+          {/* Buscador y filtro */}
+          <div className="flex items-center gap-3 relative" ref={filtroRef}>
+            <input
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              placeholder="Buscar por nombre, DNI, especialidad u obra social..."
+              className="w-80 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-300 outline-none text-sm"
+            />
+            <button
+              onClick={() => setFiltrosOpen(!filtrosOpen)}
+              className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
+            >
+              <Filter className="w-5 h-5 text-gray-600" />
+            </button>
+
+            {filtrosOpen && (
+              <div className="absolute right-0 top-12 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-50">
+                <p className="text-sm font-semibold text-gray-700 mb-2">Filtrar por obras sociales</p>
+                <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
+                  {obrasSociales.map((os) => (
+                    <label
+                      key={os._id}
+                      className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded-md hover:bg-gray-50"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={filtroObras.includes(os._id)}
+                        onChange={() =>
+                          setFiltroObras((prev) =>
+                            prev.includes(os._id)
+                              ? prev.filter((id) => id !== os._id)
+                              : [...prev, os._id]
+                          )
+                        }
+                        className="accent-purple-500"
+                      />
+                      <span>{os.nombre}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Tabla */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Nombre y Apellido
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Especialidad
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Contacto
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Teléfono
-                  </th>
-                  <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Obras Sociales
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Estado
-                  </th>
-                  <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                    Acciones
-                  </th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-gray-100">
-                {currentItems.map((prof: Profesional, index: number) => {
-                  const isLast = index === currentItems.length - 1 || index >= currentItems.length - 3;
-                  const obrasSocialesNombres = getObrasSocialesNombres(prof.obrasSociales);
-                  return (
-                    <tr key={prof._id.toString()} className="hover:bg-gray-50 transition-colors">
-                      <td className="px-6 py-4">
-                        <div className="text-sm font-medium text-gray-900">{prof.nombre} {prof.apellido}</div>
-                        <div className="text-xs text-gray-500">DNI: {prof.dni}</div>
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">
-                        {getEspecialidadNombre(prof.especialidadId)}
-                      </td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{prof.contacto}</td>
-                      <td className="px-6 py-4 text-sm text-gray-700">{prof.telefono}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex flex-wrap gap-2">
-                          {obrasSocialesNombres.length === 0 ? (
-                            <span className="text-gray-400 text-sm italic">Sin obra social asignada</span>
-                          ) : (
-                            obrasSocialesNombres.map((nombre, i) => (
-                              <span key={i} className={getObraSocialBadgeClass(nombre)}>
-                                {nombre}
-                              </span>
-                            ))
-                          )}
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${prof.estado === "Activo"
-                          ? "bg-green-100 text-green-700 border border-green-200"
-                          : "bg-red-100 text-red-700 border border-red-200"
-                          }`}>
-                          {prof.estado}
+          <table className="w-full text-sm text-gray-700">
+            <thead className="bg-gray-50 border-b">
+              <tr>
+                <th className="p-4 text-left">Nombre y Apellido</th>
+                <th className="p-4 text-left">Especialidad</th>
+                <th className="p-4 text-left">Contacto</th>
+                <th className="p-4 text-left">Teléfono</th>
+                <th className="p-4 text-left">Obras Sociales</th>
+                <th className="p-4 text-center">Estado</th>
+                <th className="p-4 text-center">Acciones</th>
+              </tr>
+            </thead>
+            <tbody>
+              {visibles.map((p) => (
+                <tr key={p._id.toString()} className="border-b hover:bg-gray-50">
+                  <td className="p-4 font-semibold">{p.nombre} {p.apellido}</td>
+                  <td className="p-4">{getEspecialidadNombre(p.especialidadId)}</td>
+                  <td className="p-4">{p.contacto}</td>
+                  <td className="p-4">{p.telefono}</td>
+                  <td className="p-4">
+                    <div className="flex flex-wrap gap-1">
+                      {getObrasSocialesNombres(p.obrasSociales).map((os, i) => (
+                        <span key={i} className={getObraSocialBadgeClass(os)}>
+                          {os}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 text-center">
-                        <ActionsMenu
-                          profesional={prof}
-                          onVer={() => setViendo(prof)}
-                          onEditar={() => setEditando(prof)}
-                          isLast={isLast}
-                        />
-                      </td>
-                    </tr>
-                  );
-                })}
-                {currentItems.length === 0 && (
-                  <tr>
-                    <td colSpan={7} className="px-6 py-12 text-center">
-                      <div className="text-gray-400">
-                        <p className="text-lg font-medium">No hay profesionales registrados</p>
-                        <p className="text-sm mt-1">Comienza agregando un nuevo profesional</p>
-                      </div>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
-
-          {/* Paginación */}
-          {totalPages > 1 && (
-            <div className="bg-gray-50 px-6 py-4 border-t border-gray-200 flex items-center justify-between">
-              <div className="text-sm text-gray-600">
-                Mostrando {startIndex + 1} a {Math.min(endIndex, profesionales.length)} de {profesionales.length} profesionales
-              </div>
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                  disabled={currentPage === 1}
-                  className="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronLeft className="w-5 h-5 text-gray-600" />
-                </button>
-
-                <div className="flex items-center gap-1">
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
-                    <button
-                      key={page}
-                      onClick={() => setCurrentPage(page)}
-                      className={`min-w-[40px] h-10 px-3 rounded-lg font-medium text-sm transition-colors ${currentPage === page
-                        ? "bg-blue-600 text-white"
-                        : "bg-white border border-gray-300 text-gray-700 hover:bg-gray-50"
-                        }`}
+                      ))}
+                    </div>
+                  </td>
+                  <td className="p-4 text-center">
+                    <span
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${
+                        p.estado === "Activo"
+                          ? "bg-green-100 text-green-700"
+                          : "bg-red-100 text-red-700"
+                      }`}
                     >
-                      {page}
-                    </button>
-                  ))}
-                </div>
-
-                <button
-                  onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                  disabled={currentPage === totalPages}
-                  className="p-2 rounded-lg border border-gray-300 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                >
-                  <ChevronRight className="w-5 h-5 text-gray-600" />
-                </button>
-              </div>
-            </div>
-          )}
+                      {p.estado}
+                    </span>
+                  </td>
+                  <td className="p-4 text-center">
+                    <ActionsMenu
+                      onVer={() => setViendo(p)}
+                      onEditar={() => setEditando(p)}
+                    />
+                  </td>
+                </tr>
+              ))}
+              {visibles.length === 0 && (
+                <tr>
+                  <td colSpan={7} className="text-center py-10 text-gray-400 italic">
+                    No se encontraron profesionales
+                  </td>
+                </tr>
+              )}
+            </tbody>
+          </table>
         </div>
 
-        {/* Modal editar */}
+        {/* Paginación */}
+        {totalPaginas > 1 && (
+          <div className="flex justify-center items-center gap-4">
+            <button
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+              disabled={page === 1}
+              className="p-2 border rounded-lg disabled:opacity-50"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+            <span className="text-sm text-gray-600">
+              Página {page} de {totalPaginas}
+            </span>
+            <button
+              onClick={() => setPage((p) => Math.min(totalPaginas, p + 1))}
+              disabled={page === totalPaginas}
+              className="p-2 border rounded-lg disabled:opacity-50"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          </div>
+        )}
+
+        {/* Modales */}
         {editando && (
           <ProfesionalModal
             title="Editar Profesional"
             initialData={editando}
-            onSubmit={handleEditar}
+            onSubmit={() => setEditando(null)}
             onCancel={() => setEditando(null)}
-            errorText={modalError ?? undefined}
-            loading={saving}
-            onClientError={(m) => setModalError(m)}
+            loading={false}
           />
         )}
 
-        {/* Modal ver */}
         {viendo && (
           <ProfesionalModal
-            title="Datos del Profesional"
+            title="Ver Profesional"
             initialData={viendo}
-            onSubmit={() => { }}
+            viewMode
+            onSubmit={() => {}}
             onCancel={() => setViendo(null)}
             loading={false}
-            viewMode={true}
-            especialidades={especialidades}
-            obrasSociales={obrasSociales}
           />
         )}
       </div>

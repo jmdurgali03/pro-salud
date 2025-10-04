@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { BriefcaseMedical, ArrowRight, Home } from "lucide-react";
+import { BriefcaseMedical, ArrowRight, Home, Users, Cross, Stethoscope} from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
 import { AppSidebar } from "@/components/sidebar";
@@ -24,6 +24,11 @@ const actions = [
 const links = [
   { href: "/gerente", label: "Inicio", icon: Home },
   { href: "/gerente/profesional", label: "Profesionales", icon: BriefcaseMedical },
+  { href: "/gerente/pacientes", label: "Pacientes", icon: Users },
+  { href: "/gerente/obras-sociales", label: "Obras Sociales", icon: Cross},
+  { href: "/gerente/especialidades", label: "Especialidades", icon: Stethoscope},
+
+
 ];
 
 export default function GerenteHome() {

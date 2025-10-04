@@ -24,3 +24,17 @@ export const crear = mutation({
     });
   },
 });
+
+export const editar = mutation({
+  args: { id: v.id("obrasSociales"), nombre: v.string() },
+  handler: async (ctx, { id, nombre }) => {
+    await ctx.db.patch(id, { nombre });
+  },
+});
+
+export const eliminar = mutation({
+  args: { id: v.id("obrasSociales") },
+  handler: async (ctx, { id }) => {
+    await ctx.db.delete(id);
+  },
+});

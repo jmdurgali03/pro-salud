@@ -70,8 +70,8 @@ export default defineSchema({
   // Obras Sociales
   // -------------------------
   obrasSociales: defineTable({
-    nombre: v.string(),
-  }).index("por_nombre", ["nombre"]),
+  nombre: v.string(),
+}).index("por_nombre", ["nombre"]),
 
   // -------------------------
   // Especialidades médicas
