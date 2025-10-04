@@ -31,9 +31,10 @@ export const crear = mutation({
       titulo: args.titulo,
       indicaciones: args.indicaciones,
       fechaInicio: args.fechaInicio ?? Date.now(),
-      fechaFin: args.cronico ? null : args.fechaFin,
-      estado: args.estado ?? "Activo",
       cronico: args.cronico ?? false,
+      fechaFin: args.cronico ? undefined : args.fechaFin ?? undefined,
+      estado: args.estado ?? "Activo",
+      
       notas: args.notas,
     });
     return id;

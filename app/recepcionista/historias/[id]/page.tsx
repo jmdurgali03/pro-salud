@@ -64,7 +64,7 @@ type Tratamiento = {
   pacienteId: Id<"pacientes">;
   profesional: string;
   titulo: string;
-  indicaciones?: string;
+  indicaciones: string;
   fechaInicio: number;
   fechaFin?: number | null;
   estado: "Activo" | "Suspendido" | "Finalizado";

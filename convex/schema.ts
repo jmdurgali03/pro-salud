@@ -150,20 +150,21 @@ export default defineSchema({
   // -------------------------
   // Tratamientos
   // -------------------------
-  tratamientos: defineTable({
-    pacienteId: v.id("pacientes"),
-    profesional: v.string(),
-    titulo: v.string(),
-    indicaciones: v.optional(v.string()),
-    fechaInicio: v.number(),
-    fechaFin: v.optional(v.number()),
-    estado: v.union(
-      v.literal("Activo"),
-      v.literal("Suspendido"),
-      v.literal("Finalizado")
-    ),
-  }).index("por_paciente", ["pacienteId"]),
-
+ tratamientos: defineTable({
+  pacienteId: v.id("pacientes"),
+  profesional: v.string(),
+  titulo: v.string(),
+  indicaciones: v.string(),
+  fechaInicio: v.number(),
+  fechaFin: v.optional(v.number()),
+  estado: v.union(
+    v.literal("Activo"),
+    v.literal("Suspendido"),
+    v.literal("Finalizado")
+  ),
+  cronico: v.optional(v.boolean()), // ✅ agregado correctamente
+  notas: v.optional(v.string()),    // ✅ ya que también la usás en la mutación
+}).index("por_paciente", ["pacienteId"]),
   // -------------------------
   // Historial clínico
   // -------------------------
