@@ -66,18 +66,19 @@ export default function PacientesPage() {
   const filteredPacientes = useMemo(() => {
     const base = (pacientesConvex ?? prevPacientesRef.current) || [];
     const lista = Array.isArray(base) ? (base as PacienteRecord[]) : [];
-    const termino = debouncedSearch.trim();
-    const terminoNormalizado = termino.toLowerCase();
+    const termino = debouncedSearch.trim().toLowerCase();
+
     const coincide = (valor?: string | number | null) => {
       if (valor === undefined || valor === null) return false;
       const comoTexto = typeof valor === "string" ? valor.trim() : String(valor);
-      return comoTexto.toLowerCase().includes(terminoNormalizado);
+      return comoTexto.toLowerCase().includes(termino);
     };
 
     const coincideConBusqueda = (paciente: PacienteRecord) => {
       if (!termino) return true;
       return (
-        coincide(paciente.nombreCompleto) ||
+        coincide(paciente.nombre) ||
+        coincide(paciente.apellido) ||
         coincide(paciente.dni) ||
         coincide(paciente.email) ||
         coincide(paciente.telefono) ||
@@ -98,8 +99,7 @@ export default function PacientesPage() {
 
   const totalPages = useMemo(() => {
     const count = filteredPacientes.length;
-    if (count === 0) return 1;
-    return Math.ceil(count / ITEMS_PER_PAGE);
+    return count === 0 ? 1 : Math.ceil(count / ITEMS_PER_PAGE);
   }, [filteredPacientes.length]);
 
   const clampedPage = Math.min(currentPage, totalPages);
@@ -129,14 +129,16 @@ export default function PacientesPage() {
     setSeleccionado(null);
   };
 
-const sanitizeForm = (form: PacienteFormValues) => ({
-  ...form,
-  nombreCompleto: form.nombreCompleto.trim(),
-  email: form.email.trim(),
-  telefono: form.telefono.trim(),
-  dni: form.dni.trim(),
-  fechaNacimiento: form.fechaNacimiento.trim() || undefined,
-});
+  // ✅ Corregido: proteger campos opcionales con "?."
+  const sanitizeForm = (form: PacienteFormValues) => ({
+    ...form,
+    nombre: form.nombre.trim(),
+    apellido: form.apellido.trim(),
+    email: form.email?.trim() || "",
+    telefono: form.telefono?.trim() || "",
+    dni: form.dni.trim(),
+    fechaNacimiento: form.fechaNacimiento?.trim() || undefined,
+  });
 
   const handleCrear = async (form: PacienteFormValues) => {
     await crearPaciente(sanitizeForm(form));
@@ -216,6 +218,7 @@ const sanitizeForm = (form: PacienteFormValues) => ({
                 title="Editar Paciente"
                 initialValues={{
                   ...seleccionado,
+                  apellido: seleccionado.apellido ?? "",
                   email: seleccionado.email ?? "",
                   telefono: seleccionado.telefono ?? "",
                   fechaNacimiento: seleccionado.fechaNacimiento ?? "",
@@ -238,7 +241,6 @@ const sanitizeForm = (form: PacienteFormValues) => ({
             )}
           </ModalContainer>
         )}
-
       </div>
     </PageWrapper>
   );

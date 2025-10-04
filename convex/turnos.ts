@@ -40,8 +40,10 @@ export const listarRango = query({
 
         return {
           ...t,
-          pacienteNombre: paciente?.nombreCompleto || "—",
+          pacienteNombre: paciente?.nombre || "—",
+          pacienteApellido: paciente?.apellido || "—",
           profesionalNombre: profesional?.nombre || "—",
+          profesionalApellido: profesional?.apellido || "—",
           especialidadNombre: especialidad?.nombre || "—",
           obrasSocialesPaciente,
         };
@@ -145,7 +147,7 @@ export const eliminar = mutation({
     await ctx.db.delete(id);
   },
 });
-export const listarPorDoctor = query({
+export const listarPorProfesional = query({
   args: { profesionalId: v.id("profesionales") },
   handler: async (ctx, { profesionalId }) => {
     return await ctx.db.query("turnos")
@@ -169,8 +171,10 @@ export const listarConNombres = query({
 
         return {
           ...t,
-          pacienteNombre: paciente?.nombreCompleto || "Paciente sin nombre",
+          pacienteNombre: paciente?.nombre || "Paciente sin nombre",
+          pacienteApellido: paciente?.apellido || "Paciente sin apellido",
           profesionalNombre: profesional?.nombre || "Profesional sin nombre",
+          profesionalApellido: profesional?.apellido || "Profesional sin apellido",
           especialidadNombre: especialidad?.nombre || "",
         };
       })

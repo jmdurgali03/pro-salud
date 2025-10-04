@@ -5,7 +5,8 @@ import { Id } from "@/convex/_generated/dataModel";
 import { ObrasSocialesDropdown } from "./obras-sociales-dropdown";
 
 export type PacienteFormValues = {
-  nombreCompleto: string;
+  nombre: string;
+  apellido: string;
   email: string;
   telefono: string;
   dni: string;
@@ -34,7 +35,8 @@ export function PacienteForm({
   onCancel,
 }: PacienteFormProps) {
   const [form, setForm] = useState<PacienteFormState>({
-    nombreCompleto: initialValues.nombreCompleto ?? "",
+    nombre: initialValues.nombre ?? "",
+    apellido: initialValues.apellido ?? "",
     email: initialValues.email ?? "",
     telefono: initialValues.telefono ?? "",
     dni: initialValues.dni ?? "",
@@ -61,8 +63,11 @@ export function PacienteForm({
   const validate = () => {
     const newErrors: Record<string, string> = {};
 
-    if (!form.nombreCompleto.trim()) {
-      newErrors.nombreCompleto = "El nombre completo es obligatorio.";
+    if (!form.nombre.trim()) {
+      newErrors.nombre = "El nombre es obligatorio.";
+    }
+     if (!form.apellido.trim()) {
+      newErrors.apellido = "El apellido es obligatorio.";
     }
 
     if (!form.dni.trim()) {
@@ -104,9 +109,10 @@ export function PacienteForm({
   const handleSubmit = () => {
     if (!validate()) return;
     const generoNormalizado: "Masculino" | "Femenino" = form.genero === "Femenino" ? "Femenino" : "Masculino";
-    const { nombreCompleto, email, telefono, dni, fechaNacimiento, obrasSociales } = form;
+    const { nombre, apellido, email, telefono, dni, fechaNacimiento, obrasSociales } = form;
     const payload: PacienteFormValues = {
-      nombreCompleto,
+      nombre,
+      apellido,
       email,
       telefono,
       dni,
@@ -126,21 +132,36 @@ export function PacienteForm({
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
         <div className="sm:col-span-2">
-          <label className="text-sm font-semibold text-gray-700 block mb-2">Nombre Completo</label>
+          <label className="text-sm font-semibold text-gray-700 block mb-2">Nombres</label>
           <input
-            value={form.nombreCompleto}
-            onChange={(e) => handleChange("nombreCompleto", e.target.value)}
+            value={form.nombre}
+            onChange={(e) => handleChange("nombre", e.target.value)}
             className={`w-full border rounded-xl p-3 text-gray-900 placeholder-gray-400 transition-all duration-200 ${
               errors.nombreCompleto ? "border-red-300 ring-2 ring-red-200" : "border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-400"
             }`}
-            placeholder="Ej: Juan Pérez"
+            placeholder="Ej: Juan Jose"
             required
           />
-          {errors.nombreCompleto && (
+          {errors.nombre && (
             <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.nombreCompleto}</p>
           )}
         </div>
 
+        <div className="sm:col-span-2">
+ <label className="text-sm font-semibold text-gray-700 block mb-2">Apellidos</label>
+          <input
+            value={form.apellido}
+            onChange={(e) => handleChange("nombre", e.target.value)}
+            className={`w-full border rounded-xl p-3 text-gray-900 placeholder-gray-400 transition-all duration-200 ${
+              errors.apellido ? "border-red-300 ring-2 ring-red-200" : "border-gray-200 focus:ring-2 focus:ring-green-200 focus:border-green-400"
+            }`}
+            placeholder="Ej: Gonzalez Pérez"
+            required
+          />
+          {errors.apellido && (
+            <p className="text-xs text-red-600 mt-1.5 ml-1">{errors.apellido}</p>
+          )}
+        </div>
         <div>
           <label className="text-sm font-semibold text-gray-700 block mb-2">DNI</label>
           <input

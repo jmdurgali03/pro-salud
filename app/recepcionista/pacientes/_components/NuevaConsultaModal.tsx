@@ -6,6 +6,7 @@ import { Id } from "@/convex/_generated/dataModel";
 type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
+  apellido: string;
   especialidadId?: Id<"especialidades">;
 };
 

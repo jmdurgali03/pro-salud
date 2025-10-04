@@ -36,7 +36,8 @@ export const listar = query({
     };
 
     return pacientesConObras.filter((p) =>
-      coincide(p.nombreCompleto) ||
+      coincide(p.nombre) ||
+      coincide(p.apellido) ||
       coincide(p.dni) ||
       coincide(p.email) ||
       coincide(p.telefono) ||
@@ -50,7 +51,8 @@ export const listar = query({
 // Crear paciente
 export const crear = mutation({
   args: {
-    nombreCompleto: v.string(),
+    nombre: v.string(),
+    apellido: v.string(),
     email: v.optional(v.string()),
     telefono: v.optional(v.string()),
     dni: v.string(),
@@ -99,7 +101,8 @@ export const crear = mutation({
 export const actualizar = mutation({
   args: {
     id: v.id("pacientes"),
-    nombreCompleto: v.string(),
+    nombre: v.string(),
+    apellido: v.string(),
     email: v.optional(v.string()),
     telefono: v.optional(v.string()),
     dni: v.string(),
@@ -246,7 +249,8 @@ export const listarPorDoctor = query({
 
         return {
           _id: p!._id,
-          nombreCompleto: p!.nombreCompleto,
+          nombre: p!.nombre,
+          apellido: p!.apellido,
           dni: p!.dni,
           telefono: p!.telefono,
           email: p!.email,

@@ -27,7 +27,8 @@ import NuevoDiagnosticoModal from "../_components/NuevoDiagnosticoModal";
 export type PacienteExtendido = {
   _id: Id<"pacientes">;
   _creationTime: number;
-  nombreCompleto: string;
+  nombre: string;
+  apellido: string;
   email?: string;
   telefono?: string;
   dni: string;
@@ -88,7 +89,8 @@ export default function HistorialPacientePage() {
     <div className="min-h-screen bg-gray-50">
       <div className="mx-auto grid max-w-6xl grid-cols-[220px,1fr] gap-6 p-6 sm:grid-cols-[240px,1fr] md:grid-cols-[260px,1fr]">
         {/* Sidebar */}
-        <SidebarPaciente nombre={paciente.nombreCompleto} />
+        <SidebarPaciente nombre={paciente.nombre} apellido={paciente.apellido} />
+
 
         {/* Main */}
         <main className="min-w-0 space-y-6">
@@ -101,7 +103,7 @@ export default function HistorialPacientePage() {
             <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
               <div>
                 <h1 className="text-2xl font-semibold text-gray-900">
-                  Historial Médico de {paciente.nombreCompleto}
+                  Historial Médico de {paciente.nombre} {paciente.apellido}
                 </h1>
                 <p className="text-sm text-gray-500">Información básica del paciente</p>
               </div>
@@ -131,7 +133,11 @@ export default function HistorialPacientePage() {
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <DataItem icon={<User className="h-4 w-4" />} label="Nombre completo" value={paciente.nombreCompleto} />
+               <DataItem
+    icon={<User className="h-4 w-4" />}
+    label="Nombre completo"
+    value={`${paciente.nombre} ${paciente.apellido}`}
+  />
               <DataItem icon={<IdCard className="h-4 w-4" />} label="DNI" value={paciente.dni} />
               <DataItem icon={<Venus className="h-4 w-4" />} label="Género" value={paciente.genero} />
               <DataItem icon={<Phone className="h-4 w-4" />} label="Teléfono" value={paciente.telefono ?? "—"} />
