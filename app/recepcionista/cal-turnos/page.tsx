@@ -36,7 +36,9 @@ type TurnoConJoin = {
   estado: "Confirmado" | "Pendiente" | "Cancelado";
 
   pacienteNombre: string;
+  pacienteApellido: string;
   profesionalNombre: string;
+  profesionalApellido: string; 
   especialidadNombre: string;
   obrasSocialesPaciente: string[]; // ⚡ array de obras sociales
 };
@@ -175,11 +177,11 @@ export default function TurnosPage() {
                         minute: "2-digit",
                       })}
                     </TableCell>
-                    <TableCell>{t.pacienteNombre}</TableCell>
+                    <TableCell>{t.pacienteNombre} {t.pacienteApellido}</TableCell>
 
 
                     <TableCell className="text-blue-600">
-                      {t.profesionalNombre}
+                      {t.profesionalNombre} {t.profesionalApellido}
                     </TableCell>
                     <TableCell>{t.especialidadNombre}</TableCell>
 

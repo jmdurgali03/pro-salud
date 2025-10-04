@@ -19,18 +19,22 @@ export default function NuevaConsultaModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: { motivo: string; profesional: string; notas?: string }) => Promise<void> | void;
+  onSubmit: (data: { motivo: string; profesionalId: Id<"profesionales">; notas?: string }) => Promise<void> | void;
   profesionales: Profesional[];
   espNombrePorId: Map<Id<"especialidades">, string>;
 }) {
   const [motivo, setMotivo] = useState("");
-  const [profConsulta, setProfConsulta] = useState("");
+  const [profConsulta, setProfConsulta] = useState<Id<"profesionales"> | "">("");
   const [notas, setNotas] = useState("");
 
   const handle = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!motivo.trim() || !profConsulta) return;
-    await onSubmit({ motivo, profesional: profConsulta, notas: notas || undefined });
+    await onSubmit({
+      motivo,
+      profesionalId: profConsulta as Id<"profesionales">,
+      notas: notas || undefined,
+    });
     setMotivo("");
     setNotas("");
     setProfConsulta("");
@@ -40,6 +44,7 @@ export default function NuevaConsultaModal({
   return (
     <Modal open={open} onClose={onClose} title="Registrar consulta">
       <form onSubmit={handle} className="space-y-3">
+        {/* Motivo */}
         <div>
           <label className="mb-1 block text-sm text-gray-700">Motivo</label>
           <input
@@ -51,20 +56,22 @@ export default function NuevaConsultaModal({
           />
         </div>
 
+        {/* Profesional y Notas */}
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
           <div>
             <label className="mb-1 block text-sm text-gray-700">Profesional</label>
             <select
               value={profConsulta}
-              onChange={(e) => setProfConsulta(e.target.value)}
+              onChange={(e) => setProfConsulta(e.target.value as Id<"profesionales">)}
               className="w-full rounded-lg border border-gray-300 p-2 text-gray-900"
+              required
             >
               <option value="">Seleccione un profesional</option>
               {profesionales.map((p) => {
                 const espNombre = p.especialidadId ? espNombrePorId.get(p.especialidadId) : undefined;
                 return (
-                  <option key={p._id} value={p.nombre}>
-                    {p.nombre}
+                  <option key={p._id} value={p._id}>
+                    {p.nombre} {p.apellido}
                     {espNombre ? ` — ${espNombre}` : ""}
                   </option>
                 );
@@ -83,6 +90,7 @@ export default function NuevaConsultaModal({
           </div>
         </div>
 
+        {/* Botones */}
         <div className="flex justify-end gap-2 pt-2">
           <button
             type="button"

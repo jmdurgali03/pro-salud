@@ -26,7 +26,7 @@ users: defineTable({
     pacienteId: v.id("pacientes"),
     profesionalId: v.id("profesionales"),
     tipo: v.string(),
-    estado: v.union(v.literal("Confirmado"), v.literal("Pendiente"), v.literal("Cancelado")),
+    estado: v.union(v.literal("Confirmado"), v.literal("Pendiente"), v.literal("Cancelado"), v.literal("Finalizado")),
     start: v.number(),
     end: v.number(),
     notas: v.optional(v.string()),
@@ -35,7 +35,8 @@ users: defineTable({
   })
     .index("byStart", ["start"])
     .index("byProfesional", ["profesionalId"])
-    .index("byPaciente", ["pacienteId"]),
+    .index("byPaciente", ["pacienteId"])
+    .index("byEstado", ["estado"]),
 
   // -------------------------
   // Profesionales
@@ -115,26 +116,28 @@ profesionales: defineTable({
     creadoEn: v.number(),
   }).index("por_paciente", ["pacienteId"]),
 
-  consultas: defineTable({
-    pacienteId: v.id("pacientes"),
-    motivo: v.string(),
-    profesional: v.string(),
-    notas: v.optional(v.string()),
-    fecha: v.number(),
-  }).index("por_paciente", ["pacienteId"])
-  .index("por_profesional", ["profesional"]),
+diagnosticos: defineTable({
+  pacienteId: v.id("pacientes"),
+  consultaId: v.id("consultas"),
+  profesionalId: v.id("profesionales"), // 🔹 ID del profesional
+  descripcion: v.string(),
+  estado: v.union(v.literal("Presuntivo"), v.literal("Definitivo")),
+  fecha: v.optional(v.number()),
+})
+.index("byPaciente", ["pacienteId"])
+.index("byProfesional", ["profesionalId"]),
 
-  diagnosticos: defineTable({
-      pacienteId: v.id("pacientes"),
-      consultaId: v.id("consultas"),
-      descripcion: v.string(),
-      profesional: v.string(),
-      estado: v.union(v.literal("Presuntivo"), v.literal("Definitivo")),
-      fecha: v.number(),
-    })
-      .index("por_paciente", ["pacienteId"])
-      .index("por_consulta", ["consultaId"]),
-      
+consultas: defineTable({
+  pacienteId: v.id("pacientes"),
+  motivo: v.string(),
+  profesionalId: v.id("profesionales"), // 🔹 ID del profesional
+  notas: v.optional(v.string()),
+  fecha: v.optional(v.number()),
+})
+.index("byPaciente", ["pacienteId"])
+.index("byProfesional", ["profesionalId"]),
+
+
   tratamientos: defineTable({
       pacienteId: v.id("pacientes"),
       profesional: v.string(),

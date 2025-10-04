@@ -125,10 +125,10 @@ export default function HistorialPacientePage() {
   })();
 
   // Handlers
-  const submitConsulta = async (data: { motivo: string; profesional: string; notas?: string }) => {
-    await crearConsulta({ pacienteId, ...data });
-    setOpenConsulta(false);
-  };
+  const submitConsulta = async (data: { motivo: string; profesionalId: Id<"profesionales">; notas?: string }) => {
+  await crearConsulta({ pacienteId, ...data });
+  setOpenConsulta(false);
+};
 
   const submitDiagnostico = async (data: {
     consultaId: Id<"consultas">;

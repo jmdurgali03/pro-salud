@@ -96,18 +96,18 @@ export default function CalendarioProSalud() {
     setDraggedEvent(null);
   };
 
-  const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
-    if (!turnos || !isCurrentMonth) return [];
-    const date = new Date(currentDate.getFullYear(), currentDate.getMonth(), day);
-    return turnos.filter((event) => {
-      const eventStart = new Date(event.start);
-      const eventEnd = new Date(event.end);
-      return (
-        date >= new Date(eventStart.getFullYear(), eventStart.getMonth(), eventStart.getDate()) &&
-        date <= new Date(eventEnd.getFullYear(), eventEnd.getMonth(), eventEnd.getDate())
-      );
-    });
-  };
+const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
+  if (!turnos || !isCurrentMonth) return [];
+  return turnos.filter((event) => {
+    const eventDate = new Date(event.start);
+    return (
+      eventDate.getFullYear() === currentDate.getFullYear() &&
+      eventDate.getMonth() === currentDate.getMonth() &&
+      eventDate.getDate() === day
+    );
+  });
+};
+
 
   const days = getDaysInMonth(currentDate);
   const weeks: typeof days[] = [];

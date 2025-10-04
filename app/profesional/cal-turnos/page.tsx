@@ -1,0 +1,146 @@
+"use client";
+
+import { useMemo, useState } from "react";
+import { useQuery } from "convex/react";
+import { api } from "@/convex/_generated/api";
+import { PageWrapper } from "@/components/page-wrapper";
+import { AppSidebar } from "@/components/sidebar";
+import { Home, Calendar as CalendarIcon, Users } from "lucide-react";
+
+import { CalendarioHeader } from "./_components/CalendarioHeader";
+import { CalendarioSidebar } from "./_components/CalendarioSidebar";
+import { CalendarioGrid } from "./_components/CalendarioGrid";
+import { AgendaView } from "./_components/AgendaView";
+import { TurnoModal } from "./_components/TurnoModal";
+import {
+  TurnoConJoin,
+  getDaysInMonth,
+  sameDay,
+  addDays,
+  startOfWeekMonday,
+} from "./_components/types";
+
+export default function CalendarioPage() {
+  const [currentDate, setCurrentDate] = useState<Date>(new Date());
+  const [view, setView] = useState<"month" | "week" | "day">("month");
+  const [selectedTurno, setSelectedTurno] = useState<TurnoConJoin | null>(null);
+
+  const turnos =
+    (useQuery(api.turnos.listarConNombres, {}) as TurnoConJoin[] | undefined) ??
+    [];
+
+  // ---- Mes: matriz de 6x7
+  const days = useMemo(() => getDaysInMonth(currentDate), [currentDate]);
+  const weeks = useMemo(() => {
+    const out: typeof days[] = [];
+    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7));
+    return out;
+  }, [days]);
+
+  // ---- Filtro de eventos por día (para vista mensual)
+  const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return [];
+    return turnos.filter((t) => {
+      const d = new Date(t.start);
+      return (
+        d.getFullYear() === currentDate.getFullYear() &&
+        d.getMonth() === currentDate.getMonth() &&
+        d.getDate() === day
+      );
+    });
+  };
+
+  // ---- Navegación temporal según vista
+  const goPrev = () => {
+    if (view === "month") {
+      setCurrentDate(
+        new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      );
+    } else if (view === "week") {
+      setCurrentDate(addDays(currentDate, -7));
+    } else {
+      setCurrentDate(addDays(currentDate, -1));
+    }
+  };
+
+  const goNext = () => {
+    if (view === "month") {
+      setCurrentDate(
+        new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      );
+    } else if (view === "week") {
+      setCurrentDate(addDays(currentDate, 7));
+    } else {
+      setCurrentDate(addDays(currentDate, 1));
+    }
+  };
+
+  const goToday = () => setCurrentDate(new Date());
+
+  // ---- Datos de semana/día para AgendaView
+  const weekStart = startOfWeekMonday(currentDate); // lunes
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const agendaDays = view === "day" ? [currentDate] : weekDays;
+
+  return (
+    <>
+      <AppSidebar
+        panelName="Panel Profesional"
+        links={[
+          { href: "/profesional", label: "Inicio", icon: Home },
+          { href: "/profesional/cal-turnos", label: "Turnos", icon: CalendarIcon },
+          { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
+        ]}
+      />
+
+      <PageWrapper
+        breadcrumbs={[
+          { label: "Inicio", href: "/profesional" },
+          { label: "Calendario", href: "/profesional/cal-turnos" },
+        ]}
+      >
+        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-7xl mx-auto">
+            <CalendarioHeader
+              currentDate={currentDate}
+              view={view}
+              onPrev={goPrev}
+              onNext={goNext}
+              onToday={goToday}
+              onViewChange={setView}
+            />
+
+            <div className="flex">
+              <CalendarioSidebar
+                turnos={turnos}
+                onSelectTurno={setSelectedTurno}
+              />
+
+              {view === "month" ? (
+                <CalendarioGrid
+                  diasSemana={["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]}
+                  weeks={weeks}
+                  getEventsForDay={getEventsForDay}
+                  onSelectTurno={setSelectedTurno}
+                />
+              ) : (
+                <AgendaView
+                  days={agendaDays}
+                  turnos={turnos}
+                  onSelectTurno={setSelectedTurno}
+                  slotMinutes={30}
+                  startHour={8}
+                  endHour={20}
+                />
+              )}
+            </div>
+          </div>
+        </div>
+
+        {selectedTurno && (
+          <TurnoModal turno={selectedTurno} onClose={() => setSelectedTurno(null)} />
+        )}
+      </PageWrapper>
+    </>
+  );
+}

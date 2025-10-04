@@ -175,7 +175,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
               <SelectContent>
                 {pacientes.map((p) => (
                   <SelectItem key={p._id} value={p._id}>
-                    {p.nombreCompleto} – {p.dni}
+                    {p.nombre} {p.apellido} – {p.dni}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -195,7 +195,7 @@ const profesionalesConEspecialidad = profesionales.map((p) => {
               <SelectContent>
                 {profesionalesConEspecialidad.map((p) => (
   <SelectItem key={p._id} value={p._id}>
-    {p.nombre} – {p.especialidadNombre}
+    {p.nombre} {p.apellido} – {p.especialidadNombre}
   </SelectItem>
 ))}
 
