@@ -1,9 +1,9 @@
 import { query, mutation } from "./_generated/server";
-import { v, ConvexError } from "convex/values"; // ✅ importo ConvexError
+import { v, ConvexError } from "convex/values";
 import { checkSolapamiento } from "./helpers/checkSolapamiento";
 
 // ----------------------------
-// Listar turnos enriquecidos
+// Listar turnos enriquecidos por rango
 // ----------------------------
 export const listarRango = query({
   args: { from: v.number(), to: v.number() },
@@ -14,41 +14,46 @@ export const listarRango = query({
       .order("asc")
       .collect();
 
-    return Promise.all(
-      turnos.map(async (t) => {
-        const paciente = await ctx.db.get(t.pacienteId);
-        const profesional = await ctx.db.get(t.profesionalId);
+    const resultados = [];
 
-        // especialidad del profesional
-        const especialidad = profesional
-          ? await ctx.db.get(profesional.especialidadId)
-          : null;
+    for (const t of turnos) {
+      const paciente = await ctx.db.get(t.pacienteId);
+      const profesional = await ctx.db.get(t.profesionalId);
+      const especialidad = profesional
+        ? await ctx.db.get(profesional.especialidadId)
+        : null;
 
-        // obras sociales del paciente vía tabla pivote
-        let obrasSocialesPaciente: string[] = [];
-        if (paciente) {
-          const rels = await ctx.db
-            .query("pacientes_obrasSociales")
-            .withIndex("por_paciente", (q) => q.eq("pacienteId", paciente._id))
-            .collect();
+      // 🔹 Resolver obras sociales desde la tabla pivote pacientes_obrasSociales
+      let obrasSocialesPaciente: string[] = [];
+      if (paciente) {
+        const rels = await ctx.db
+          .query("pacientes_obrasSociales")
+          .withIndex("por_paciente", (q) => q.eq("pacienteId", paciente._id))
+          .collect();
 
-          const os = await Promise.all(
-            rels.map((r) => ctx.db.get(r.obraSocialId))
-          );
-          obrasSocialesPaciente = os.filter(Boolean).map((o) => o!.nombre);
-        }
+        const obras = await Promise.all(
+          rels.map(async (r) => {
+            const os = await ctx.db.get(r.obraSocialId);
+            return os?.nombre ?? "";
+          })
+        );
 
-        return {
-          ...t,
-          pacienteNombre: paciente?.nombre || "—",
-          pacienteApellido: paciente?.apellido || "—",
-          profesionalNombre: profesional?.nombre || "—",
-          profesionalApellido: profesional?.apellido || "—",
-          especialidadNombre: especialidad?.nombre || "—",
-          obrasSocialesPaciente,
-        };
-      })
-    );
+        obrasSocialesPaciente = obras.filter(Boolean);
+      }
+
+      resultados.push({
+        ...t,
+        pacienteNombre: paciente?.nombre ?? "—",
+        pacienteApellido: paciente?.apellido ?? "—",
+        profesionalNombre: profesional?.nombre ?? "—",
+        profesionalApellido: profesional?.apellido ?? "—",
+        profesionalEstado: profesional?.estado ?? "Inactivo",
+        especialidadNombre: especialidad?.nombre ?? "—",
+        obrasSocialesPaciente,
+      });
+    }
+
+    return resultados;
   },
 });
 
@@ -78,7 +83,7 @@ export const crear = mutation({
     );
 
     if (existeSolapamiento) {
-      throw new ConvexError("El profesional ya tiene un turno en este horario."); // ✅
+      throw new ConvexError("El profesional ya tiene un turno en este horario.");
     }
 
     const ahora = Date.now();
@@ -113,7 +118,7 @@ export const editar = mutation({
   handler: async (ctx, { id, ...data }) => {
     const turnoActual = await ctx.db.get(id);
     if (!turnoActual) {
-      throw new ConvexError("Turno no encontrado"); // ✅
+      throw new ConvexError("Turno no encontrado");
     }
 
     const nuevo = { ...turnoActual, ...data };
@@ -127,7 +132,7 @@ export const editar = mutation({
     );
 
     if (existeSolapamiento) {
-      throw new ConvexError("El profesional ya tiene un turno en este horario."); // ✅
+      throw new ConvexError("El profesional ya tiene un turno en este horario.");
     }
 
     await ctx.db.patch(id, {
@@ -147,20 +152,28 @@ export const eliminar = mutation({
     await ctx.db.delete(id);
   },
 });
+
+// ----------------------------
+// Listar por profesional (simple)
+// ----------------------------
 export const listarPorProfesional = query({
   args: { profesionalId: v.id("profesionales") },
   handler: async (ctx, { profesionalId }) => {
-    return await ctx.db.query("turnos")
-      .withIndex("byProfesional", q => q.eq("profesionalId", profesionalId))
+    return await ctx.db
+      .query("turnos")
+      .withIndex("byProfesional", (q) => q.eq("profesionalId", profesionalId))
       .collect();
   },
 });
+
+// ----------------------------
+// Listar con nombres (básico, sin rango)
+// ----------------------------
 export const listarConNombres = query({
   args: {},
   handler: async (ctx) => {
     const turnos = await ctx.db.query("turnos").collect();
 
-    // 🚑 Supongamos que cada turno tiene campos pacienteId y profesionalId
     return Promise.all(
       turnos.map(async (t) => {
         const paciente = await ctx.db.get(t.pacienteId);
@@ -171,11 +184,11 @@ export const listarConNombres = query({
 
         return {
           ...t,
-          pacienteNombre: paciente?.nombre || "Paciente sin nombre",
-          pacienteApellido: paciente?.apellido || "Paciente sin apellido",
-          profesionalNombre: profesional?.nombre || "Profesional sin nombre",
-          profesionalApellido: profesional?.apellido || "Profesional sin apellido",
-          especialidadNombre: especialidad?.nombre || "",
+          pacienteNombre: paciente?.nombre ?? "Paciente sin nombre",
+          pacienteApellido: paciente?.apellido ?? "Paciente sin apellido",
+          profesionalNombre: profesional?.nombre ?? "Profesional sin nombre",
+          profesionalApellido: profesional?.apellido ?? "Profesional sin apellido",
+          especialidadNombre: especialidad?.nombre ?? "",
         };
       })
     );

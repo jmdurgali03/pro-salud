@@ -39,7 +39,7 @@ export function AgendaView({
   }
 
   // Helper: obtiene el turno que cae exactamente en un slot (por inicio)
- const getTurnoAt = (day: Date, slot: Date) =>
+const getTurnoAt = (day: Date, slot: Date) =>
   turnos.find((t) => {
     const start = new Date(t.start);
     const end = new Date(t.end);
