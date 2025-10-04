@@ -142,6 +142,7 @@ export default function ProfesionalesPage() {
             <thead className="bg-gray-100">
               <tr>
                 <th className="p-5 text-left min-w-[180px]">Nombre</th>
+                <th className="p-5 text-left min-w-[150px]">Apellido</th>
                 <th className="p-5 text-left min-w-[180px]">Especialidad</th>
                 <th className="p-5 text-left min-w-[220px]">Contacto</th>
                 <th className="p-5 text-left min-w-[150px]">Teléfono</th>
@@ -154,6 +155,7 @@ export default function ProfesionalesPage() {
               {profesionales.map((prof) => (
                 <tr key={prof._id.toString()} className="border-t hover:bg-gray-50">
                   <td className="p-5 font-semibold">{prof.nombre}</td>
+                  <td className="p-5 font-semibold">{prof.apellido}</td>
                   <td className="p-5">{getEspecialidadNombre(prof.especialidadId)}</td>
                   <td className="p-5">{prof.contacto}</td>
                   <td className="p-5">{prof.telefono}</td>
