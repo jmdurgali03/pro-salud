@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import ProfesionalModal from "./ProfesionalModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Plus } from "lucide-react";
+import { Plus, CheckCircle2, ChevronLeft, ChevronRight } from "lucide-react";
 
 export type Profesional = {
   _id: Id<"profesionales">;
@@ -51,45 +51,61 @@ export default function ProfesionalesPage() {
   const editar = useMutation(api.profesionales.editar);
   const eliminar = useMutation(api.profesionales.eliminar);
 
+  const [q, setQ] = useState("");
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
   const [viendo, setViendo] = useState<Profesional | null>(null);
-
   const [toast, setToast] = useState<string | null>(null);
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 3000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
   const [modalError, setModalError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // ✅ Ocultar el toast después de unos segundos
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // ✅ Crear profesional
   const handleCrear = async (data: ProfesionalInput & { dni: string; matricula: string }) => {
-    setSaving(true); setModalError(null);
-    const res: any = await crear(data);
-    if (!res?.ok) {
-      setModalError(mapReason(res?.reason, res?.message));
-    } else {
+    try {
+      setSaving(true);
+      setModalError(null);
+      const res: any = await crear(data);
+      if (!res?.ok) {
+        setModalError(mapReason(res?.reason, res?.message));
+        return;
+      }
       setModalOpen(false);
-      setToast(`Profesional creado. Usuario: ${res.usuario} | Contraseña: ${res.password}`);
+      setToast("Profesional creado correctamente.");
+    } catch (e) {
+      setModalError("Error al crear el profesional.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
+  // ✅ Editar profesional
   const handleEditar = async (data: ProfesionalInput) => {
     if (!editando?._id) return;
-    setSaving(true); setModalError(null);
-    const res: any = await editar({ id: editando._id, ...data });
-    if (!res?.ok) {
-      setModalError(mapReason(res?.reason, res?.message));
-    } else {
+    try {
+      setSaving(true);
+      setModalError(null);
+      const res: any = await editar({ id: editando._id, ...data });
+      if (!res?.ok) {
+        setModalError(mapReason(res?.reason, res?.message));
+        return;
+      }
       setEditando(null);
       setToast("Profesional actualizado correctamente.");
+    } catch {
+      setModalError("Error al actualizar el profesional.");
+    } finally {
+      setSaving(false);
     }
-    setSaving(false);
   };
 
+  // ✅ Eliminar profesional
   const handleEliminar = async (id?: Id<"profesionales">) => {
     if (!id) return;
     const res: any = await eliminar({ id });
@@ -100,8 +116,34 @@ export default function ProfesionalesPage() {
     especialidades.find((e) => e._id === id)?.nombre || "—";
 
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
-    ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "")
-      .filter(Boolean);
+    ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean);
+
+  // 🔍 Filtro del buscador
+  const profesionalesFiltrados = useMemo(() => {
+    const term = q.toLowerCase();
+    return profesionales.filter((p) => {
+      const especialidad = getEspecialidadNombre(p.especialidadId).toLowerCase();
+      const obras = getObrasSocialesNombres(p.obrasSociales).join(" ").toLowerCase();
+      return (
+        p.nombre.toLowerCase().includes(term) ||
+        p.apellido.toLowerCase().includes(term) ||
+        p.dni.toLowerCase().includes(term) ||
+        especialidad.includes(term) ||
+        obras.includes(term)
+      );
+    });
+  }, [q, profesionales, especialidades, obrasSociales]);
+
+  // 📄 Paginación (7 por página)
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 6;
+  const totalPages = Math.ceil(profesionalesFiltrados.length / itemsPerPage);
+  const startIndex = (page - 1) * itemsPerPage;
+  const profesionalesPaginados = profesionalesFiltrados.slice(startIndex, startIndex + itemsPerPage);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages || 1);
+  }, [totalPages]);
 
   return (
     <PageWrapper breadcrumbs={[
@@ -109,7 +151,7 @@ export default function ProfesionalesPage() {
       { label: "Profesionales", href: "/gerente/profesional" }
     ]}>
       <div className="w-full px-16 py-10 space-y-10">
-        
+
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-3">
@@ -126,34 +168,39 @@ export default function ProfesionalesPage() {
           <input
             type="text"
             placeholder="Buscar por nombre, DNI, matrícula, especialidad u obra social..."
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
             className="flex-1 mr-4 px-5 py-3 rounded-lg border border-gray-200 shadow-sm focus:ring-2 focus:ring-green-500 outline-none text-base"
           />
           <button
-            onClick={() => { setModalError(null); setModalOpen(true); }}
-            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 shadow text-base"
+            onClick={() => {
+              setModalError(null);
+              setModalOpen(true);
+            }}
+            className="inline-flex items-center gap-2 px-6 py-3 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700 shadow text-base transition-all duration-300"
           >
             <Plus size={20} /> Nuevo Profesional
           </button>
         </div>
 
         {/* Tabla */}
-        <div className="overflow-hidden rounded-xl border border-gray-200 shadow bg-white">
+        <div className="overflow-hidden rounded-xl border border-gray-200 shadow bg-white transition-all duration-300">
           <table className="w-full text-base text-gray-700">
             <thead className="bg-gray-100">
               <tr>
-                <th className="p-5 text-left min-w-[180px]">Nombre</th>
-                <th className="p-5 text-left min-w-[150px]">Apellido</th>
-                <th className="p-5 text-left min-w-[180px]">Especialidad</th>
-                <th className="p-5 text-left min-w-[220px]">Contacto</th>
-                <th className="p-5 text-left min-w-[150px]">Teléfono</th>
-                <th className="p-5 text-left min-w-[220px]">Obras Sociales</th>
-                <th className="p-5 text-center min-w-[120px]">Estado</th>
-                <th className="p-5 text-center min-w-[150px]">Acciones</th>
+                <th className="p-5 text-left">Nombre</th>
+                <th className="p-5 text-left">Apellido</th>
+                <th className="p-5 text-left">Especialidad</th>
+                <th className="p-5 text-left">Contacto</th>
+                <th className="p-5 text-left">Teléfono</th>
+                <th className="p-5 text-left">Obras Sociales</th>
+                <th className="p-5 text-center">Estado</th>
+                <th className="p-5 text-center">Acciones</th>
               </tr>
             </thead>
             <tbody>
-              {profesionales.map((prof) => (
-                <tr key={prof._id.toString()} className="border-t hover:bg-gray-50">
+              {profesionalesPaginados.map((prof) => (
+                <tr key={prof._id.toString()} className="border-t hover:bg-gray-50 transition-all">
                   <td className="p-5 font-semibold">{prof.nombre}</td>
                   <td className="p-5 font-semibold">{prof.apellido}</td>
                   <td className="p-5">{getEspecialidadNombre(prof.especialidadId)}</td>
@@ -161,10 +208,7 @@ export default function ProfesionalesPage() {
                   <td className="p-5">{prof.telefono}</td>
                   <td className="p-5 flex flex-wrap gap-2">
                     {getObrasSocialesNombres(prof.obrasSociales).map((os) => (
-                      <span
-                        key={os}
-                        className="px-3 py-1 text-sm rounded-full bg-gray-100 border text-gray-700"
-                      >
+                      <span key={os} className="px-3 py-1 text-sm rounded-full bg-gray-100 border text-gray-700">
                         {os}
                       </span>
                     ))}
@@ -186,9 +230,9 @@ export default function ProfesionalesPage() {
                   </td>
                 </tr>
               ))}
-              {profesionales.length === 0 && (
+              {profesionalesFiltrados.length === 0 && (
                 <tr>
-                  <td colSpan={7} className="p-6 text-center text-gray-400 italic">
+                  <td colSpan={8} className="p-6 text-center text-gray-400 italic">
                     No hay profesionales registrados
                   </td>
                 </tr>
@@ -197,7 +241,34 @@ export default function ProfesionalesPage() {
           </table>
         </div>
 
-        {/* Modal crear */}
+        {/* 📑 Paginación */}
+        {totalPages > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-6">
+            <button
+              disabled={page === 1}
+              onClick={() => setPage(page - 1)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium ${
+                page === 1 ? "text-gray-400 border-gray-200" : "text-gray-700 border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              <ChevronLeft size={16} /> Anterior
+            </button>
+            <div className="flex items-center gap-2 text-gray-600">
+              Página <span className="font-semibold text-gray-900">{page}</span> de {totalPages}
+            </div>
+            <button
+              disabled={page === totalPages}
+              onClick={() => setPage(page + 1)}
+              className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium ${
+                page === totalPages ? "text-gray-400 border-gray-200" : "text-gray-700 border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              Siguiente <ChevronRight size={16} />
+            </button>
+          </div>
+        )}
+
+        {/* 🧩 Modal crear */}
         {modalOpen && (
           <ProfesionalModal
             title="Nuevo Profesional"
@@ -209,7 +280,7 @@ export default function ProfesionalesPage() {
           />
         )}
 
-        {/* Modal editar */}
+        {/* 🧩 Modal editar */}
         {editando && (
           <ProfesionalModal
             title="Editar Profesional"
@@ -222,31 +293,18 @@ export default function ProfesionalesPage() {
           />
         )}
 
-        {/* Modal ver */}
-        {viendo && (
-          <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-            <div className="bg-white text-black rounded-lg shadow-xl p-6 w-[30rem] space-y-4">
-              <h2 className="text-xl font-bold">Datos del Profesional</h2>
-              <p><strong>Nombre:</strong> {viendo.nombre}</p>
-              <p><strong>Apellido:</strong> {viendo.apellido}</p>
-              <p><strong>DNI:</strong> {viendo.dni}</p>
-              <p><strong>Matrícula:</strong> {viendo.matricula}</p>
-              <p><strong>Especialidad:</strong> {especialidades.find(e => e._id === viendo.especialidadId)?.nombre || "—"}</p>
-              <p><strong>Contacto:</strong> {viendo.contacto}</p>
-              <p><strong>Teléfono:</strong> {viendo.telefono}</p>
-              <p><strong>Obras Sociales:</strong> {getObrasSocialesNombres(viendo.obrasSociales).join(", ")}</p>
-              <p><strong>Estado:</strong> {viendo.estado}</p>
-              <div className="flex justify-end">
-                <button onClick={() => setViendo(null)} className="px-4 py-2 rounded bg-gray-200 hover:bg-gray-300">Cerrar</button>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Toast */}
+        {/* ✅ Toast visible */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-[60] rounded-lg border px-4 py-3 shadow-lg max-w-sm bg-green-50 border-green-200 text-green-700">
-            {toast}
+          <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-3
+                          rounded-xl border border-green-300 bg-gradient-to-r from-green-50 to-green-100
+                          px-6 py-4 shadow-2xl shadow-green-200/50 text-green-800
+                          animate-in fade-in slide-in-from-bottom-4 duration-500 min-w-[350px] max-w-md">
+            <CheckCircle2 className="h-7 w-7 text-green-600" />
+            <div className="flex-1">
+              <p className="text-base font-semibold">¡Operación exitosa!</p>
+              <p className="text-sm">{toast}</p>
+            </div>
+            <button onClick={() => setToast(null)} className="text-green-600 hover:text-green-800 text-lg font-bold">×</button>
           </div>
         )}
       </div>
