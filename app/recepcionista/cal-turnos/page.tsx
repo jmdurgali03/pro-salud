@@ -1,231 +1,197 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
-import CompactCalendar from "@/components/calendario/CompactCalendar";
-import TurnoDialog from "@/components/calendario/CreateTurnoDialog";
-
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import {
-  startOfWeek,
-  endOfWeek,
-  startOfMonth,
-  endOfMonth,
-  startOfDay,
-  endOfDay,
-} from "date-fns";
-import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
+import { AppSidebar } from "@/components/sidebar";
+import {
+  Home,
+  Calendar as CalendarIcon,
+  Users,
+  NotepadTextDashed,
+  BriefcaseMedical,
+  Calendar,
+  PlusCircle,
+} from "lucide-react";
 
-// 🔹 Definimos el tipo enriquecido que devuelve la query
-type TurnoConJoin = {
-  _id: Id<"turnos">;
-  start: number;
-  end: number;
-  tipo: string;
-  estado: "Confirmado" | "Pendiente" | "Cancelado";
+import { CalendarioHeader } from "./_components/CalendarioHeader";
+import { CalendarioSidebar } from "./_components/CalendarioSidebar";
+import { CalendarioGrid } from "./_components/CalendarioGrid";
+import { AgendaView } from "./_components/AgendaView";
+import { TurnoModal } from "./_components/TurnoModal";
+import TurnoDialog from "@/components/calendario/CreateTurnoDialog"; // Usa tu archivo actual
 
-  pacienteNombre: string;
-  pacienteApellido: string;
-  profesionalNombre: string;
-  profesionalApellido: string; 
-  profesionalEstado: "Activo" | "Inactivo";
-  especialidadNombre: string;
-  obrasSocialesPaciente: string[]; // ⚡ array de obras sociales
-};
+import {
+  TurnoConJoin,
+  getDaysInMonth,
+  addDays,
+  startOfWeekMonday,
+} from "./_components/types";
 
-export default function TurnosPage() {
-  const [view, setView] = useState<"day" | "week" | "month">("month");
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
+export default function CalendarioRecepcionistaPage() {
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [view, setView] = useState<"month" | "week" | "day">("month");
+  const [selectedTurno, setSelectedTurno] = useState<TurnoConJoin | null>(null);
+  const [selectedProfesional, setSelectedProfesional] = useState<string>("todos");
 
-  // 🔹 Query Convex ya devuelve nombres resueltos
+  // 🔹 Obtener turnos (de todos los profesionales)
   const turnos =
-    (useQuery(api.turnos.listarRango, {
-      from: new Date(2025, 0, 1).getTime(), // desde enero 2025
-      to: new Date(2025, 11, 31).getTime(), // hasta diciembre 2025
-    }) as TurnoConJoin[]) ?? [];
+    (useQuery(api.turnos.listarConNombres, {}) as TurnoConJoin[] | undefined) ?? [];
 
-  // 🔹 Filtrar turnos según vista
-  let turnosFiltrados: TurnoConJoin[] = [];
-  if (selectedDate) {
-    if (view === "day") {
-      const start = startOfDay(selectedDate);
-      const end = endOfDay(selectedDate);
-      turnosFiltrados = turnos.filter((t) => {
-        const d = new Date(t.start);
-        return d >= start && d <= end;
-      });
+  // 🔹 Obtener lista de profesionales (únicos)
+  const profesionales = Array.from(
+    new Map(turnos.map((t) => [t.profesionalId, t.profesionalNombre])).entries()
+  ).map(([id, nombre]) => ({ id, nombre }));
+
+  // 🔹 Filtrar por profesional seleccionado
+  const turnosFiltrados =
+    selectedProfesional === "todos"
+      ? turnos
+      : turnos.filter((t) => t.profesionalId === selectedProfesional);
+
+  // ---- Fechas y vistas
+  const days = useMemo(() => getDaysInMonth(currentDate), [currentDate]);
+  const weeks = useMemo(() => {
+    const out: typeof days[] = [];
+    for (let i = 0; i < days.length; i += 7) out.push(days.slice(i, i + 7));
+    return out;
+  }, [days]);
+
+  const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
+    if (!isCurrentMonth) return [];
+    return turnosFiltrados.filter((t) => {
+      const d = new Date(t.start);
+      return (
+        d.getFullYear() === currentDate.getFullYear() &&
+        d.getMonth() === currentDate.getMonth() &&
+        d.getDate() === day
+      );
+    });
+  };
+
+  // ---- Navegación temporal
+  const goPrev = () => {
+    if (view === "month") {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1));
     } else if (view === "week") {
-      const start = startOfWeek(selectedDate, { weekStartsOn: 1 });
-      const end = endOfWeek(selectedDate, { weekStartsOn: 1 });
-      turnosFiltrados = turnos.filter((t) => {
-        const d = new Date(t.start);
-        return d >= start && d <= end;
-      });
-    } else if (view === "month") {
-      const start = startOfMonth(selectedDate);
-      const end = endOfMonth(selectedDate);
-      turnosFiltrados = turnos.filter((t) => {
-        const d = new Date(t.start);
-        return d >= start && d <= end;
-      });
+      setCurrentDate(addDays(currentDate, -7));
+    } else {
+      setCurrentDate(addDays(currentDate, -1));
     }
-  }
+  };
 
+  const goNext = () => {
+    if (view === "month") {
+      setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
+    } else if (view === "week") {
+      setCurrentDate(addDays(currentDate, 7));
+    } else {
+      setCurrentDate(addDays(currentDate, 1));
+    }
+  };
+
+  const goToday = () => setCurrentDate(new Date());
+
+  const weekStart = startOfWeekMonday(currentDate);
+  const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
+  const agendaDays = view === "day" ? [currentDate] : weekDays;
+
+  // ---- Render
   return (
-    <PageWrapper breadcrumbs={[
-      { label: "Inicio", href: "/recepcionista" },
-      { label: "Turnos", href: "/recepcionista/cal-turnos" },
-    ]}
-    >
-      <div className="max-w-6xl mx-auto px-6 py-8 space-y-8">
-        {/* Header con botón crear */}
-        <div className="flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Calendario de Turnos</h1>
-          <TurnoDialog defaultDate={selectedDate} />
-        </div>
-        <p className="text-gray-500">
-          Visualiza y gestiona los turnos de pacientes por día, semana o mes.
-        </p>
+    <>
+      <AppSidebar
+        panelName="Panel Recepcionista"
+        links={[
+          { href: "/recepcionista", label: "Inicio", icon: Home },
+          { href: "/recepcionista/cal-turnos", label: "Turnos", icon: Calendar },
+          { href: "/recepcionista/pacientes", label: "Pacientes", icon: Users },
+          { href: "/recepcionista/profesional", label: "Profesionales", icon: BriefcaseMedical },
+          { href: "/recepcionista/historias", label: "Historias Clínicas", icon: NotepadTextDashed },
+        ]}
+      />
 
-        {/* Tabs Día / Semana / Mes */}
-        <div className="flex gap-6 border-b mb-6">
-          {(["day", "week", "month"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setView(tab)}
-              className={`pb-2 capitalize ${view === tab
-                ? "border-b-2 border-blue-500 text-blue-500"
-                : "text-gray-500 hover:text-gray-700"
-                }`}
-            >
-              {tab === "day" ? "Día" : tab === "week" ? "Semana" : "Mes"}
-            </button>
-          ))}
-        </div>
+      <PageWrapper
+        breadcrumbs={[
+          { label: "Inicio", href: "/recepcionista" },
+          { label: "Calendario", href: "/recepcionista/cal-turnos" },
+        ]}
+      >
+        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-6">
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-7xl mx-auto">
+            {/* ---- Encabezado del calendario */}
+            <CalendarioHeader
+              currentDate={currentDate}
+              view={view}
+              onPrev={goPrev}
+              onNext={goNext}
+              onToday={goToday}
+              onViewChange={setView}
+            />
 
-        {/* Calendario compacto */}
-        <CompactCalendar
-          mode={view}
-          selected={selectedDate}
-          onSelect={(d) => d && setSelectedDate(d)}
-        />
+            {/* ---- Barra de acciones */}
+            <div className="flex justify-between items-center px-6 py-3 border-b bg-gray-50">
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-semibold text-gray-600">Profesional:</label>
+                <select
+                  value={selectedProfesional}
+                  onChange={(e) => setSelectedProfesional(e.target.value)}
+                  className="border rounded-md px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400"
+                >
+                  <option value="todos">Todos</option>
+                  {profesionales.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
 
-        {/* Tabla de turnos */}
-        <div className="mt-8">
-          <h2 className="text-lg font-semibold mb-4">
-            {view === "day" &&
-              `Turnos para el ${selectedDate.toLocaleDateString("es-AR", {
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              })}`}
-            {view === "week" &&
-              `Turnos de la semana del ${startOfWeek(selectedDate, {
-                weekStartsOn: 1,
-              }).toLocaleDateString("es-AR")} al ${endOfWeek(selectedDate, {
-                weekStartsOn: 1,
-              }).toLocaleDateString("es-AR")}`}
-            {view === "month" &&
-              `Turnos de ${selectedDate.toLocaleDateString("es-AR", {
-                month: "long",
-                year: "numeric",
-              })}`}
-          </h2>
+              {/* 🔹 Botón de creación de turno */}
+              <TurnoDialog
+                defaultDate={currentDate}
+                trigger={
+                  <button className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm px-4 py-2 rounded-lg shadow transition-all">
+                    <PlusCircle className="w-4 h-4" />
+                    Nuevo turno
+                  </button>
+                }
+              />
+            </div>
 
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Fecha</TableHead>
-                <TableHead>Hora</TableHead>
-                <TableHead>Paciente</TableHead>
-                <TableHead>Profesional</TableHead>
-                <TableHead>Especialidad</TableHead>
-                <TableHead>Obra Social</TableHead>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead>Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {turnosFiltrados.length > 0 ? (
-                turnosFiltrados.map((t) => (
-                  <TableRow key={t._id} className="text-sm">
-                    <TableCell>
-                      {new Date(t.start).toLocaleDateString("es-AR", {
-                        day: "2-digit",
-                        month: "2-digit",
-                      })}
-                    </TableCell>
-                    <TableCell className="whitespace-nowrap">
-                      {new Date(t.start).toLocaleTimeString("es-AR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}{" "}
-                      -{" "}
-                      {new Date(t.end).toLocaleTimeString("es-AR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                      })}
-                    </TableCell>
-                    <TableCell>{t.pacienteNombre} {t.pacienteApellido}</TableCell>
+            {/* ---- Contenido principal */}
+            <div className="flex">
+              <CalendarioSidebar
+                turnos={turnosFiltrados}
+                onSelectTurno={setSelectedTurno}
+              />
 
-
-                    <TableCell className="text-blue-600">
-                      {t.profesionalNombre} {t.profesionalApellido}
-                    </TableCell>
-                    <TableCell>{t.especialidadNombre}</TableCell>
-
-                    <TableCell>{t.obrasSocialesPaciente.join(", ") || "—"}</TableCell>
-
-                    <TableCell>{t.tipo}</TableCell>
-                    <TableCell>
-                      <Badge
-                        className={
-                          t.estado === "Confirmado"
-                            ? "bg-green-500 text-white hover:bg-green-600"
-                            : t.estado === "Pendiente"
-                              ? "bg-yellow-500 text-black hover:bg-yellow-600"
-                              : "bg-red-500 text-white hover:bg-red-600"
-                        }
-                      >
-                        {t.estado}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <TurnoDialog
-                        turno={t}
-                        trigger={
-                          <Button variant="outline" disabled className=" cursor-not-allowed">
-                            Editar
-                          </Button>
-                        }
-                      />
-                    </TableCell>
-
-                  </TableRow>
-                ))
+              {view === "month" ? (
+                <CalendarioGrid
+                  diasSemana={["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]}
+                  weeks={weeks}
+                  getEventsForDay={getEventsForDay}
+                  onSelectTurno={setSelectedTurno}
+                />
               ) : (
-                <TableRow>
-                  <TableCell colSpan={9} className="text-center text-gray-400">
-                    No hay turnos para esta vista.
-                  </TableCell>
-                </TableRow>
+                <AgendaView
+                  days={agendaDays}
+                  turnos={turnosFiltrados}
+                  onSelectTurno={setSelectedTurno}
+                  slotMinutes={30}
+                  startHour={8}
+                  endHour={20}
+                />
               )}
-            </TableBody>
-          </Table>
+            </div>
+          </div>
         </div>
-      </div>
-    </PageWrapper>
+
+        {/* ---- Modal de detalle */}
+        {selectedTurno && (
+          <TurnoModal turno={selectedTurno} onClose={() => setSelectedTurno(null)} />
+        )}
+      </PageWrapper>
+    </>
   );
 }

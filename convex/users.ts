@@ -58,4 +58,18 @@ export const actualizarRol = mutation({
     return { ok: true };
   },
 });
+/* ------------------------------
+   Obtener usuario actual
+-------------------------------- */
+export const getCurrentUser = query({
+  args: { clerkId: v.string() },
+  handler: async (ctx, { clerkId }) => {
+    const user = await ctx.db
+      .query("users")
+      .withIndex("byClerkId", (q) => q.eq("clerkId", clerkId))
+      .unique();
+
+    return user ?? null;
+  },
+});
 

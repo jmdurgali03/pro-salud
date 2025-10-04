@@ -25,7 +25,7 @@ import {
 
 type Props = {
   defaultDate?: Date;
-  turno?: any; // si viene, es edición
+  turno?: any;
   trigger?: React.ReactNode;
 };
 
@@ -39,17 +39,16 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const especialidades = useQuery(api.especialidades.listar, {}) ?? [];
 
   const [open, setOpen] = useState(false);
-
-  // Campos
   const [pacienteId, setPacienteId] = useState<Id<"pacientes"> | "">("");
   const [profesionalId, setProfesionalId] = useState<Id<"profesionales"> | "">("");
   const [tipo, setTipo] = useState("");
   const [estado, setEstado] = useState<"Confirmado" | "Pendiente" | "Cancelado">("Pendiente");
+  const [fecha, setFecha] = useState<string>(""); // 🔹 nuevo campo de fecha
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFin, setHoraFin] = useState("10:00");
   const [error, setError] = useState<string | null>(null);
 
-  // 🔹 Filtrar solo profesionales activos y agregar nombre de especialidad
+  // 🔹 Solo profesionales activos
   const profesionalesConEspecialidad = profesionales
     .filter((p) => p.estado === "Activo")
     .map((p) => {
@@ -64,29 +63,31 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
       setProfesionalId(turno.profesionalId);
       setTipo(turno.tipo);
       setEstado(turno.estado);
-
       const d1 = new Date(turno.start);
       const d2 = new Date(turno.end);
+      setFecha(d1.toISOString().split("T")[0]);
       setHoraInicio(`${d1.getHours().toString().padStart(2, "0")}:${d1.getMinutes().toString().padStart(2, "0")}`);
       setHoraFin(`${d2.getHours().toString().padStart(2, "0")}:${d2.getMinutes().toString().padStart(2, "0")}`);
     } else {
-      // reset al abrir nuevo turno
+      const hoy = defaultDate || new Date();
       setPacienteId("");
       setProfesionalId("");
       setTipo("");
       setEstado("Pendiente");
+      setFecha(hoy.toISOString().split("T")[0]);
       setHoraInicio("09:00");
       setHoraFin("10:00");
     }
-  }, [turno, open]);
+  }, [turno, open, defaultDate]);
 
-  // 👇 Actualiza hora fin automáticamente
+  // Ajustar automáticamente hora fin
   useEffect(() => {
-    if (horaInicio) {
-      const [h, m] = horaInicio.split(":").map(Number);
+    const [hInicio, mInicio] = horaInicio.split(":").map(Number);
+    const [hFin, mFin] = horaFin.split(":").map(Number);
+    const diff = (hFin * 60 + mFin) - (hInicio * 60 + mInicio);
+    if (diff < 30 || diff > 120) {
       const nuevaHora = new Date();
-      nuevaHora.setHours(h + 1, m, 0, 0);
-
+      nuevaHora.setHours(hInicio + 1, mInicio, 0, 0);
       const hh = nuevaHora.getHours().toString().padStart(2, "0");
       const mm = nuevaHora.getMinutes().toString().padStart(2, "0");
       setHoraFin(`${hh}:${mm}`);
@@ -97,24 +98,22 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     e.preventDefault();
     setError(null);
 
-    // ✅ Validaciones
     if (!pacienteId) return setError("Debe seleccionar un paciente");
     if (!profesionalId) return setError("Debe seleccionar un profesional");
     if (!tipo) return setError("Debe seleccionar un tipo de consulta");
     if (!estado) return setError("Debe seleccionar un estado");
+    if (!fecha) return setError("Debe seleccionar una fecha");
 
-    const baseDate = defaultDate || (turno ? new Date(turno.start) : new Date());
+    const baseDate = new Date(fecha);
     const [h1, m1] = horaInicio.split(":").map(Number);
     const [h2, m2] = horaFin.split(":").map(Number);
-
     const start = new Date(baseDate);
     start.setHours(h1, m1, 0, 0);
     const end = new Date(baseDate);
     end.setHours(h2, m2, 0, 0);
 
-    // ✅ Validación: duración exacta de 1 hora
-    if (end.getTime() - start.getTime() !== 60 * 60 * 1000) {
-      return setError("El turno debe durar exactamente 1 hora");
+    if (end <= start) {
+      return setError("La hora de fin debe ser posterior a la de inicio");
     }
 
     try {
@@ -156,6 +155,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
       <DialogTrigger asChild>
         {trigger || <Button className="bg-blue-600">+ Añadir Turno</Button>}
       </DialogTrigger>
+
       <DialogContent>
         <DialogHeader>
           <DialogTitle>{turno ? "Editar Turno" : "Nuevo Turno"}</DialogTitle>
@@ -182,7 +182,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </Select>
           </div>
 
-          {/* Profesional (solo activos) */}
+          {/* Profesional */}
           <div>
             <Label>Profesional</Label>
             <Select
@@ -202,7 +202,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </Select>
           </div>
 
-          {/* Tipo de consulta */}
+          {/* Tipo */}
           <div>
             <Label>Tipo de Consulta</Label>
             <Select value={tipo} onValueChange={(val) => setTipo(val)}>
@@ -212,8 +212,8 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
               <SelectContent>
                 <SelectItem value="Consulta General">Consulta General</SelectItem>
                 <SelectItem value="Terapia Física">Terapia Física</SelectItem>
-                <SelectItem value="Consulta de Seguimiento">Consulta de Seguimiento</SelectItem>
-                <SelectItem value="Consulta de Nutrición">Consulta de Nutrición</SelectItem>
+                <SelectItem value="Seguimiento">Seguimiento</SelectItem>
+                <SelectItem value="Nutrición">Nutrición</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -233,15 +233,34 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </Select>
           </div>
 
-          {/* Horarios */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Fecha y horas */}
+          <div className="grid grid-cols-3 gap-4">
+            <div>
+              <Label>Fecha</Label>
+              <Input
+                type="date"
+                value={fecha}
+                onChange={(e) => setFecha(e.target.value)}
+                required
+              />
+            </div>
             <div>
               <Label>Hora inicio</Label>
-              <Input type="time" value={horaInicio} onChange={(e) => setHoraInicio(e.target.value)} required />
+              <Input
+                type="time"
+                value={horaInicio}
+                onChange={(e) => setHoraInicio(e.target.value)}
+                required
+              />
             </div>
             <div>
               <Label>Hora fin</Label>
-              <Input type="time" value={horaFin} readOnly required />
+              <Input
+                type="time"
+                value={horaFin}
+                onChange={(e) => setHoraFin(e.target.value)}
+                required
+              />
             </div>
           </div>
 
@@ -258,11 +277,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
           </div>
 
           {/* Error */}
-          {error && (
-            <div className="mt-3 p-2 bg-red-100 text-red-700 rounded">
-              {error}
-            </div>
-          )}
+          {error && <div className="mt-3 p-2 bg-red-100 text-red-700 rounded">{error}</div>}
         </form>
       </DialogContent>
     </Dialog>
