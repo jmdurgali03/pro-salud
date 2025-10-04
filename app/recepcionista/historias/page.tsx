@@ -65,47 +65,49 @@ export default function HistoriasClinicasListaPage() {
                 </tr>
               </thead>
               <tbody>
-                {(pacientes ?? []).map((p: any) => (
-                  <tr key={p._id} className="border-t hover:bg-gray-50">
-                    <td className="p-4 font-medium">{p.nombreCompleto}</td>
-                    <td className="p-4">{p.dni}</td>
-                    <td className="p-4">{p.email}</td>
-                    <td className="p-4">{p.telefono || "—"}</td>
-                    <td className="p-4">
-                      {p.obrasSocialesNombres?.length ? (
-                        <div className="flex flex-wrap gap-2">
-                          {p.obrasSocialesNombres.map((os: string, i: number) => (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs"
-                            >
-                              {os}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="italic text-gray-400">Particular</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right">
-                      <Link
-                        href={`/recepcionista/historias/${p._id}`}
-                        className="text-green-600 hover:underline font-medium"
-                      >
-                        Ver
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
+  {(pacientes ?? []).map((p: any) => (
+    <tr key={p._id} className="border-t hover:bg-gray-50">
+      <td className="p-4 font-medium">{p.nombre} {p.apellido}</td>
+      <td className="p-4">{p.dni}</td>
+      <td className="p-4">{p.email}</td>
+      <td className="p-4">{p.telefono || "—"}</td>
+      <td className="p-4">
+        {p.obrasSocialesNombres?.length ? (
+          <div className="flex flex-wrap gap-2">
+            {p.obrasSocialesNombres.map((os: string, i: number) => (
+              <span
+                key={i}
+                className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs"
+              >
+                {os}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <span className="italic text-gray-400">Particular</span>
+        )}
+      </td>
+      <td className="p-4 text-right">
+        <Link
+          href={`/recepcionista/historias/${p._id}`}
+          className="text-green-600 hover:underline font-medium"
+        >
+          Ver
+        </Link>
+      </td>
+    </tr>
+  ))}
 
-                {!pacientes?.length && (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-gray-400 italic">
-                      No hay pacientes registrados
-                    </td>
-                  </tr>
-                )}
-              </tbody>
+  {!pacientes?.length && (
+    <tr>
+      <td colSpan={6} className="p-6 text-center text-gray-400 italic">
+        No hay pacientes registrados
+      </td>
+    </tr>
+  )}
+  
+</tbody>
+
             </table>
           </div>
         </div>
