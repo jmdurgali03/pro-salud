@@ -10,12 +10,8 @@ const links = [
   { href: "/gerente/pacientes", label: "Pacientes", icon: Users },
   { href: "/gerente/obras-sociales", label: "Obras Sociales", icon: Cross },
   { href: "/gerente/especialidades", label: "Especialidades", icon: Stethoscope},
-  {href: "/gerente/reportes", label: "Reportes", icon: ChartLine},
   { href: "/gerente/permisos", label: "Permisos", icon: BadgeCheck},
-
-
-
-
+  {href: "/gerente/reportes", label: "Reportes", icon: ChartLine},
 
 ];
 
