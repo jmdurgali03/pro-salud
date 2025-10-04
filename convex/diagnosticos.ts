@@ -1,3 +1,4 @@
+// convex/diagnosticos.ts
 import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -11,8 +12,18 @@ export const crear = mutation({
     fecha: v.optional(v.number()),
   },
   handler: async (ctx, args) => {
-    const fecha = args.fecha ?? Date.now();
-    await ctx.db.insert("diagnosticos", { ...args, fecha });
+    const now = Date.now();
+
+    // Validar que la consulta exista y pertenezca al paciente
+    const consulta = await ctx.db.get(args.consultaId);
+    if (!consulta || consulta.pacienteId !== args.pacienteId) {
+      throw new Error("La consulta no corresponde al paciente.");
+    }
+
+    await ctx.db.insert("diagnosticos", {
+      ...args,
+      fecha: args.fecha ?? now,
+    });
   },
 });
 

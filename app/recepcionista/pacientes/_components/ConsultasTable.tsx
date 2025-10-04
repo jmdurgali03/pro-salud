@@ -1,14 +1,15 @@
+// app/recepcionista/pacientes/_components/ConsultasTable.tsx
 "use client";
 
 import { useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import { ChevronDown, ChevronRight, StickyNote, Copy } from "lucide-react";
+import { ChevronDown, ChevronRight } from "lucide-react";
 
 type Consulta = {
   _id: Id<"consultas">;
   motivo: string;
   fecha: number;
-  profesional: string;
+  profesionalId: Id<"profesionales">;
   notas?: string;
 };
 
@@ -16,7 +17,7 @@ type Diagnostico = {
   _id: Id<"diagnosticos">;
   consultaId: Id<"consultas">;
   descripcion: string;
-  profesional: string;
+  profesionalId: Id<"profesionales">;
   estado: "Presuntivo" | "Definitivo";
   fecha: number;
 };
@@ -24,9 +25,11 @@ type Diagnostico = {
 export default function ConsultasTable({
   data,
   dxByConsulta,
+  getProfesionalNombre,
 }: {
   data: Consulta[] | null | undefined;
   dxByConsulta: Map<string, Diagnostico[]>;
+  getProfesionalNombre: (id: Id<"profesionales">) => string;
 }) {
   const consultas = data ?? [];
   const [abiertas, setAbiertas] = useState<Record<string, boolean>>({});
@@ -42,15 +45,6 @@ export default function ConsultasTable({
     setExpandDx((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  const copy = async (text: string) => {
-    try {
-      await navigator.clipboard.writeText(text);
-    } catch {
-      // sin ruido
-    }
-  };
-
-  // Saca un resumen legible (~3-4 líneas o ~280 chars) respetando saltos
   const previewText = (full: string): { short: string; isShort: boolean } => {
     const MAX_CHARS = 280;
     const MAX_LINES = 4;
@@ -64,7 +58,6 @@ export default function ConsultasTable({
       const remaining = MAX_CHARS - used;
       if (remaining <= 0 || usedLines >= MAX_LINES) break;
 
-      // si la línea supera lo restante, la recortamos
       const slice = line.slice(0, Math.max(0, remaining));
       short += (short ? "\n" : "") + slice;
       used += slice.length;
@@ -108,7 +101,7 @@ export default function ConsultasTable({
                 <tr key={key} className="border-t">
                   <td className="px-3 py-2">{new Date(c.fecha).toLocaleDateString()}</td>
                   <td className="px-3 py-2">{c.motivo}</td>
-                  <td className="px-3 py-2">{c.profesional}</td>
+                  <td className="px-3 py-2">{getProfesionalNombre(c.profesionalId)}</td>
                   <td className="px-3 py-2">{c.notas ?? "—"}</td>
                   <td className="px-3 py-2">
                     <button
@@ -140,7 +133,7 @@ export default function ConsultasTable({
                               >
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <div className="text-xs text-gray-500">
-                                    {new Date(d.fecha).toLocaleDateString()} · {d.profesional}
+                                    {new Date(d.fecha).toLocaleDateString()} · {getProfesionalNombre(d.profesionalId)}
                                   </div>
                                   <span
                                     className={`rounded-full px-2 py-0.5 text-xs ${
@@ -153,24 +146,19 @@ export default function ConsultasTable({
                                   </span>
                                 </div>
 
-                                {/* texto del diagnóstico */}
                                 <div className="mt-2 whitespace-pre-wrap break-words text-[13px] leading-5 text-gray-800">
                                   {expanded || isShort ? d.descripcion : short}
                                 </div>
 
-                                <div className="mt-2 flex items-center gap-2">
-                                  {!isShort && (
-                                    <button
-                                      onClick={() => toggleDx(d._id)}
-                                      className="text-xs font-medium text-cyan-700 hover:underline"
-                                      type="button"
-                                    >
-                                      {expanded ? "Ver menos" : "Ver completo"}
-                                    </button>
-                                  )}
-
-                    
-                                </div>
+                                {!isShort && (
+                                  <button
+                                    onClick={() => toggleDx(d._id)}
+                                    className="mt-2 text-xs font-medium text-cyan-700 hover:underline"
+                                    type="button"
+                                  >
+                                    {expanded ? "Ver menos" : "Ver completo"}
+                                  </button>
+                                )}
                               </li>
                             );
                           })}
