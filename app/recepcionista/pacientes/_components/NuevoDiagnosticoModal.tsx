@@ -3,7 +3,6 @@ import { useState } from "react";
 import Modal from "./Modal";
 import { Id } from "@/convex/_generated/dataModel";
 
-/* Tipos */
 type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
@@ -11,10 +10,11 @@ type Profesional = {
   especialidadId?: Id<"especialidades">;
 };
 
-type ConsultaLite = {
+type Consulta = {
   _id: Id<"consultas">;
   motivo: string;
   fecha: number;
+  profesional: string;
 };
 
 export default function NuevoDiagnosticoModal({
@@ -32,84 +32,67 @@ export default function NuevoDiagnosticoModal({
     descripcion: string;
     profesional: string;
     estado: "Presuntivo" | "Definitivo";
-    fecha?: number;
   }) => Promise<void> | void;
   profesionales: Profesional[];
   espNombrePorId: Map<Id<"especialidades">, string>;
-  consultas: ConsultaLite[];
+  consultas: Consulta[];
 }) {
-  const [consultaId, setConsultaId] = useState<Id<"consultas"> | "">(
-    consultas?.[0]?._id ?? ""
-  );
-  const [dxDesc, setDxDesc] = useState("");
-  const [dxProf, setDxProf] = useState("");
+  const [consultaId, setConsultaId] = useState("");
+  const [profesional, setProfesional] = useState("");
   const [estado, setEstado] = useState<"Presuntivo" | "Definitivo">("Presuntivo");
-  const [enviando, setEnviando] = useState(false);
+  const [descripcion, setDescripcion] = useState("");
 
-  const puedeGuardar =
-    consultaId !== "" && dxDesc.trim().length > 2 && dxProf.trim().length > 1;
-
-  const handle = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!puedeGuardar || consultaId === "") return;
-    setEnviando(true);
-    try {
-      await onSubmit({
-        consultaId: consultaId as Id<"consultas">,
-        descripcion: dxDesc,
-        profesional: dxProf,
-        estado,
-      });
-      // reset
-      setDxDesc("");
-      setDxProf("");
-      setEstado("Presuntivo");
-      setConsultaId(consultas?.[0]?._id ?? "");
-      onClose();
-    } finally {
-      setEnviando(false);
-    }
+    if (!consultaId || !profesional || !descripcion.trim()) return;
+
+    await onSubmit({
+      consultaId: consultaId as Id<"consultas">,
+      descripcion,
+      profesional,
+      estado,
+    });
+
+    setConsultaId("");
+    setProfesional("");
+    setDescripcion("");
+    setEstado("Presuntivo");
+    onClose();
   };
 
   return (
     <Modal open={open} onClose={onClose} title="Registrar diagnóstico">
-      <form onSubmit={handle} className="space-y-3">
-        {/* Consulta obligatoria */}
+      <form onSubmit={handleSubmit} className="space-y-4">
+        {/* Consulta */}
         <div>
-          <label className="mb-1 block text-sm text-gray-700">Consulta</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Consulta</label>
           <select
             value={consultaId}
-            onChange={(e) => setConsultaId(e.target.value as unknown as Id<"consultas">)}
+            onChange={(e) => setConsultaId(e.target.value)}
             className="w-full rounded-lg border border-gray-300 p-2 text-gray-900"
             required
           >
+            <option value="">Seleccione una consulta</option>
             {consultas.map((c) => (
               <option key={c._id} value={c._id}>
                 {new Date(c.fecha).toLocaleDateString()} — {c.motivo}
               </option>
             ))}
           </select>
-          {consultas.length === 0 && (
-            <p className="mt-1 text-sm text-amber-600">
-              Primero registrá una consulta para poder cargar un diagnóstico.
-            </p>
-          )}
         </div>
 
         {/* Profesional */}
         <div>
-          <label className="mb-1 block text-sm text-gray-700">Profesional</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
           <select
-            value={dxProf}
-            onChange={(e) => setDxProf(e.target.value)}
+            value={profesional}
+            onChange={(e) => setProfesional(e.target.value)}
             className="w-full rounded-lg border border-gray-300 p-2 text-gray-900"
             required
           >
             <option value="">Seleccione un profesional</option>
             {profesionales.map((p) => {
-              const espNombre = p.especialidadId
-                ? espNombrePorId.get(p.especialidadId)
-                : undefined;
+              const espNombre = p.especialidadId ? espNombrePorId.get(p.especialidadId) : undefined;
               return (
                 <option key={p._id} value={p.nombre}>
                   {p.nombre}
@@ -122,12 +105,10 @@ export default function NuevoDiagnosticoModal({
 
         {/* Estado */}
         <div>
-          <label className="mb-1 block text-sm text-gray-700">Estado</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Estado</label>
           <select
             value={estado}
-            onChange={(e) =>
-              setEstado(e.target.value as "Presuntivo" | "Definitivo")
-            }
+            onChange={(e) => setEstado(e.target.value as "Presuntivo" | "Definitivo")}
             className="w-full rounded-lg border border-gray-300 p-2 text-gray-900"
           >
             <option value="Presuntivo">Presuntivo</option>
@@ -135,19 +116,20 @@ export default function NuevoDiagnosticoModal({
           </select>
         </div>
 
-        {/* Descripción */}
+        {/* Diagnóstico (textarea grande) */}
         <div>
-          <label className="mb-1 block text-sm text-gray-700">Diagnóstico</label>
-          <input
-            value={dxDesc}
-            onChange={(e) => setDxDesc(e.target.value)}
-            className="w-full rounded-lg border border-gray-300 p-2 text-gray-900"
-            placeholder="Descripción del diagnóstico"
+          <label className="mb-1 block text-sm font-medium text-gray-700">Diagnóstico</label>
+          <textarea
+            value={descripcion}
+            onChange={(e) => setDescripcion(e.target.value)}
+            className="w-full rounded-lg border border-gray-300 p-3 text-gray-900 resize-y min-h-[150px]"
+            placeholder="Escriba la descripción completa del diagnóstico..."
             required
           />
         </div>
 
-        <div className="flex justify-end gap-2 pt-2">
+        {/* Botones */}
+        <div className="flex justify-end gap-2 pt-4">
           <button
             type="button"
             onClick={onClose}
@@ -157,10 +139,8 @@ export default function NuevoDiagnosticoModal({
           </button>
           <button
             type="submit"
-            disabled={!puedeGuardar || enviando}
-            className={`rounded-lg px-4 py-2 font-medium text-white ${
-              puedeGuardar ? "bg-cyan-600 hover:bg-cyan-700" : "bg-gray-300"
-            }`}
+            disabled={!consultaId || !profesional || !descripcion.trim()}
+            className="rounded-lg bg-cyan-600 px-5 py-2 font-medium text-white hover:bg-cyan-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Guardar
           </button>
