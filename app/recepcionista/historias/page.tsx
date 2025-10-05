@@ -1,55 +1,135 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo } from "react";
-import Link from "next/link";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { Search, Filter } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
+import { useDebouncedValue } from "@/hooks/use-debounce";
+import { HistoriasHeader } from "./_components/historias-header";
+import { HistoriasSearchBar, ObraSocialOption } from "./_components/historias-search";
+import { HistoriasTable } from "./_components/historias-table";
+import { HistoriasPagination } from "./_components/historias-pag";
+
+const ITEMS_PER_PAGE = 10;
+
+type PacienteRecord = {
+  _id: Id<"pacientes">;
+  nombre: string;
+  apellido: string;
+  dni?: string;
+  email?: string;
+  telefono?: string;
+  fechaNacimiento?: string;
+  genero?: string;
+  obrasSociales?: Id<"obrasSociales">[];
+  obrasSocialesNombres?: string[];
+};
 
 export default function HistoriasClinicasListaPage() {
-  const [q, setQ] = useState("");
-  const [filtrosOpen, setFiltrosOpen] = useState(false);
-  const [filtroObras, setFiltroObras] = useState<Id<"obrasSociales">[]>([]);
-  const filtroRef = useRef<HTMLDivElement>(null);
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const router = useRouter();
 
-  // Datos
-const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
-  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+  const pacientesConvex = useQuery(api.pacientes.listar, {}) as PacienteRecord[] | undefined;
+  const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
+  const obrasSociales = useMemo(
+    () => (obrasSocialesQuery ?? []) as ObraSocialOption[],
+    [obrasSocialesQuery]
+  );
+  const [selectedObrasSociales, setSelectedObrasSociales] = useState<Id<"obrasSociales">[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
 
-  // Cerrar menú al hacer click afuera
+  const prevPacientesRef = useRef<PacienteRecord[]>([]);
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (filtroRef.current && !filtroRef.current.contains(e.target as Node)) {
-        setFiltrosOpen(false);
-      }
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+    if (Array.isArray(pacientesConvex)) {
+      prevPacientesRef.current = pacientesConvex;
+    }
+  }, [pacientesConvex]);
+
+  const isLoadingPac = pacientesConvex === undefined;
+  const isLoadingOS = obrasSocialesQuery === undefined;
+
+  useEffect(() => {
+    setSelectedObrasSociales((current) => {
+      const filtered = current.filter((id) =>
+        obrasSociales.some((obra) => obra._id === id)
+      );
+      return filtered.length === current.length ? current : filtered;
+    });
+  }, [obrasSociales]);
+
+  const toggleObraSocial = useCallback((id: Id<"obrasSociales">) => {
+    setSelectedObrasSociales((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
   }, []);
 
-  // Filtrado por texto y obras sociales
-  const pacientesFiltrados = useMemo(() => {
-    const term = q.toLowerCase();
-    return pacientes.filter((p: any) => {
-      const nombreCompleto = `${p.nombre} ${p.apellido}`.toLowerCase();
-      const obras = p.obrasSocialesNombres?.join(" ").toLowerCase() ?? "";
+  const clearObrasSociales = useCallback(() => {
+    setSelectedObrasSociales([]);
+  }, []);
 
-      const coincideTexto =
-        nombreCompleto.includes(term) ||
-        p.dni?.toLowerCase().includes(term) ||
-        p.email?.toLowerCase().includes(term) ||
-        p.telefono?.toLowerCase().includes(term) ||
-        obras.includes(term);
+  const filteredPacientes = useMemo(() => {
+    const base = (pacientesConvex ?? prevPacientesRef.current) || [];
+    const lista = Array.isArray(base) ? (base as PacienteRecord[]) : [];
+    const termino = debouncedSearch.trim().toLowerCase();
 
-      const coincideObra =
-        filtroObras.length === 0 ||
-        p.obrasSociales?.some((id: Id<"obrasSociales">) => filtroObras.includes(id));
+    const coincide = (valor?: string | number | null) => {
+      if (valor === undefined || valor === null) return false;
+      const comoTexto = typeof valor === "string" ? valor.trim() : String(valor);
+      return comoTexto.toLowerCase().includes(termino);
+    };
 
-      return coincideTexto && coincideObra;
-    });
-  }, [pacientes, q, filtroObras]);
+    const coincideConBusqueda = (paciente: PacienteRecord) => {
+      if (!termino) return true;
+      return (
+        coincide(paciente.nombre) ||
+        coincide(paciente.apellido) ||
+        coincide(paciente.dni) ||
+        coincide(paciente.email) ||
+        coincide(paciente.telefono) ||
+        coincide(paciente.fechaNacimiento) ||
+        coincide(paciente.genero) ||
+        (paciente.obrasSocialesNombres ?? []).some((nombre) => coincide(nombre))
+      );
+    };
+
+    const coincideConObras = (paciente: PacienteRecord) => {
+      if (selectedObrasSociales.length === 0) return true;
+      const obras = Array.isArray(paciente.obrasSociales) ? paciente.obrasSociales : [];
+      return obras.some((obraId) => selectedObrasSociales.includes(obraId));
+    };
+
+    return lista.filter((paciente) => coincideConBusqueda(paciente) && coincideConObras(paciente));
+  }, [pacientesConvex, debouncedSearch, selectedObrasSociales]);
+
+  const totalPages = useMemo(() => {
+    const count = filteredPacientes.length;
+    return count === 0 ? 1 : Math.ceil(count / ITEMS_PER_PAGE);
+  }, [filteredPacientes.length]);
+
+  const clampedPage = Math.min(currentPage, totalPages);
+
+  const paginatedPacientes = useMemo(() => {
+    const start = (clampedPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filteredPacientes.slice(start, end);
+  }, [filteredPacientes, clampedPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedObrasSociales]);
+
+  useEffect(() => {
+    if (currentPage !== clampedPage) {
+      setCurrentPage(clampedPage);
+    }
+  }, [currentPage, clampedPage]);
+
+  const handleVer = (id: Id<"pacientes">) => {
+    router.push(`/recepcionista/historias/${id}`);
+  };
 
   return (
     <PageWrapper
@@ -58,124 +138,32 @@ const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
         { label: "Historias Clínicas", href: "/recepcionista/historias" },
       ]}
     >
-      <div className="w-full bg-white min-h-screen">
-        <div className="max-w-7xl mx-auto px-6 py-10 space-y-8">
-          {/* Header */}
-          <div className="flex items-start gap-3">
-            <div className="w-1.5 h-8 bg-gradient-to-b from-green-500 to-emerald-500 rounded-full"></div>
-            <div>
-              <h1 className="text-3xl font-bold">Historias Clínicas</h1>
-              <p className="text-gray-600 text-base">
-                Administra la información de todos los pacientes registrados
-              </p>
-            </div>
-          </div>
-
-          {/* Buscador + filtro */}
-          <div className="flex items-center gap-3 bg-white rounded-lg border border-gray-200 p-3 shadow-sm relative" ref={filtroRef}>
-            <div className="relative flex-1">
-              <Search className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                className="w-full pl-10 pr-3 py-2 rounded-md border border-gray-200 focus:outline-none focus:ring-2 focus:ring-green-500 text-sm"
-                placeholder="Buscar por nombre, DNI, email, teléfono u obra social..."
-              />
-            </div>
-
-            <button
-              onClick={() => setFiltrosOpen(!filtrosOpen)}
-              className="flex items-center gap-2 px-3 py-2 border rounded-md text-sm text-gray-600 hover:bg-gray-100"
-            >
-              <Filter className="h-4 w-4" /> Obras sociales
-            </button>
-
-            {filtrosOpen && (
-              <div className="absolute right-0 top-14 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-50">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Filtrar por obras sociales</p>
-                <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
-                  {obrasSociales.map((os) => (
-                    <label
-                      key={os._id}
-                      className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded-md hover:bg-gray-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filtroObras.includes(os._id)}
-                        onChange={() =>
-                          setFiltroObras((prev) =>
-                            prev.includes(os._id)
-                              ? prev.filter((id) => id !== os._id)
-                              : [...prev, os._id]
-                          )
-                        }
-                        className="accent-green-500"
-                      />
-                      <span>{os.nombre}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* Tabla */}
-          <div className="overflow-hidden rounded-lg border border-gray-200 shadow-sm bg-white">
-            <table className="w-full text-sm text-gray-700">
-              <thead className="bg-gray-100 text-gray-600">
-                <tr>
-                  <th className="p-4 text-left">Paciente</th>
-                  <th className="p-4 text-left">DNI</th>
-                  <th className="p-4 text-left">Contacto</th>
-                  <th className="p-4 text-left">Teléfono</th>
-                  <th className="p-4 text-left">Obras Sociales</th>
-                  <th className="p-4 text-right">Acciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {pacientesFiltrados.map((p: any) => (
-                  <tr key={p._id} className="border-t hover:bg-gray-50 transition">
-                    <td className="p-4 font-medium">{p.nombre} {p.apellido}</td>
-                    <td className="p-4">{p.dni}</td>
-                    <td className="p-4">{p.email}</td>
-                    <td className="p-4">{p.telefono || "—"}</td>
-                    <td className="p-4">
-                      {p.obrasSocialesNombres?.length ? (
-                        <div className="flex flex-wrap gap-2">
-                          {p.obrasSocialesNombres.map((os: string, i: number) => (
-                            <span
-                              key={i}
-                              className="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 text-xs"
-                            >
-                              {os}
-                            </span>
-                          ))}
-                        </div>
-                      ) : (
-                        <span className="italic text-gray-400">Particular</span>
-                      )}
-                    </td>
-                    <td className="p-4 text-right">
-                      <Link
-                        href={`/recepcionista/historias/${p._id}`}
-                        className="text-green-600 hover:underline font-medium"
-                      >
-                        Ver
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-
-                {!pacientesFiltrados.length && (
-                  <tr>
-                    <td colSpan={6} className="p-6 text-center text-gray-400 italic">
-                      No hay pacientes registrados
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+      <div className="w-full">
+        <div className="w-full px-6 py-8 space-y-6">
+          <HistoriasHeader />
+          <HistoriasSearchBar
+            value={search}
+            onChange={setSearch}
+            isLoading={isLoadingPac}
+            obrasSociales={obrasSociales}
+            selectedObrasSociales={selectedObrasSociales}
+            onToggleObraSocial={toggleObraSocial}
+            onClearObrasSociales={clearObrasSociales}
+            isLoadingObrasSociales={isLoadingOS}
+          />
+          <HistoriasTable
+            pacientes={paginatedPacientes}
+            onView={handleVer}
+            searchTerm={debouncedSearch}
+            isLoading={isLoadingPac}
+          />
+          <HistoriasPagination
+            currentPage={clampedPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            pageSize={ITEMS_PER_PAGE}
+            totalItems={filteredPacientes.length}
+          />
         </div>
       </div>
     </PageWrapper>

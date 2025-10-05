@@ -1,5 +1,5 @@
 "use client";
-import { useMemo, useState } from "react";
+import { Fragment, useMemo, useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { ChevronDown, ChevronRight, Copy } from "lucide-react";
 
@@ -45,7 +45,7 @@ export default function TratamientosTable({
   const copiar = async (texto: string) => {
     try {
       await navigator.clipboard.writeText(texto);
-    } catch {}
+    } catch { }
   };
 
   return (
@@ -55,9 +55,8 @@ export default function TratamientosTable({
           <button
             key={f}
             onClick={() => setFilter(f)}
-            className={`rounded-full px-3 py-1.5 text-xs font-medium border ${
-              filter === f ? "bg-cyan-600 text-white border-cyan-600" : "bg-white text-gray-700 border-gray-300"
-            }`}
+            className={`rounded-full px-3 py-1.5 text-xs font-medium border ${filter === f ? "bg-cyan-600 text-white border-cyan-600" : "bg-white text-gray-700 border-gray-300"
+              }`}
           >
             {f}
           </button>
@@ -90,8 +89,8 @@ export default function TratamientosTable({
               const abierto = !!open[key];
 
               return (
-                <>
-                  <tr key={key} className="border-t">
+                <Fragment key={key}>
+                  <tr className="border-t">
                     <td className="px-3 py-2">{t.titulo}</td>
                     <td className="px-3 py-2">{t.profesional}</td>
                     <td className="px-3 py-2">
@@ -159,7 +158,7 @@ export default function TratamientosTable({
                       </td>
                     </tr>
                   )}
-                </>
+                </Fragment>
               );
             })}
           </tbody>

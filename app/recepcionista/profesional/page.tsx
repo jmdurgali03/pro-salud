@@ -1,13 +1,14 @@
 "use client";
 
-import { useState, useEffect, useMemo, useRef } from "react";
+import { useState, useEffect, useMemo, useRef, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Eye, Edit, ChevronLeft, ChevronRight, MoreHorizontal, Filter } from "lucide-react";
+import { Eye, Edit, ChevronLeft, ChevronRight, MoreHorizontal } from "lucide-react";
 import ProfesionalModal from "./ProfesionalModal";
 import { getObraSocialBadgeClass } from "../_components/obra-social-badge";
+import { ProfesionalSearchBar, ObraSocialOption } from "./_components/profesional-search";
 
 /* ---------------- Tipos ---------------- */
 export type Profesional = {
@@ -33,58 +34,15 @@ export type ProfesionalInput = {
   estado: "Activo" | "Inactivo";
 };
 
-/* ---------------- Menu acciones ---------------- */
-function ActionsMenu({ onVer, onEditar }: { onVer: () => void; onEditar: () => void }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const close = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", close);
-    return () => document.removeEventListener("mousedown", close);
-  }, []);
-
-  return (
-    <div className="relative" ref={ref}>
-      <button
-        onClick={() => setOpen(!open)}
-        className="p-2 hover:bg-gray-100 rounded-lg transition"
-      >
-        <MoreHorizontal className="w-5 h-5 text-gray-600" />
-      </button>
-      {open && (
-        <div className="absolute right-0 mt-2 w-36 bg-white rounded-lg shadow border border-gray-200 z-50">
-          <button
-            onClick={() => {
-              onVer();
-              setOpen(false);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            <Eye className="w-4 h-4" /> Ver
-          </button>
-          <button
-            onClick={() => {
-              onEditar();
-              setOpen(false);
-            }}
-            className="flex w-full items-center gap-2 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50"
-          >
-            <Edit className="w-4 h-4" /> Editar
-          </button>
-        </div>
-      )}
-    </div>
-  );
-}
-
 /* ---------------- Página principal ---------------- */
 export default function ProfesionalesPage() {
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
-  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+  const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
+  const obrasSociales = useMemo(
+    () => (obrasSocialesQuery ?? []) as ObraSocialOption[],
+    [obrasSocialesQuery]
+  );
 
   const editar = useMutation(api.profesionales.editar);
 
@@ -94,15 +52,18 @@ export default function ProfesionalesPage() {
   /* ---------------- Buscador y filtros ---------------- */
   const [busqueda, setBusqueda] = useState("");
   const [filtroObras, setFiltroObras] = useState<Id<"obrasSociales">[]>([]);
-  const [filtrosOpen, setFiltrosOpen] = useState(false);
-  const filtroRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (filtroRef.current && !filtroRef.current.contains(e.target as Node)) setFiltrosOpen(false);
-    };
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
+  const isLoadingProf = profesionales === undefined;
+  const isLoadingOS = obrasSocialesQuery === undefined;
+
+  const toggleObraSocial = useCallback((id: Id<"obrasSociales">) => {
+    setFiltroObras((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }, []);
+
+  const clearObrasSociales = useCallback(() => {
+    setFiltroObras([]);
   }, []);
 
   const filtrar = (prof: Profesional) => {
@@ -127,7 +88,7 @@ export default function ProfesionalesPage() {
     return coincideTexto && coincideObra;
   };
 
-  const filtrados = useMemo(() => profesionales.filter(filtrar), [busqueda, filtroObras, profesionales]);
+  const filtrados = useMemo(() => profesionales.filter(filtrar), [busqueda, filtroObras, profesionales, especialidades, obrasSociales]);
 
   /* ---------------- Paginación ---------------- */
   const [page, setPage] = useState(1);
@@ -159,51 +120,19 @@ export default function ProfesionalesPage() {
               Administra los profesionales de tu institución
             </p>
           </div>
-
-          {/* Buscador y filtro */}
-          <div className="flex items-center gap-3 relative" ref={filtroRef}>
-            <input
-              value={busqueda}
-              onChange={(e) => setBusqueda(e.target.value)}
-              placeholder="Buscar por nombre, DNI, especialidad u obra social..."
-              className="w-80 px-4 py-2 border border-gray-200 rounded-lg focus:ring-2 focus:ring-purple-300 outline-none text-sm"
-            />
-            <button
-              onClick={() => setFiltrosOpen(!filtrosOpen)}
-              className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition"
-            >
-              <Filter className="w-5 h-5 text-gray-600" />
-            </button>
-
-            {filtrosOpen && (
-              <div className="absolute right-0 top-12 w-64 bg-white border border-gray-200 rounded-xl shadow-lg p-3 z-50">
-                <p className="text-sm font-semibold text-gray-700 mb-2">Filtrar por obras sociales</p>
-                <div className="max-h-48 overflow-y-auto pr-1 space-y-1">
-                  {obrasSociales.map((os) => (
-                    <label
-                      key={os._id}
-                      className="flex items-center gap-2 text-sm cursor-pointer px-2 py-1 rounded-md hover:bg-gray-50"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={filtroObras.includes(os._id)}
-                        onChange={() =>
-                          setFiltroObras((prev) =>
-                            prev.includes(os._id)
-                              ? prev.filter((id) => id !== os._id)
-                              : [...prev, os._id]
-                          )
-                        }
-                        className="accent-purple-500"
-                      />
-                      <span>{os.nombre}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
         </div>
+
+        {/* Buscador y filtro */}
+        <ProfesionalSearchBar
+          value={busqueda}
+          onChange={setBusqueda}
+          isLoading={isLoadingProf}
+          obrasSociales={obrasSociales}
+          selectedObrasSociales={filtroObras}
+          onToggleObraSocial={toggleObraSocial}
+          onClearObrasSociales={clearObrasSociales}
+          isLoadingObrasSociales={isLoadingOS}
+        />
 
         {/* Tabla */}
         <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
@@ -237,11 +166,10 @@ export default function ProfesionalesPage() {
                   </td>
                   <td className="p-4 text-center">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        p.estado === "Activo"
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${p.estado === "Activo"
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
-                      }`}
+                        }`}
                     >
                       {p.estado}
                     </span>
@@ -304,12 +232,96 @@ export default function ProfesionalesPage() {
             title="Ver Profesional"
             initialData={viendo}
             viewMode
-            onSubmit={() => {}}
+            onSubmit={() => { }}
             onCancel={() => setViendo(null)}
             loading={false}
           />
         )}
       </div>
     </PageWrapper>
+  );
+}
+
+/* ---------------- Menu acciones ---------------- */
+function ActionsMenu({ onVer, onEditar }: { onVer: () => void; onEditar: () => void }) {
+  const [open, setOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        menuRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        buttonRef.current &&
+        !buttonRef.current.contains(event.target as Node)
+      ) {
+        setOpen(false);
+      }
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEscape);
+    };
+  }, []);
+
+  const triggerAction = (callback: () => void) => {
+    callback();
+    setOpen(false);
+  };
+
+  return (
+    <div className="relative inline-block text-left">
+      <button
+        ref={buttonRef}
+        onClick={() => setOpen((prev) => !prev)}
+        className="p-2 hover:bg-gray-100 rounded-lg transition-colors"
+        aria-label="Acciones"
+      >
+        <MoreHorizontal className="w-5 h-5 text-gray-600" />
+      </button>
+
+      {open && buttonRef.current && (
+        <div
+          ref={menuRef}
+          className="fixed w-44 bg-white border border-gray-200 rounded-lg shadow-lg py-1 z-50"
+          style={{
+            top: (() => {
+              const rect = buttonRef.current!.getBoundingClientRect();
+              const menuHeight = 88;
+              const spaceBelow = window.innerHeight - rect.bottom;
+              if (spaceBelow < menuHeight + 10) {
+                return rect.top - menuHeight - 4;
+              }
+              return rect.bottom + 4;
+            })(),
+            right: window.innerWidth - buttonRef.current.getBoundingClientRect().right,
+          }}
+        >
+          <button
+            onClick={() => triggerAction(onVer)}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+          >
+            <Eye className="w-4 h-4" />
+            Ver profesional
+          </button>
+          <button
+            onClick={() => triggerAction(onEditar)}
+            className="w-full px-4 py-2 text-left text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+          >
+            <Edit className="w-4 h-4" />
+            Editar datos
+          </button>
+        </div>
+      )}
+    </div>
   );
 }
