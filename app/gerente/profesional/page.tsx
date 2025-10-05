@@ -59,7 +59,7 @@ export default function ProfesionalesPage() {
   const [modalError, setModalError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // ✅ Ocultar el toast después de unos segundos
+  // ✅ Ocultar el toast automáticamente
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -78,7 +78,7 @@ export default function ProfesionalesPage() {
       }
       setModalOpen(false);
       setToast("Profesional creado correctamente.");
-    } catch (e) {
+    } catch {
       setModalError("Error al crear el profesional.");
     } finally {
       setSaving(false);
@@ -134,24 +134,31 @@ export default function ProfesionalesPage() {
     });
   }, [q, profesionales, especialidades, obrasSociales]);
 
-  // 📄 Paginación (7 por página)
+  // 📄 Paginación (6 por página)
   const [page, setPage] = useState(1);
   const itemsPerPage = 6;
   const totalPages = Math.ceil(profesionalesFiltrados.length / itemsPerPage);
-  const startIndex = (page - 1) * itemsPerPage;
-  const profesionalesPaginados = profesionalesFiltrados.slice(startIndex, startIndex + itemsPerPage);
 
+  const profesionalesPaginados = useMemo(() => {
+    const startIndex = (page - 1) * itemsPerPage;
+    return profesionalesFiltrados.slice(startIndex, startIndex + itemsPerPage);
+  }, [page, profesionalesFiltrados]);
+
+  // ✅ Si borra el último y queda vacía, vuelve atrás
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages || 1);
-  }, [totalPages]);
+    if (page > totalPages && totalPages > 0) {
+      setPage(totalPages);
+    }
+  }, [totalPages, page]);
 
   return (
-    <PageWrapper breadcrumbs={[
-      { label: "Inicio", href: "/gerente" },
-      { label: "Profesionales", href: "/gerente/profesional" }
-    ]}>
+    <PageWrapper
+      breadcrumbs={[
+        { label: "Inicio", href: "/gerente" },
+        { label: "Profesionales", href: "/gerente/profesional" },
+      ]}
+    >
       <div className="w-full px-16 py-10 space-y-10">
-
         {/* Header */}
         <div>
           <div className="flex items-center gap-3 mb-3">
@@ -169,7 +176,10 @@ export default function ProfesionalesPage() {
             type="text"
             placeholder="Buscar por nombre, DNI, matrícula, especialidad u obra social..."
             value={q}
-            onChange={(e) => setQ(e.target.value)}
+            onChange={(e) => {
+              setQ(e.target.value);
+              setPage(1); // ✅ volver a la primera página al buscar
+            }}
             className="flex-1 mr-4 px-5 py-3 rounded-lg border border-gray-200 shadow-sm focus:ring-2 focus:ring-green-500 outline-none text-base"
           />
           <button
@@ -248,7 +258,7 @@ export default function ProfesionalesPage() {
               disabled={page === 1}
               onClick={() => setPage(page - 1)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium ${
-                page === 1 ? "text-gray-400 border-gray-200" : "text-gray-700 border-gray-300 hover:bg-gray-100"
+                page === 1 ? "text-gray-400 border-gray-200 cursor-not-allowed" : "text-gray-700 border-gray-300 hover:bg-gray-100"
               }`}
             >
               <ChevronLeft size={16} /> Anterior
@@ -260,7 +270,7 @@ export default function ProfesionalesPage() {
               disabled={page === totalPages}
               onClick={() => setPage(page + 1)}
               className={`flex items-center gap-2 px-4 py-2 rounded-lg border text-sm font-medium ${
-                page === totalPages ? "text-gray-400 border-gray-200" : "text-gray-700 border-gray-300 hover:bg-gray-100"
+                page === totalPages ? "text-gray-400 border-gray-200 cursor-not-allowed" : "text-gray-700 border-gray-300 hover:bg-gray-100"
               }`}
             >
               Siguiente <ChevronRight size={16} />
@@ -268,7 +278,7 @@ export default function ProfesionalesPage() {
           </div>
         )}
 
-        {/* 🧩 Modal crear */}
+        {/* Modales */}
         {modalOpen && (
           <ProfesionalModal
             title="Nuevo Profesional"
@@ -280,7 +290,6 @@ export default function ProfesionalesPage() {
           />
         )}
 
-        {/* 🧩 Modal editar */}
         {editando && (
           <ProfesionalModal
             title="Editar Profesional"
@@ -293,12 +302,9 @@ export default function ProfesionalesPage() {
           />
         )}
 
-        {/* ✅ Toast visible */}
+        {/* Toast */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-3
-                          rounded-xl border border-green-300 bg-gradient-to-r from-green-50 to-green-100
-                          px-6 py-4 shadow-2xl shadow-green-200/50 text-green-800
-                          animate-in fade-in slide-in-from-bottom-4 duration-500 min-w-[350px] max-w-md">
+          <div className="fixed bottom-6 right-6 z-[60] flex items-center gap-3 rounded-xl border border-green-300 bg-gradient-to-r from-green-50 to-green-100 px-6 py-4 shadow-2xl shadow-green-200/50 text-green-800 animate-in fade-in slide-in-from-bottom-4 duration-500 min-w-[350px] max-w-md">
             <CheckCircle2 className="h-7 w-7 text-green-600" />
             <div className="flex-1">
               <p className="text-base font-semibold">¡Operación exitosa!</p>
