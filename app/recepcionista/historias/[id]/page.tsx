@@ -297,11 +297,12 @@ export default function HistorialPacientePage() {
           >
             <Panel>
               <TratamientosTable
-                data={tratamientos}
-                onChangeEstado={async ({ id, estado }) => {
-                  await cambiarEstadoTrat({ id, estado });
-                }}
+                  data={tratamientos}
+                  onChangeEstado={async ({ id, estado }) => {
+                    await cambiarEstadoTrat({ id: id as Id<"tratamientos">, estado });
+                  }}
               />
+
             </Panel>
           </Section>
         </main>

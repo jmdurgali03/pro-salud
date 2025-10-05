@@ -1,5 +1,16 @@
+// app/recepcionista/pacientes/_components/NuevoTratamientoModal.tsx
 "use client";
-import { useEffect, useMemo, useState } from "react";
+
+import { useState } from "react";
+import Modal, {
+  CancelButton,
+  PrimaryButton,
+  inputBase,
+  selectBase,
+  textareaBase,
+} from "./Modal";
+
+type Estado = "Activo" | "Suspendido" | "Finalizado";
 
 export default function NuevoTratamientoModal({
   open,
@@ -8,187 +19,154 @@ export default function NuevoTratamientoModal({
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: {
+  onSubmit: (d: {
     titulo: string;
     profesional: string;
     indicaciones: string;
     fechaInicio?: number;
     fechaFin?: number | null;
-    estado: "Activo" | "Suspendido" | "Finalizado";
+    estado: Estado;
     cronico?: boolean;
     notas?: string;
   }) => Promise<void> | void;
 }) {
   const [titulo, setTitulo] = useState("");
   const [profesional, setProfesional] = useState("");
-  const [indicaciones, setIndicaciones] = useState("");
-  const [estado, setEstado] = useState<"Activo" | "Suspendido" | "Finalizado">("Activo");
-  const [cronico, setCronico] = useState(false);
-  const [fechaInicio, setFechaInicio] = useState<string>("");
+  const [fechaInicio, setFechaInicio] = useState<string>(() => new Date().toISOString().slice(0, 10));
   const [fechaFin, setFechaFin] = useState<string>("");
+  const [estado, setEstado] = useState<Estado>("Activo");
+  const [cronico, setCronico] = useState(false);
+  const [indicaciones, setIndicaciones] = useState("");
   const [notas, setNotas] = useState("");
-  const [guardando, setGuardando] = useState(false);
 
-  useEffect(() => {
-    if (open) {
-      const hoy = new Date();
-      const iso = new Date(hoy.getTime() - hoy.getTimezoneOffset() * 60000)
-        .toISOString()
-        .slice(0, 10);
-      setFechaInicio(iso);
-      setEstado("Activo");
-      setCronico(false);
-    }
-  }, [open]);
+  const canSave = titulo.trim().length > 1 && indicaciones.trim().length > 1;
 
-  const puedeGuardar = useMemo(() => {
-    return titulo.trim().length > 2 && profesional.trim().length > 1 && indicaciones.trim().length > 5;
-  }, [titulo, profesional, indicaciones]);
-
-  const toTs = (d?: string) => (d ? new Date(d + "T00:00:00").getTime() : undefined);
-
-  const guardar = async () => {
-    if (!puedeGuardar || guardando) return;
-    setGuardando(true);
-    try {
-      await onSubmit({
-        titulo,
-        profesional,
-        indicaciones,
-        estado,
-        cronico,
-        fechaInicio: toTs(fechaInicio),
-        fechaFin: cronico ? null : toTs(fechaFin),
-        notas: notas?.trim() || undefined,
-      });
-      setTitulo("");
-      setProfesional("");
-      setIndicaciones("");
-      setNotas("");
-      onClose();
-    } finally {
-      setGuardando(false);
-    }
+  const save = async () => {
+    if (!canSave) return;
+    await onSubmit({
+      titulo: titulo.trim(),
+      profesional: profesional.trim(),
+      indicaciones: indicaciones.trim(),
+      fechaInicio: new Date(fechaInicio).getTime(),
+      fechaFin: fechaFin ? new Date(fechaFin).getTime() : undefined,
+      estado,
+      cronico: cronico || undefined,
+      notas: notas.trim() || undefined,
+    });
+    setTitulo("");
+    setProfesional("");
+    setIndicaciones("");
+    setNotas("");
+    setCronico(false);
   };
 
-  if (!open) return null;
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30">
-      <div className="w-full max-w-2xl rounded-xl bg-white p-5 shadow-xl">
-        <div className="mb-4 flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Asignar tratamiento</h3>
-          <button onClick={onClose} className="text-gray-500 hover:text-gray-700" aria-label="Cerrar">✕</button>
-        </div>
-
-        {/* Form */}
-        <div className="grid grid-cols-1 gap-4">
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Título</label>
-              <input
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-                placeholder="Ej: Antibiótico oral / Fisioterapia de hombro"
-                value={titulo}
-                onChange={(e) => setTitulo(e.target.value)}
-              />
-            </div>
-
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
-              <input
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-                placeholder="Nombre del profesional"
-                value={profesional}
-                onChange={(e) => setProfesional(e.target.value)}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de inicio</label>
-              <input
-                type="date"
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-                value={fechaInicio}
-                onChange={(e) => setFechaInicio(e.target.value)}
-              />
-            </div>
-
-            <div className={cronico ? "opacity-50" : ""}>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Fecha estimada de fin</label>
-              <input
-                type="date"
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm disabled:opacity-50"
-                value={fechaFin}
-                onChange={(e) => setFechaFin(e.target.value)}
-                disabled={cronico}
-              />
-            </div>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div>
-              <label className="mb-1 block text-sm font-medium text-gray-700">Estado</label>
-              <select
-                value={estado}
-                onChange={(e) => setEstado(e.target.value as any)}
-                className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-              >
-                <option value="Activo">Activo</option>
-                <option value="Suspendido">Suspendido</option>
-                <option value="Finalizado">Finalizado</option>
-              </select>
-            </div>
-
-            <label className="mt-6 inline-flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={cronico}
-                onChange={(e) => setCronico(e.target.checked)}
-                className="h-4 w-4 rounded border-gray-300"
-              />
-              Tratamiento crónico (sin fecha de fin)
-            </label>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Indicaciones</label>
-            <textarea
-              className="min-h-[200px] w-full rounded-lg border border-gray-300 p-3 text-sm text-gray-900 whitespace-pre-wrap"
-              placeholder="Dosis, frecuencia, duración, medidas complementarias, controles, etc."
-              value={indicaciones}
-              onChange={(e) => setIndicaciones(e.target.value)}
-            />
-            <p className="mt-1 text-xs text-gray-500">Podés escribir un texto largo y usar Enter para saltos de línea.</p>
-          </div>
-
-          <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Notas de seguimiento (opcional)</label>
-            <textarea
-              className="w-full rounded-lg border border-gray-300 p-2 text-sm"
-              rows={3}
-              placeholder="Efectos adversos, cambios de dosis, adherencia, etc."
-              value={notas}
-              onChange={(e) => setNotas(e.target.value)}
-            />
-          </div>
-        </div>
-
-        <div className="mt-5 flex justify-end gap-2">
-          <button onClick={onClose} className="rounded-lg border px-4 py-2 text-sm">Cancelar</button>
-          <button
-            onClick={guardar}
-            disabled={!puedeGuardar || guardando}
-            className={`rounded-lg px-4 py-2 text-sm text-white ${
-              puedeGuardar ? "bg-cyan-600 hover:bg-cyan-700" : "bg-gray-300"
-            }`}
-          >
+    <Modal
+      open={open}
+      onClose={onClose}
+      title="Asignar tratamiento"
+      size="xl"
+      footer={
+        <>
+          <CancelButton onClick={onClose} />
+          <PrimaryButton disabled={!canSave} onClick={save}>
             Guardar tratamiento
-          </button>
+          </PrimaryButton>
+        </>
+      }
+    >
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Título</label>
+          <input
+            className={inputBase}
+            placeholder="Ej: Antibiótico oral / Fisioterapia de hombro"
+            value={titulo}
+            onChange={(e) => setTitulo(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
+          <input
+            className={inputBase}
+            placeholder="Nombre del profesional"
+            value={profesional}
+            onChange={(e) => setProfesional(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de inicio</label>
+          <input
+            type="date"
+            className={inputBase}
+            value={fechaInicio}
+            onChange={(e) => setFechaInicio(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Fecha estimada de fin <span className="text-gray-400">(opcional)</span>
+          </label>
+          <input
+            type="date"
+            className={inputBase}
+            value={fechaFin}
+            onChange={(e) => setFechaFin(e.target.value)}
+          />
+        </div>
+
+        <div>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Estado</label>
+          <select
+            className={selectBase}
+            value={estado}
+            onChange={(e) => setEstado(e.target.value as Estado)}
+          >
+            <option value="Activo">Activo</option>
+            <option value="Suspendido">Suspendido</option>
+            <option value="Finalizado">Finalizado</option>
+          </select>
+        </div>
+
+        <div className="flex items-center gap-2 pt-6">
+          <input
+            id="cronico"
+            type="checkbox"
+            className="h-4 w-4 accent-emerald-600"
+            checked={cronico}
+            onChange={(e) => setCronico(e.target.checked)}
+          />
+          <label htmlFor="cronico" className="text-sm text-gray-700">
+            Tratamiento crónico (sin fecha de fin)
+          </label>
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-sm font-medium text-gray-700">Indicaciones</label>
+          <textarea
+            className={textareaBase}
+            placeholder="Dosis, frecuencia, duración, medidas complementarias, controles, etc."
+            value={indicaciones}
+            onChange={(e) => setIndicaciones(e.target.value)}
+          />
+
+        </div>
+
+        <div className="sm:col-span-2">
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Notas de seguimiento <span className="text-gray-400">(opcional)</span>
+          </label>
+          <textarea
+            className={textareaBase}
+            placeholder="Efectos adversos, cambios de dosis, adherencia, etc."
+            value={notas}
+            onChange={(e) => setNotas(e.target.value)}
+          />
         </div>
       </div>
-    </div>
+    </Modal>
   );
 }
