@@ -163,6 +163,74 @@ export const listarPorProfesional = query({
 // ----------------------------
 // Listar con nombres (básico, sin rango)
 // ----------------------------
+export const listarConNombres = query({
+  args: { profesionalId: v.optional(v.id("profesionales")) },
+  handler: async (ctx, args) => {
+    try {
+      let turnos;
+
+      // 🔹 Caso 1: con profesionalId (usa índice)
+      if (args.profesionalId) {
+        turnos = await ctx.db
+          .query("turnos")
+          .withIndex("byProfesional", (q) =>
+            q.eq("profesionalId", args.profesionalId!)
+          )
+          .collect();
+      } 
+      // 🔹 Caso 2: sin profesionalId (trae todos)
+      else {
+        turnos = await ctx.db.query("turnos").collect();
+      }
+
+      // 🔹 Enriquecer datos
+      const result = await Promise.all(
+        turnos.map(async (t) => {
+          const paciente = await ctx.db.get(t.pacienteId);
+          const profesional = await ctx.db.get(t.profesionalId);
+          const especialidad = profesional?.especialidadId
+            ? await ctx.db.get(profesional.especialidadId)
+            : null;
+
+          // 🔹 Obtener obras sociales del paciente
+          let obrasSocialesPaciente: string[] = [];
+          if (paciente) {
+            const rels = await ctx.db
+              .query("pacientes_obrasSociales")
+              .withIndex("por_paciente", (q) => q.eq("pacienteId", paciente._id))
+              .collect();
+
+            const obras = await Promise.all(
+              rels.map(async (r) => {
+                const os = await ctx.db.get(r.obraSocialId);
+                return os?.nombre ?? "";
+              })
+            );
+
+            obrasSocialesPaciente = obras.filter(Boolean);
+          }
+
+          return {
+            ...t,
+            pacienteNombre: paciente?.nombre ?? "Paciente sin nombre",
+            pacienteApellido: paciente?.apellido ?? "Paciente sin apellido",
+            profesionalNombre: profesional?.nombre ?? "Profesional sin nombre",
+            profesionalApellido: profesional?.apellido ?? "Profesional sin apellido",
+            especialidadNombre: especialidad?.nombre ?? "",
+            obrasSocialesPaciente,
+          };
+        })
+      );
+
+      return result;
+    } catch (error) {
+      console.error("❌ Error en listarConNombres:", error);
+      throw new Error("Error al listar los turnos.");
+    }
+  },
+});
+
+
 
 
 /* -----------------------------------------------------
