@@ -1,13 +1,12 @@
 // app/recepcionista/historias/[id]/page.tsx
 "use client";
 
-import { useParams, useRouter } from "next/navigation";
+import { useParams } from "next/navigation";
 import { useMemo, useRef, useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import {
-  ArrowLeft,
   Calendar,
   IdCard,
   Mail,
@@ -25,6 +24,8 @@ import NuevaConsultaModal from "../../pacientes/_components/NuevaConsultaModal";
 import NuevoDiagnosticoModal from "../../pacientes/_components/NuevoDiagnosticoModal";
 import NuevoTratamientoModal from "../../pacientes/_components/NuevoTratamientoModal";
 import TratamientosTable from "../../pacientes/_components/TratamientosTable";
+import NuevaNotaMedicaModal from "../../pacientes/_components/NuevaNotaMedicaModal";
+import NotasMedicasTable, { Nota } from "../../pacientes/_components/NotasMedicasTable";
 
 /* -------------------- Tipos locales -------------------- */
 type PacienteExtendido = {
@@ -39,7 +40,7 @@ type PacienteExtendido = {
   genero?: "Masculino" | "Femenino";
   creadoEn: number;
   actualizadoEn: number;
-  obrasSocialesNombres: string[]; // asumimos que tu query ya lo arma
+  obrasSocialesNombres: string[];
 };
 
 type Consulta = {
@@ -75,7 +76,6 @@ type Tratamiento = {
 
 export default function HistorialPacientePage() {
   const { id } = useParams();
-  const router = useRouter();
   const pacienteId = id as Id<"pacientes">;
 
   // Queries
@@ -83,6 +83,7 @@ export default function HistorialPacientePage() {
   const consultasQ = useQuery(api.consultas.listarPorPaciente, { pacienteId }) as Consulta[] | undefined;
   const diagnosticosQ = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as Diagnostico[] | undefined;
   const tratamientosQ = useQuery(api.tratamientos.listarPorPaciente, { pacienteId }) as Tratamiento[] | undefined;
+  const notasQ = useQuery(api.observaciones.listarPorPaciente, { pacienteId }) as Nota[] | undefined;
 
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
@@ -104,11 +105,13 @@ export default function HistorialPacientePage() {
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
   const crearTratamiento = useMutation(api.tratamientos.crear);
   const cambiarEstadoTrat = useMutation(api.tratamientos.cambiarEstado);
+  const crearNota = useMutation(api.observaciones.crear);
 
   // UI state
   const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
   const [openTrat, setOpenTrat] = useState(false);
+  const [openNota, setOpenNota] = useState(false);
 
   // Scroll a resumen al entrar
   const resumenRef = useRef<HTMLDivElement>(null);
@@ -120,6 +123,7 @@ export default function HistorialPacientePage() {
   const consultas = consultasQ ?? [];
   const diagnosticos = diagnosticosQ ?? [];
   const tratamientos = tratamientosQ ?? [];
+  const notas = notasQ ?? [];
 
   // Mapa de diagnósticos por consulta
   const dxPorConsulta = (() => {
@@ -167,6 +171,19 @@ export default function HistorialPacientePage() {
     setOpenTrat(false);
   };
 
+  const submitNota = async (data: {
+    profesionalId: Id<"profesionales">;
+    consultaId?: Id<"consultas">;
+    fecha?: number;
+    categoria: "Evolución" | "Indicación" | "Interconsulta" | "Epicrisis" | "Administrativa";
+    visibilidad: "Equipo" | "Privada";
+    titulo?: string;
+    texto: string;
+  }) => {
+    await crearNota({ pacienteId, ...data });
+    setOpenNota(false);
+  };
+
   const hayConsultas = consultas.length > 0;
   const loading = !paciente;
 
@@ -192,23 +209,11 @@ export default function HistorialPacientePage() {
                 <h1 className="text-2xl font-semibold text-gray-900">
                   {loading ? "Historia clínica" : `Historia clínica de ${paciente!.nombre} ${paciente!.apellido}`}
                 </h1>
-                <p className="text-sm text-gray-500">Consultas, diagnósticos (al desplegar) y tratamientos.</p>
+                <p className="text-sm text-gray-500">
+                  Consultas, diagnósticos (al desplegar), tratamientos y notas médicas.
+                </p>
               </div>
-              <div className="flex gap-2">
-                <button
-                  onClick={() => router.push(`/recepcionista/pacientes/${pacienteId}`)}
-                  className="inline-flex items-center gap-2 self-start rounded-lg border border-gray-300 px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100"
-                >
-                  <ArrowLeft className="h-4 w-4" />
-                  Ver ficha del paciente
-                </button>
-                <button
-                  onClick={() => setOpenTrat(true)}
-                  className="inline-flex items-center gap-2 self-start rounded-lg bg-cyan-50 text-cyan-700 px-4 py-2 text-sm font-medium border border-cyan-200 hover:bg-cyan-100"
-                >
-                  Asignar tratamiento
-                </button>
-              </div>
+              {/* Botones superiores eliminados según pedido */}
             </div>
 
             <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -256,8 +261,39 @@ export default function HistorialPacientePage() {
             />
           </Section>
 
+          {/* Notas médicas */}
+          <Section
+            id="notas"
+            title="Notas médicas"
+            right={
+              <button
+                onClick={() => setOpenNota(true)}
+                className="rounded-lg bg-white px-4 py-2 text-sm font-medium border hover:bg-gray-50"
+                title="Registrar nota médica (evolución, indicación, etc.)"
+              >
+                Nueva nota
+              </button>
+            }
+          >
+            <NotasMedicasTable
+              data={notas}
+              getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+            />
+          </Section>
+
           {/* Tratamientos */}
-          <Section id="tratamientos" title="Tratamientos">
+          <Section
+            id="tratamientos"
+            title="Tratamientos"
+            right={
+              <button
+                onClick={() => setOpenTrat(true)}
+                className="inline-flex items-center gap-2 self-start rounded-lg bg-cyan-50 text-cyan-700 px-4 py-2 text-sm font-medium border border-cyan-200 hover:bg-cyan-100"
+              >
+                Asignar tratamiento
+              </button>
+            }
+          >
             <TratamientosTable
               data={tratamientos}
               onChangeEstado={async ({ id, estado }) => {
@@ -281,6 +317,15 @@ export default function HistorialPacientePage() {
         open={openDx}
         onClose={() => setOpenDx(false)}
         onSubmit={submitDiagnostico}
+        profesionales={profesionales}
+        consultas={consultas}
+        getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+      />
+
+      <NuevaNotaMedicaModal
+        open={openNota}
+        onClose={() => setOpenNota(false)}
+        onSubmit={submitNota}
         profesionales={profesionales}
         consultas={consultas}
         getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}

@@ -1,7 +1,7 @@
 // app/recepcionista/pacientes/_components/ConsultasTable.tsx
 "use client";
 
-import { useState } from "react";
+import React, { useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
 import { ChevronDown, ChevronRight } from "lucide-react";
 
@@ -57,7 +57,6 @@ export default function ConsultasTable({
     for (const line of lines) {
       const remaining = MAX_CHARS - used;
       if (remaining <= 0 || usedLines >= MAX_LINES) break;
-
       const slice = line.slice(0, Math.max(0, remaining));
       short += (short ? "\n" : "") + slice;
       used += slice.length;
@@ -66,7 +65,6 @@ export default function ConsultasTable({
 
     const isShort = short.length >= full.length;
     if (!isShort && short.length > 0) short += "…";
-
     return { short, isShort };
   };
 
@@ -92,14 +90,16 @@ export default function ConsultasTable({
           )}
 
           {consultas.map((c) => {
-            const key = c._id as unknown as string;
-            const abiertos = !!abiertas[key];
-            const dx = dxByConsulta.get(key) ?? [];
+            const idStr = c._id as unknown as string;
+            const abiertos = !!abiertas[idStr];
+            const dx = dxByConsulta.get(idStr) ?? [];
 
             return (
-              <>
-                <tr key={key} className="border-t">
-                  <td className="px-3 py-2">{new Date(c.fecha).toLocaleDateString()}</td>
+              <React.Fragment key={idStr}>
+                <tr className="border-t">
+                  <td className="px-3 py-2">
+                    {new Date(c.fecha).toLocaleDateString("es-AR")}
+                  </td>
                   <td className="px-3 py-2">{c.motivo}</td>
                   <td className="px-3 py-2">{getProfesionalNombre(c.profesionalId)}</td>
                   <td className="px-3 py-2">{c.notas ?? "—"}</td>
@@ -133,7 +133,7 @@ export default function ConsultasTable({
                               >
                                 <div className="flex flex-wrap items-center justify-between gap-2">
                                   <div className="text-xs text-gray-500">
-                                    {new Date(d.fecha).toLocaleDateString()} · {getProfesionalNombre(d.profesionalId)}
+                                    {new Date(d.fecha).toLocaleDateString("es-AR")} · {getProfesionalNombre(d.profesionalId)}
                                   </div>
                                   <span
                                     className={`rounded-full px-2 py-0.5 text-xs ${
@@ -167,7 +167,7 @@ export default function ConsultasTable({
                     </td>
                   </tr>
                 )}
-              </>
+              </React.Fragment>
             );
           })}
         </tbody>

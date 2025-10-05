@@ -113,12 +113,7 @@ export default defineSchema({
   // -------------------------
   // Observaciones clínicas
   // -------------------------
-  observaciones: defineTable({
-    pacienteId: v.id("pacientes"),
-    autor: v.string(),
-    texto: v.string(),
-    creadoEn: v.number(),
-  }).index("por_paciente", ["pacienteId"]),
+
 
   // -------------------------
   // Diagnósticos
@@ -177,4 +172,27 @@ export default defineSchema({
     otrasNotas: v.optional(v.string()),
     actualizadoEn: v.number(),
   }).index("por_paciente", ["pacienteId"]),
+
+observaciones: defineTable({
+  pacienteId: v.id("pacientes"),
+  profesionalId: v.id("profesionales"),
+  consultaId: v.optional(v.id("consultas")),
+  fecha: v.number(), // epoch ms
+  categoria: v.union(
+    v.literal("Evolución"),
+    v.literal("Indicación"),
+    v.literal("Interconsulta"),
+    v.literal("Epicrisis"),
+    v.literal("Administrativa")
+  ),
+  visibilidad: v.union(v.literal("Equipo"), v.literal("Privada")),
+  titulo: v.optional(v.string()),
+  texto: v.string(),
+  creadoEn: v.number(),
+  actualizadoEn: v.number(),
+})
+  .index("por_paciente", ["pacienteId"])
+  .index("por_consulta", ["consultaId"])
+  .index("por_profesional", ["profesionalId"])
+  .index("por_paciente_fecha", ["pacienteId", "fecha"])
 });
