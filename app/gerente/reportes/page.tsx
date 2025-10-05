@@ -51,7 +51,10 @@ export default function GerenteDashboardPage() {
 
   return (
     <PageWrapper
-      breadcrumbs={[{ label: "Inicio", href: "/gerente" }]}
+      breadcrumbs={[
+        { label: "Inicio", href: "/gerente" },
+        { label: "Reportes", href: "/gerente/reportes" }
+      ]}
     >
       <div className="w-full px-8 py-10 space-y-8">
         {/* Header */}
