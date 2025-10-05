@@ -1,11 +1,11 @@
 "use client";
-
 import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { useUser } from "@clerk/nextjs";
 import { PageWrapper } from "@/components/page-wrapper";
 import { AppSidebar } from "@/components/sidebar";
-import { Home, Calendar as CalendarIcon, Users } from "lucide-react";
+import { Home, Calendar as CalendarIcon, Users, Calendar, NotepadTextDashed } from "lucide-react";
 
 import { CalendarioHeader } from "./_components/CalendarioHeader";
 import { CalendarioSidebar } from "./_components/CalendarioSidebar";
@@ -15,21 +15,42 @@ import { TurnoModal } from "./_components/TurnoModal";
 import {
   TurnoConJoin,
   getDaysInMonth,
-  sameDay,
   addDays,
   startOfWeekMonday,
 } from "./_components/types";
 
+// 🔹 Formateador de fechas consistente (evita hydration mismatch)
+const formatFechaArg = (timestamp: number) => {
+  const date = new Date(timestamp);
+  const formatter = new Intl.DateTimeFormat("es-AR", {
+    weekday: "long",
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+    timeZone: "America/Argentina/Buenos_Aires",
+  });
+  return formatter.format(date);
+};
+
 export default function CalendarioPage() {
+  const { user } = useUser();
   const [currentDate, setCurrentDate] = useState<Date>(new Date());
   const [view, setView] = useState<"month" | "week" | "day">("month");
   const [selectedTurno, setSelectedTurno] = useState<TurnoConJoin | null>(null);
 
-  const turnos =
-    (useQuery(api.turnos.listarConNombres, {}) as TurnoConJoin[] | undefined) ??
-    [];
+  // 🔹 Buscar el profesional asociado al Clerk User
+ const profesional = useQuery(api.profesionales.getByClerkUser, {
+  clerkUserId: user?.id ?? "",
+});
 
-  // ---- Mes: matriz de 6x7
+
+  // 🔹 Traer turnos SOLO de ese profesional (ejecución segura)
+const turnos =
+  useQuery(
+    api.turnos.listarConNombres,
+    profesional?._id ? { profesionalId: profesional._id } : "skip"
+  ) ?? [];
+  // ---- Calcular días y semanas para el calendario
   const days = useMemo(() => getDaysInMonth(currentDate), [currentDate]);
   const weeks = useMemo(() => {
     const out: typeof days[] = [];
@@ -37,7 +58,7 @@ export default function CalendarioPage() {
     return out;
   }, [days]);
 
-  // ---- Filtro de eventos por día (para vista mensual)
+  // ---- Filtro de eventos por día (vista mensual)
   const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
     if (!isCurrentMonth) return [];
     return turnos.filter((t) => {
@@ -50,35 +71,29 @@ export default function CalendarioPage() {
     });
   };
 
-  // ---- Navegación temporal según vista
+  // ---- Navegación temporal
   const goPrev = () => {
-    if (view === "month") {
+    if (view === "month")
       setCurrentDate(
         new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
       );
-    } else if (view === "week") {
-      setCurrentDate(addDays(currentDate, -7));
-    } else {
-      setCurrentDate(addDays(currentDate, -1));
-    }
+    else if (view === "week") setCurrentDate(addDays(currentDate, -7));
+    else setCurrentDate(addDays(currentDate, -1));
   };
 
   const goNext = () => {
-    if (view === "month") {
+    if (view === "month")
       setCurrentDate(
         new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
       );
-    } else if (view === "week") {
-      setCurrentDate(addDays(currentDate, 7));
-    } else {
-      setCurrentDate(addDays(currentDate, 1));
-    }
+    else if (view === "week") setCurrentDate(addDays(currentDate, 7));
+    else setCurrentDate(addDays(currentDate, 1));
   };
 
   const goToday = () => setCurrentDate(new Date());
 
-  // ---- Datos de semana/día para AgendaView
-  const weekStart = startOfWeekMonday(currentDate); // lunes
+  // ---- Datos para vista semanal o diaria
+  const weekStart = startOfWeekMonday(currentDate);
   const weekDays = Array.from({ length: 7 }, (_, i) => addDays(weekStart, i));
   const agendaDays = view === "day" ? [currentDate] : weekDays;
 
@@ -87,9 +102,12 @@ export default function CalendarioPage() {
       <AppSidebar
         panelName="Panel Profesional"
         links={[
-          { href: "/profesional", label: "Inicio", icon: Home },
-          { href: "/profesional/cal-turnos", label: "Turnos", icon: CalendarIcon },
-          { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
+       
+  { href: "/profesional", label: "Inicio", icon: Home },
+  { href: "/profesional/cal-turnos", label: "Turnos", icon: Calendar },
+  { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
+  { href: "/profesional/historias", label: "Historias Clínicas", icon: NotepadTextDashed },
+
         ]}
       />
 

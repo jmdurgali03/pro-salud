@@ -167,33 +167,47 @@ export const listarPorProfesional = query({
 });
 
 // ----------------------------
-// Listar con nombres (básico, sin rango)
+// Listar con nombres (seguro y robusto)
 // ----------------------------
 export const listarConNombres = query({
-  args: {},
-  handler: async (ctx) => {
-    const turnos = await ctx.db.query("turnos").collect();
+  args: { profesionalId: v.optional(v.id("profesionales")) },
+  handler: async (ctx, args) => {
+    // ✅ Si no hay profesionalId, retornar vacío
+    if (!args.profesionalId) return [];
 
-    return Promise.all(
-      turnos.map(async (t) => {
+    const profesionalId = args.profesionalId; // 🔹 Convex ahora lo infiere como tipo seguro
+
+    try {
+      const turnos = await ctx.db
+        .query("turnos")
+        .withIndex("byProfesional", (q) => q.eq("profesionalId", profesionalId))
+        .collect();
+
+      const result = [];
+
+      for (const t of turnos) {
         const paciente = await ctx.db.get(t.pacienteId);
         const profesional = await ctx.db.get(t.profesionalId);
-        const especialidad = profesional
-          ? await ctx.db.get(profesional.especialidadId)
-          : null;
 
-        return {
+        result.push({
           ...t,
-          pacienteNombre: paciente?.nombre ?? "Paciente sin nombre",
-          pacienteApellido: paciente?.apellido ?? "Paciente sin apellido",
-          profesionalNombre: profesional?.nombre ?? "Profesional sin nombre",
-          profesionalApellido: profesional?.apellido ?? "Profesional sin apellido",
-          especialidadNombre: especialidad?.nombre ?? "",
-        };
-      })
-    );
+          pacienteNombre: paciente?.nombre ?? "—",
+          pacienteApellido: paciente?.apellido ?? "",
+          profesionalNombre: profesional?.nombre ?? "—",
+          profesionalApellido: profesional?.apellido ?? "",
+          estado: t.estado,
+        });
+      }
+
+      return result;
+    } catch (error) {
+      console.error("❌ Error en listarConNombres:", error);
+      return [];
+    }
   },
 });
+
+
 
 // ----------------------------
 // Listar todos los turnos (simple, para dashboard)
