@@ -6,6 +6,7 @@ import { useMemo, useRef, useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
+import { PageWrapper } from "@/components/page-wrapper";
 
 // Componentes
 import Section from "../../../recepcionista/pacientes/_components/Section";

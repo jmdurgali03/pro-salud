@@ -15,6 +15,7 @@ import NuevoTratamientoModal from "../../pacientes/_components/NuevoTratamientoM
 import TratamientosTable from "../../pacientes/_components/TratamientosTable";
 import NuevaNotaMedicaModal from "../../pacientes/_components/NuevaNotaMedicaModal";
 import NotasMedicasTable, { Nota } from "../../pacientes/_components/NotasMedicasTable";
+import { PageWrapper } from "@/components/page-wrapper";
 
 // Nuevos componentes UI
 import HeroPaciente from "../../pacientes/_components/HeroPaciente";
