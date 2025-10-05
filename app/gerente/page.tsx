@@ -67,7 +67,10 @@ export default function GerenteHome() {
   const { user } = useUser();
   return (
     <>
-      <PageWrapper breadcrumbs={[{ label: "Inicio", href: "/gerente" }]}>
+      <PageWrapper breadcrumbs={[
+        { label: "Inicio", href: "/gerente" }, 
+        ]}>
+
         <div className="w-full min-h-screen bg-white">
           <div className="max-w-7xl mx-auto py-8 px-6">
             {/* Header Section */}
