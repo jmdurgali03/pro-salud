@@ -6,19 +6,8 @@ import { useMemo, useRef, useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import {
-  Calendar,
-  IdCard,
-  Mail,
-  Phone,
-  Stethoscope,
-  User,
-  Venus,
-} from "lucide-react";
 
-import SidebarPaciente from "../../pacientes/_components/SidebarPaciente";
 import Section from "../../pacientes/_components/Section";
-import DataItem from "../../pacientes/_components/DataItem";
 import ConsultasTable from "../../pacientes/_components/ConsultasTable";
 import NuevaConsultaModal from "../../pacientes/_components/NuevaConsultaModal";
 import NuevoDiagnosticoModal from "../../pacientes/_components/NuevoDiagnosticoModal";
@@ -27,7 +16,13 @@ import TratamientosTable from "../../pacientes/_components/TratamientosTable";
 import NuevaNotaMedicaModal from "../../pacientes/_components/NuevaNotaMedicaModal";
 import NotasMedicasTable, { Nota } from "../../pacientes/_components/NotasMedicasTable";
 
-/* -------------------- Tipos locales -------------------- */
+// Nuevos componentes
+import HeroPaciente from "../../pacientes/_components/HeroPaciente";
+import SubnavSticky from "../../pacientes/_components/SubnavSticky";
+import Panel from "../../pacientes/_components/Panel";
+import { KPIGrid } from "../../pacientes/_components/KPI";
+
+/* -------------------- Tipos locales (sin cambios funcionales) -------------------- */
 type PacienteExtendido = {
   _id: Id<"pacientes">;
   _creationTime: number;
@@ -36,7 +31,7 @@ type PacienteExtendido = {
   email?: string;
   telefono?: string;
   dni: string;
-  fechaNacimiento?: string;
+  fechaNacimiento?: string | number; // dejamos string|number para tolerar ambos casos
   genero?: "Masculino" | "Femenino";
   creadoEn: number;
   actualizadoEn: number;
@@ -78,7 +73,7 @@ export default function HistorialPacientePage() {
   const { id } = useParams();
   const pacienteId = id as Id<"pacientes">;
 
-  // Queries
+  // Queries (sin cambios)
   const paciente = useQuery(api.pacientes.getById, { id: pacienteId }) as PacienteExtendido | null;
   const consultasQ = useQuery(api.consultas.listarPorPaciente, { pacienteId }) as Consulta[] | undefined;
   const diagnosticosQ = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as Diagnostico[] | undefined;
@@ -100,32 +95,32 @@ export default function HistorialPacientePage() {
     return m;
   }, [profesionales]);
 
-  // Mutations
+  // Mutations (sin cambios)
   const crearConsulta = useMutation(api.consultas.crear);
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
   const crearTratamiento = useMutation(api.tratamientos.crear);
   const cambiarEstadoTrat = useMutation(api.tratamientos.cambiarEstado);
   const crearNota = useMutation(api.observaciones.crear);
 
-  // UI state
+  // UI state (sin cambios)
   const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
   const [openTrat, setOpenTrat] = useState(false);
   const [openNota, setOpenNota] = useState(false);
 
-  // Scroll a resumen al entrar
+  // Scroll a resumen al entrar (sin cambios)
   const resumenRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     resumenRef.current?.scrollIntoView({ block: "start" });
   }, []);
 
-  // Normalización mientras cargan
+  // Normalización (sin cambios)
   const consultas = consultasQ ?? [];
   const diagnosticos = diagnosticosQ ?? [];
   const tratamientos = tratamientosQ ?? [];
   const notas = notasQ ?? [];
 
-  // Mapa de diagnósticos por consulta
+  // Mapa de diagnósticos por consulta (sin cambios)
   const dxPorConsulta = (() => {
     const m = new Map<string, Diagnostico[]>();
     for (const dx of diagnosticos) {
@@ -136,7 +131,9 @@ export default function HistorialPacientePage() {
     return m;
   })();
 
-  // Handlers
+  const hayConsultas = consultas.length > 0;
+
+  // Handlers (sin cambios)
   const submitConsulta = async (data: {
     motivo: string;
     profesionalId: Id<"profesionales">;
@@ -184,47 +181,47 @@ export default function HistorialPacientePage() {
     setOpenNota(false);
   };
 
-  const hayConsultas = consultas.length > 0;
-  const loading = !paciente;
-
+  /* ========================== RENDER ========================== */
   return (
     <div className="min-h-screen bg-gray-50">
-      <div className="mx-auto grid max-w-6xl grid-cols-[220px,1fr] gap-6 p-6 sm:grid-cols-[240px,1fr] md:grid-cols-[260px,1fr]">
-        {/* Sidebar */}
-        <SidebarPaciente
-          nombre={paciente?.nombre ?? "Paciente"}
-          apellido={paciente?.apellido ?? ""}
-        />
+      {/* HERO: datos grandes + acciones + obras sociales */}
+      <HeroPaciente
+        nombre={paciente?.nombre}
+        apellido={paciente?.apellido}
+        dni={paciente?.dni}
+        genero={paciente?.genero}
+        fechaNacimiento={paciente?.fechaNacimiento}
+        email={paciente?.email}
+        telefono={paciente?.telefono}
+        obrasSociales={paciente?.obrasSocialesNombres}
+        onNuevaConsulta={() => setOpenConsulta(true)}
+        onNuevoDiagnostico={() => setOpenDx(true)}
+        onNuevaNota={() => setOpenNota(true)}
+        onNuevoTratamiento={() => setOpenTrat(true)}
+        diagnosticoHabilitado={hayConsultas}
+      />
 
-        {/* Main */}
+      {/* SUBNAV sticky */}
+      <SubnavSticky
+        items={[
+          { href: "#resumen", label: "Resumen" },
+          { href: "#consultas", label: "Consultas" },
+          { href: "#notas", label: "Notas médicas" },
+          { href: "#tratamientos", label: "Tratamientos" },
+        ]}
+      />
+
+      {/* CONTENIDO */}
+      <div className="mx-auto max-w-6xl px-6 py-6">
         <main className="min-w-0 space-y-6">
-          {/* Resumen */}
-          <section
-            ref={resumenRef}
-            id="resumen"
-            className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
-          >
-            <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-              <div>
-                <h1 className="text-2xl font-semibold text-gray-900">
-                  {loading ? "Historia clínica" : `Historia clínica de ${paciente!.nombre} ${paciente!.apellido}`}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  Consultas, diagnósticos (al desplegar), tratamientos y notas médicas.
-                </p>
-              </div>
-              {/* Botones superiores eliminados según pedido */}
-            </div>
-
-            <div className="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
-              <DataItem icon={<User className="h-4 w-4" />} label="Nombre completo" value={paciente ? `${paciente.nombre} ${paciente.apellido}` : "—"} />
-              <DataItem icon={<IdCard className="h-4 w-4" />} label="DNI" value={paciente?.dni ?? "—"} />
-              <DataItem icon={<Venus className="h-4 w-4" />} label="Género" value={paciente?.genero ?? "—"} />
-              <DataItem icon={<Phone className="h-4 w-4" />} label="Teléfono" value={paciente?.telefono ?? "—"} />
-              <DataItem icon={<Mail className="h-4 w-4" />} label="Email" value={paciente?.email ?? "—"} />
-              <DataItem icon={<Stethoscope className="h-4 w-4" />} label="Obras sociales" value={paciente?.obrasSocialesNombres?.join(", ") || "Particular"} />
-              <DataItem icon={<Calendar className="h-4 w-4" />} label="Fecha de nacimiento" value={paciente?.fechaNacimiento ?? "—"} />
-            </div>
+          {/* Resumen (solo KPIs, sin datos repetidos) */}
+          <section id="resumen" ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+            <KPIGrid
+              consultas={consultas.length}
+              diagnosticos={diagnosticos.length}
+              tratamientos={tratamientos.length}
+              notas={notas.length}
+            />
           </section>
 
           {/* Consultas */}
@@ -235,7 +232,7 @@ export default function HistorialPacientePage() {
               <div className="flex gap-2">
                 <button
                   onClick={() => setOpenConsulta(true)}
-                  className="rounded-lg bg-cyan-600 px-4 py-2 text-sm font-medium text-white hover:bg-cyan-700"
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
                 >
                   Nueva consulta
                 </button>
@@ -243,7 +240,7 @@ export default function HistorialPacientePage() {
                   onClick={() => setOpenDx(true)}
                   disabled={!hayConsultas}
                   title={hayConsultas ? "Crear diagnóstico" : "Primero registrá una consulta"}
-                  className={`rounded-lg px-4 py-2 text-sm font-medium border ${
+                  className={`rounded-lg px-4 py-2 text-sm font-medium border shadow-sm ${
                     hayConsultas
                       ? "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
                       : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
@@ -254,11 +251,13 @@ export default function HistorialPacientePage() {
               </div>
             }
           >
-            <ConsultasTable
-              data={consultas}
-              dxByConsulta={dxPorConsulta}
-              getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
-            />
+            <Panel>
+              <ConsultasTable
+                data={consultas}
+                dxByConsulta={dxPorConsulta}
+                getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+              />
+            </Panel>
           </Section>
 
           {/* Notas médicas */}
@@ -268,17 +267,19 @@ export default function HistorialPacientePage() {
             right={
               <button
                 onClick={() => setOpenNota(true)}
-                className="rounded-lg bg-white px-4 py-2 text-sm font-medium border hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
                 title="Registrar nota médica (evolución, indicación, etc.)"
               >
                 Nueva nota
               </button>
             }
           >
-            <NotasMedicasTable
-              data={notas}
-              getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
-            />
+            <Panel>
+              <NotasMedicasTable
+                data={notas}
+                getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+              />
+            </Panel>
           </Section>
 
           {/* Tratamientos */}
@@ -288,23 +289,25 @@ export default function HistorialPacientePage() {
             right={
               <button
                 onClick={() => setOpenTrat(true)}
-                className="inline-flex items-center gap-2 self-start rounded-lg bg-cyan-50 text-cyan-700 px-4 py-2 text-sm font-medium border border-cyan-200 hover:bg-cyan-100"
+                className="inline-flex items-center gap-2 self-start rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-100"
               >
                 Asignar tratamiento
               </button>
             }
           >
-            <TratamientosTable
-              data={tratamientos}
-              onChangeEstado={async ({ id, estado }) => {
-                await cambiarEstadoTrat({ id, estado });
-              }}
-            />
+            <Panel>
+              <TratamientosTable
+                data={tratamientos}
+                onChangeEstado={async ({ id, estado }) => {
+                  await cambiarEstadoTrat({ id, estado });
+                }}
+              />
+            </Panel>
           </Section>
         </main>
       </div>
 
-      {/* Modales */}
+      {/* Modales (sin cambios) */}
       <NuevaConsultaModal
         open={openConsulta}
         onClose={() => setOpenConsulta(false)}
