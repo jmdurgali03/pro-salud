@@ -55,9 +55,6 @@ export function PacientesTable({
                       {paciente.nombre} {paciente.apellido}
                     </div>
                     <div className="text-xs text-gray-500 mt-1">DNI: {paciente.dni || "—"}</div>
-                    <div className="text-xs text-gray-500 mt-0.5">
-                      Género: {paciente.genero ?? "—"}
-                    </div>
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700 align-top">
                     {paciente.email || "—"}
@@ -196,7 +193,7 @@ function ActionsMenu({ onView, onEdit, onDelete }: ActionsMenuProps) {
             <Edit2 className="w-4 h-4" />
             Editar datos
           </button>
-          
+
         </div>
       )}
     </div>
