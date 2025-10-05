@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useMemo } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
@@ -26,34 +27,108 @@ import {
 } from "recharts";
 
 export default function GerenteDashboardPage() {
-  // ✅ Consultas
-  const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
-  const profesionales = useQuery(api.profesionales.listar, {}) ?? [];
-  const obrasSociales = useQuery(api.obrasSociales.listar, {}) ?? [];
-  const turnos = useQuery(api.turnos.listar, {}) ?? [];
+  // 📆 Mes solo para indicadores de actividad
+  const [mesSeleccionado, setMesSeleccionado] = useState(() => {
+    const ahora = new Date();
+    return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}`;
+  });
 
-  // ✅ Datos simulados de ejemplo (puedes reemplazar con tus queries)
-  const turnosPorEspecialidad = [
-    { nombre: "Cardiología", turnos: 45 },
-    { nombre: "Pediatría", turnos: 28 },
-    { nombre: "Dermatología", turnos: 18 },
-    { nombre: "Traumatología", turnos: 22 },
-  ];
+  // 📊 Consultas reales
+  const pacientes = useQuery(api.pacientes.listar, { search: "" }) ?? [];
+  const profesionales = useQuery(api.profesionales.listar) ?? [];
+  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+  const turnos = useQuery(api.turnos.listar) ?? [];
 
-  const obrasPorUso = [
-    { nombre: "IPS", valor: 40 },
-    { nombre: "OSDE", valor: 25 },
-    { nombre: "Swiss Medical", valor: 20 },
-    { nombre: "Sancor Salud", valor: 15 },
-  ];
+  // 🔹 Canon de especialidades para que la barra muestre SOLO las que existen
+  const especialidades = useQuery(api.especialidades.listar) ?? [];
 
-  const COLORS = ["#3B82F6", "#22C55E", "#EAB308", "#EC4899"];
+  // 🔹 Nueva query: pacientes únicos por obra social (para torta)
+const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? [];
+
+  const COLORS = ["#3B82F6", "#22C55E", "#EAB308", "#EC4899", "#14B8A6", "#8B5CF6"];
+
+  /* -----------------------------
+     📈 Indicadores filtrados por mes
+  ------------------------------ */
+  const indicadores = useMemo(() => {
+    const [anio, mes] = mesSeleccionado.split("-").map(Number);
+
+    const turnosMes = turnos.filter((t) => {
+      const fecha = new Date(t.start);
+      return fecha.getFullYear() === anio && fecha.getMonth() + 1 === mes;
+    });
+
+    const total = turnosMes.length;
+    const confirmados = turnosMes.filter((t) => t.estado === "Confirmado").length;
+    const cancelados = turnosMes.filter((t) => t.estado === "Cancelado").length;
+
+    const porcentajeConfirmados = total ? ((confirmados / total) * 100).toFixed(1) : 0;
+    const porcentajeCancelados = total ? ((cancelados / total) * 100).toFixed(1) : 0;
+
+    // Promedio de turnos por día (redondeado hacia arriba)
+    const diasUnicos = new Set(turnosMes.map((t) => new Date(t.start).toDateString()));
+    const promedioDia = diasUnicos.size ? Math.ceil(total / diasUnicos.size) : 0;
+
+    // Top especialidades del mes (usa el nombre de la especialidad real)
+    const conteoEspecialidades: Record<string, number> = {};
+    for (const t of turnosMes) {
+      const nombre = (t as any).especialidadNombre;
+      if (!nombre) continue;
+      conteoEspecialidades[nombre] = (conteoEspecialidades[nombre] || 0) + 1;
+    }
+    const topEspecialidades = Object.entries(conteoEspecialidades)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([nombre]) => nombre);
+
+    return {
+      total,
+      confirmados,
+      cancelados,
+      porcentajeConfirmados,
+      porcentajeCancelados,
+      promedioDia,
+      topEspecialidades,
+    };
+  }, [turnos, mesSeleccionado]);
+
+  /* -----------------------------
+     📊 Turnos por especialidad (DINÁMICO y CANÓNICO)
+     - Usa especialidadNombre del turno
+     - Muestra SOLO las especialidades existentes en el sistema
+  ------------------------------ */
+  const turnosPorEspecialidad = useMemo(() => {
+    if (!especialidades.length) {
+      // Fallback: si aún no cargó la lista, contamos por lo que venga en los turnos
+      const conteo: Record<string, number> = {};
+      for (const t of turnos) {
+        const nombre = (t as any).especialidadNombre;
+        if (!nombre) continue;
+        conteo[nombre] = (conteo[nombre] || 0) + 1;
+      }
+      return Object.entries(conteo).map(([nombre, turnos]) => ({ nombre, turnos }));
+    }
+
+    // Inicializo con 0 para que salgan todas (Cardiología, Traumatología, Urología, Ginecología, Dermatología, etc.)
+    const conteo = new Map<string, number>();
+    for (const e of especialidades) conteo.set(e.nombre, 0);
+
+    // Sumo por la especialidad REAL del turno
+    for (const t of turnos) {
+      const nombre = (t as any).especialidadNombre;
+      if (nombre && conteo.has(nombre)) {
+        conteo.set(nombre, (conteo.get(nombre) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(conteo.entries()).map(([nombre, turnos]) => ({ nombre, turnos }));
+  }, [turnos, especialidades]);
 
   return (
     <PageWrapper
       breadcrumbs={[
         { label: "Inicio", href: "/gerente" },
-        { label: "Reportes", href: "/gerente/reportes" }
+        { label: "Reportes", href: "/gerente/reportes" },
       ]}
     >
       <div className="w-full px-8 py-10 space-y-8">
@@ -61,93 +136,123 @@ export default function GerenteDashboardPage() {
         <div>
           <div className="flex items-center gap-3 mb-3">
             <div className="w-1.5 h-8 bg-gradient-to-b from-blue-500 to-sky-500 rounded-full"></div>
-            <h1 className="text-4xl font-bold text-gray-900">
-              Panel de Control del Gerente
-            </h1>
+            <h1 className="text-4xl font-bold text-gray-900">Panel de Control del Gerente</h1>
           </div>
           <p className="text-gray-600 text-lg ml-5">
             Visualiza el estado general de la institución y el desempeño de las áreas.
           </p>
         </div>
 
-        {/* KPIs */}
+        {/* KPIs Generales */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          <KPI
-            icon={<Users className="w-6 h-6 text-blue-500" />}
-            title="Pacientes activos"
-            value={pacientes.length}
-          />
-          <KPI
-            icon={<BriefcaseMedical className="w-6 h-6 text-green-500" />}
-            title="Profesionales activos"
-            value={profesionales.length}
-          />
-          <KPI
-            icon={<CalendarDays className="w-6 h-6 text-amber-500" />}
-            title="Turnos registrados"
-            value={turnos.length}
-          />
-          <KPI
-            icon={<Activity className="w-6 h-6 text-rose-500" />}
-            title="Obras Sociales"
-            value={obrasSociales.length}
-          />
+          <KPI icon={<Users className="w-6 h-6 text-blue-500" />} title="Pacientes activos" value={pacientes.length} />
+          <KPI icon={<BriefcaseMedical className="w-6 h-6 text-green-500" />} title="Profesionales activos" value={profesionales.length} />
+          <KPI icon={<CalendarDays className="w-6 h-6 text-amber-500" />} title="Turnos registrados" value={turnos.length} />
+          <KPI icon={<Activity className="w-6 h-6 text-rose-500" />} title="Obras Sociales" value={obrasSociales.length} />
         </div>
 
-        {/* Gráficos */}
+        {/* Gráficos Generales */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Turnos por especialidad */}
+          {/* Turnos por especialidad (usa solo las reales) */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <Stethoscope className="w-5 h-5 text-blue-600" /> Turnos por Especialidad
             </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={turnosPorEspecialidad}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="nombre" />
-                <YAxis />
-                <Tooltip />
-                <Bar dataKey="turnos" fill="#3B82F6" radius={[4, 4, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
+            {turnosPorEspecialidad.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+  <BarChart data={turnosPorEspecialidad}>
+    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+    <XAxis
+      dataKey="nombre"
+      tick={turnosPorEspecialidad.length <= 5} // ✅ muestra nombres solo si hay 5 o menos
+      interval={0}
+      angle={turnosPorEspecialidad.length > 5 ? 0 : -15} // leve inclinación si hay pocos
+      textAnchor="end"
+    />
+    <YAxis allowDecimals={false} />
+    <Tooltip
+      formatter={(value: number) => [`Turnos: ${value}`, "Cantidad"]}
+      labelFormatter={(label: string) => `Especialidad: ${label}`}
+    />
+    <Bar dataKey="turnos" radius={[4, 4, 0, 0]}>
+      {turnosPorEspecialidad.map((_, index) => {
+        // 🎨 Paleta de colores intercalados
+        const colors = [
+          "#3B82F6", // azul
+          "#22C55E", // verde
+          "#EAB308", // amarillo
+          "#EC4899", // rosa
+          "#14B8A6", // turquesa
+          "#8B5CF6", // violeta
+          "#F97316", // naranja
+          "#06B6D4", // celeste
+        ];
+        return <Cell key={`bar-${index}`} fill={colors[index % colors.length]} />;
+      })}
+    </Bar>
+  </BarChart>
+</ResponsiveContainer>
+            ) : (
+              <p className="text-gray-500 text-center">No hay datos disponibles.</p>
+            )}
           </div>
 
-          {/* Distribución por obra social */}
+          {/* Distribución por obra social (PACIENTES ÚNICOS) */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <HeartPulse className="w-5 h-5 text-rose-600" /> Distribución por Obras Sociales
             </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={obrasPorUso}
-                  dataKey="valor"
-                  nameKey="nombre"
-                  cx="50%"
-                  cy="50%"
-                  outerRadius={100}
-                  label
-                >
-                  {obrasPorUso.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
+            {obrasPorUso.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={obrasPorUso}
+                    dataKey="valor"
+                    nameKey="nombre"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {obrasPorUso.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-500 text-center">No hay datos disponibles.</p>
+            )}
           </div>
         </div>
 
-        {/* Indicadores adicionales */}
+        {/* Indicadores de Actividad con filtro mensual */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <TrendingUp className="w-5 h-5 text-green-600" /> Indicadores de Actividad
-          </h2>
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <TrendingUp className="w-5 h-5 text-green-600" /> Indicadores de Actividad
+            </h2>
+            <input
+              type="month"
+              value={mesSeleccionado}
+              onChange={(e) => setMesSeleccionado(e.target.value)}
+              className="border border-gray-300 rounded-md px-3 py-1 text-gray-800"
+            />
+          </div>
+
           <ul className="space-y-3 text-gray-700">
-            <li>✅ <b>90%</b> de los turnos del mes fueron confirmados.</li>
-            <li>🚫 <b>7%</b> de ausencias o cancelaciones.</li>
-            <li>🕒 Tiempo promedio de espera: <b>12 minutos</b>.</li>
-            <li>💬 Especialidades con mayor demanda: <b>Cardiología</b> y <b>Pediatría</b>.</li>
+            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> de turnos confirmados en {mesSeleccionado}.</li>
+            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> de turnos cancelados en {mesSeleccionado}.</li>
+            <li>📅 Cantidad promedio de turnos por día: <b>{indicadores.promedioDia}</b>.</li>
+            <li>
+              💬 Especialidades con mayor demanda:{" "}
+              {indicadores.topEspecialidades.length > 0 ? (
+                <b>{indicadores.topEspecialidades.join(" y ")}</b>
+              ) : (
+                "Sin datos."
+              )}
+            </li>
           </ul>
         </div>
       </div>

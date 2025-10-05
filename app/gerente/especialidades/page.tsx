@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
@@ -28,6 +28,31 @@ export default function EspecialidadesPage() {
     const term = busqueda.toLowerCase();
     return especialidades.filter((e) => e.nombre.toLowerCase().includes(term));
   }, [busqueda, especialidades]);
+
+  // 🔢 PAGINACIÓN: mostrar solo 6 especialidades por página
+  const [paginaActual, setPaginaActual] = useState(1);
+  const porPagina = 6;
+  const totalPaginas = Math.ceil(especialidadesFiltradas.length / porPagina);
+
+  const especialidadesPagina = useMemo(() => {
+    const start = (paginaActual - 1) * porPagina;
+    return especialidadesFiltradas.slice(start, start + porPagina);
+  }, [paginaActual, especialidadesFiltradas]);
+
+  const siguientePagina = () => {
+    if (paginaActual < totalPaginas) setPaginaActual(paginaActual + 1);
+  };
+
+  const anteriorPagina = () => {
+    if (paginaActual > 1) setPaginaActual(paginaActual - 1);
+  };
+
+  // ✅ Evita quedar atrapado en una página vacía después de eliminar
+  useEffect(() => {
+    if (paginaActual > totalPaginas && totalPaginas > 0) {
+      setPaginaActual(totalPaginas);
+    }
+  }, [paginaActual, totalPaginas]);
 
   // ➕ Crear nueva especialidad
   const handleCrear = async () => {
@@ -89,7 +114,10 @@ export default function EspecialidadesPage() {
           <Search className="text-gray-400 w-5 h-5" />
           <input
             value={busqueda}
-            onChange={(e) => setBusqueda(e.target.value)}
+            onChange={(e) => {
+              setBusqueda(e.target.value);
+              setPaginaActual(1); // resetear a la página 1 al buscar
+            }}
             placeholder="Buscar especialidad..."
             className="w-full outline-none text-sm"
           />
@@ -105,7 +133,7 @@ export default function EspecialidadesPage() {
               </tr>
             </thead>
             <tbody>
-              {especialidadesFiltradas.map((esp) => (
+              {especialidadesPagina.map((esp) => (
                 <tr
                   key={esp._id.toString()}
                   className="border-t hover:bg-gray-50 transition-all"
@@ -150,7 +178,7 @@ export default function EspecialidadesPage() {
                   </td>
                 </tr>
               ))}
-              {especialidadesFiltradas.length === 0 && (
+              {especialidadesPagina.length === 0 && (
                 <tr>
                   <td
                     colSpan={2}
@@ -163,6 +191,39 @@ export default function EspecialidadesPage() {
             </tbody>
           </table>
         </div>
+
+        {/* 🔸 Controles de paginación */}
+        {totalPaginas > 1 && (
+          <div className="flex justify-center items-center gap-4 mt-4">
+            <button
+              onClick={anteriorPagina}
+              disabled={paginaActual === 1}
+              className={`px-4 py-2 border rounded-lg transition ${
+                paginaActual === 1
+                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "text-gray-700 border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              ← Anterior
+            </button>
+
+            <span className="text-gray-600">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+
+            <button
+              onClick={siguientePagina}
+              disabled={paginaActual === totalPaginas}
+              className={`px-4 py-2 border rounded-lg transition ${
+                paginaActual === totalPaginas
+                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
+                  : "text-gray-700 border-gray-300 hover:bg-gray-100"
+              }`}
+            >
+              Siguiente →
+            </button>
+          </div>
+        )}
 
         {/* Toast */}
         {toast && (
