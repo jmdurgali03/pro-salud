@@ -72,34 +72,6 @@ export function AppSidebar({ links, panelName, ...props }: AppSidebarProps) {
             <span className="text-xs text-slate-500">{panelName}</span>
           </div>
         </div>
-
-        {/* 🔹 Bloque informativo del profesional */}
-        {profesional && (
-          <div className="mt-4 w-full rounded-xl border border-blue-100 bg-blue-50/70 p-3 shadow-sm">
-            <div className="flex items-center gap-3">
-              <UserButton
-                appearance={{
-                  elements: {
-                    avatarBox: "w-10 h-10 rounded-full ring-2 ring-blue-200",
-                  },
-                }}
-              />
-              <div className="text-sm leading-tight">
-                <p className="font-semibold text-gray-800">
-                  Dr. {profesional.nombre} {profesional.apellido}
-                </p>
-                <p className="flex items-center gap-1 text-xs text-blue-700">
-                  <Stethoscope className="h-3 w-3" />{" "}
-                  {profesional.especialidadNombre || "Sin especialidad"}
-                </p>
-                <p className="flex items-center gap-1 text-xs text-gray-500 truncate">
-                  <Mail className="h-3 w-3" />{" "}
-                  {profesional.contacto || "Sin contacto"}
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
       </SidebarHeader>
 
       {/* Links principales */}
@@ -113,26 +85,23 @@ export function AppSidebar({ links, panelName, ...props }: AppSidebarProps) {
                   <Link
                     href={href}
                     className={`flex items-center gap-4 px-5 py-4 rounded-xl transition-all duration-200 group
-                      ${
-                        isActive
-                          ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-[1.02]"
-                          : "text-gray-700 hover:bg-gray-100 hover:scale-[1.01]"
+                      ${isActive
+                        ? "bg-gradient-to-r from-blue-500 to-blue-600 text-white shadow-lg shadow-blue-500/30 scale-[1.02]"
+                        : "text-gray-700 hover:bg-gray-100 hover:scale-[1.01]"
                       }
                     `}
                   >
                     <Icon
                       size={24}
                       strokeWidth={2.5}
-                      className={`transition-transform duration-200 ${
-                        isActive
-                          ? "text-white"
-                          : "text-gray-500 group-hover:text-blue-600 group-hover:scale-110"
-                      }`}
+                      className={`transition-transform duration-200 ${isActive
+                        ? "text-white"
+                        : "text-gray-500 group-hover:text-blue-600 group-hover:scale-110"
+                        }`}
                     />
                     <span
-                      className={`text-base font-semibold ${
-                        isActive ? "text-white" : ""
-                      }`}
+                      className={`text-base font-semibold ${isActive ? "text-white" : ""
+                        }`}
                     >
                       {label}
                     </span>
@@ -146,10 +115,45 @@ export function AppSidebar({ links, panelName, ...props }: AppSidebarProps) {
 
       {/* Footer con user y logout */}
       <div className="mt-auto border-t border-gray-200/60 bg-white/50 backdrop-blur-sm">
-        <div className="p-4 flex flex-col gap-3">
-          <div className="flex justify-center p-2">
-            <UserButton />
+        <div className="flex flex-col gap-3 p-3">
+          {/* 🔹 Bloque informativo del profesional */}
+          <div>
+            {profesional && (
+              <div className="w-full pb-3">
+                <div className="w-full rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                  <div className="flex items-start gap-3">
+                    <div className="flex-shrink-0">
+                      <UserButton
+                        appearance={{
+                          elements: {
+                            avatarBox: "w-10 h-10 rounded-full ring-2 ring-blue-500/20",
+                          },
+                        }}
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <p className="font-semibold text-sm text-gray-900 truncate">
+                        Dr. {profesional.nombre} {profesional.apellido}
+                      </p>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                        <Stethoscope className="h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
+                        <span className="truncate">
+                          {profesional.especialidadNombre || "Sin especialidad"}
+                        </span>
+                      </div>
+                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                        <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                        <span className="truncate">
+                          {profesional.contacto || "Sin contacto"}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
           </div>
+
           <AlertDialog>
             <AlertDialogTrigger asChild>
               <Button

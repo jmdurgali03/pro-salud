@@ -39,17 +39,17 @@ export default function CalendarioPage() {
   const [selectedTurno, setSelectedTurno] = useState<TurnoConJoin | null>(null);
 
   // 🔹 Buscar el profesional asociado al Clerk User
- const profesional = useQuery(api.profesionales.getByClerkUser, {
-  clerkUserId: user?.id ?? "",
-});
+  const profesional = useQuery(api.profesionales.getByClerkUser, {
+    clerkUserId: user?.id ?? "",
+  });
 
 
   // 🔹 Traer turnos SOLO de ese profesional (ejecución segura)
-const turnos =
-  useQuery(
-    api.turnos.listarConNombres,
-    profesional?._id ? { profesionalId: profesional._id } : "skip"
-  ) ?? [];
+  const turnos =
+    useQuery(
+      api.turnos.listarConNombres,
+      profesional?._id ? { profesionalId: profesional._id } : "skip"
+    ) ?? [];
   // ---- Calcular días y semanas para el calendario
   const days = useMemo(() => getDaysInMonth(currentDate), [currentDate]);
   const weeks = useMemo(() => {
@@ -99,25 +99,13 @@ const turnos =
 
   return (
     <>
-      <AppSidebar
-        panelName="Panel Profesional"
-        links={[
-       
-  { href: "/profesional", label: "Inicio", icon: Home },
-  { href: "/profesional/cal-turnos", label: "Turnos", icon: Calendar },
-  { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
-  { href: "/profesional/historias", label: "Historias Clínicas", icon: NotepadTextDashed },
-
-        ]}
-      />
-
       <PageWrapper
         breadcrumbs={[
           { label: "Inicio", href: "/profesional" },
           { label: "Calendario", href: "/profesional/cal-turnos" },
         ]}
       >
-        <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-pink-50 p-6">
+        <div className="min-h-screen p-6">
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-7xl mx-auto">
             <CalendarioHeader
               currentDate={currentDate}
