@@ -12,6 +12,13 @@ import Modal, {
 
 type Consulta = { _id: string; fecha: number; motivo: string; profesionalId: string };
 
+// Helpers: fecha local → "YYYY-MM-DD" para <input type="date">
+function todayDateInput(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function NuevoDiagnosticoModal({
   open,
   onClose,
@@ -36,7 +43,7 @@ export default function NuevoDiagnosticoModal({
   const [consultaId, setConsultaId] = useState<string>("");
   const [profesionalId, setProfesionalId] = useState<string>("");
   const [estado, setEstado] = useState<"Presuntivo" | "Definitivo">("Presuntivo");
-  const [fecha, setFecha] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [fecha, setFecha] = useState<string>(todayDateInput());
   const [descripcion, setDescripcion] = useState("");
 
   const canSave = consultaId && profesionalId && descripcion.trim().length > 2;
@@ -63,12 +70,14 @@ export default function NuevoDiagnosticoModal({
 
   const save = async () => {
     if (!canSave) return;
+    // fecha (YYYY-MM-DD) -> ms
+    const ms = fecha ? new Date(fecha + "T00:00").getTime() : undefined;
     await onSubmit({
       consultaId,
       profesionalId,
       estado,
       descripcion: descripcion.trim(),
-      fecha: new Date(fecha).getTime(),
+      fecha: ms,
     });
     setConsultaId("");
     setProfesionalId("");
@@ -136,8 +145,11 @@ export default function NuevoDiagnosticoModal({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Fecha <span className="text-gray-400">(dd/mm/aaaa)</span>
+          </label>
           <input
+            lang="es-AR"
             type="date"
             className={inputBase}
             value={fecha}

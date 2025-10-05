@@ -12,6 +12,13 @@ import Modal, {
 
 type Estado = "Activo" | "Suspendido" | "Finalizado";
 
+// Helpers: fecha local → "YYYY-MM-DD"
+function todayDateInput(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
 export default function NuevoTratamientoModal({
   open,
   onClose,
@@ -32,8 +39,9 @@ export default function NuevoTratamientoModal({
 }) {
   const [titulo, setTitulo] = useState("");
   const [profesional, setProfesional] = useState("");
-  const [fechaInicio, setFechaInicio] = useState<string>(() => new Date().toISOString().slice(0, 10));
+  const [fechaInicio, setFechaInicio] = useState<string>(todayDateInput());
   const [fechaFin, setFechaFin] = useState<string>("");
+  const [finActivo, setFinActivo] = useState<boolean>(false); // <-- para controlar el placeholder/selector
   const [estado, setEstado] = useState<Estado>("Activo");
   const [cronico, setCronico] = useState(false);
   const [indicaciones, setIndicaciones] = useState("");
@@ -43,12 +51,15 @@ export default function NuevoTratamientoModal({
 
   const save = async () => {
     if (!canSave) return;
+    const inicioMs = fechaInicio ? new Date(fechaInicio + "T00:00").getTime() : undefined;
+    const finMs = fechaFin ? new Date(fechaFin + "T00:00").getTime() : undefined;
+
     await onSubmit({
       titulo: titulo.trim(),
       profesional: profesional.trim(),
       indicaciones: indicaciones.trim(),
-      fechaInicio: new Date(fechaInicio).getTime(),
-      fechaFin: fechaFin ? new Date(fechaFin).getTime() : undefined,
+      fechaInicio: inicioMs,
+      fechaFin: finMs,
       estado,
       cronico: cronico || undefined,
       notas: notas.trim() || undefined,
@@ -58,6 +69,8 @@ export default function NuevoTratamientoModal({
     setIndicaciones("");
     setNotas("");
     setCronico(false);
+    setFechaFin("");
+    setFinActivo(false);
   };
 
   return (
@@ -97,8 +110,11 @@ export default function NuevoTratamientoModal({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de inicio</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Fecha de inicio 
+          </label>
           <input
+            lang="es-AR"
             type="date"
             className={inputBase}
             value={fechaInicio}
@@ -108,12 +124,22 @@ export default function NuevoTratamientoModal({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            Fecha estimada de fin <span className="text-gray-400">(opcional)</span>
+            Fecha de fin 
           </label>
+
+          {/* Truco: placeholder humano cuando está vacío */}
           <input
-            type="date"
+            lang="es-AR"
+            type={finActivo ? "date" : "text"}
+            placeholder="dd/mm/aaaa"
+            inputMode="numeric"
             className={inputBase}
             value={fechaFin}
+            onFocus={() => setFinActivo(true)}
+            onBlur={(e) => {
+              // si quedó vacío, volvemos a mostrar el placeholder en español
+              if (!e.currentTarget.value) setFinActivo(false);
+            }}
             onChange={(e) => setFechaFin(e.target.value)}
           />
         </div>
@@ -152,7 +178,6 @@ export default function NuevoTratamientoModal({
             value={indicaciones}
             onChange={(e) => setIndicaciones(e.target.value)}
           />
-
         </div>
 
         <div className="sm:col-span-2">

@@ -17,6 +17,15 @@ type Categoria =
   | "Epicrisis"
   | "Administrativa";
 
+// Helpers: ahora local → "YYYY-MM-DDTHH:MM" para <input type="datetime-local">
+function nowDateTimeLocal(): string {
+  const d = new Date();
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
+    d.getHours()
+  )}:${pad(d.getMinutes())}`;
+}
+
 export default function NuevaNotaMedicaModal({
   open,
   onClose,
@@ -41,7 +50,7 @@ export default function NuevaNotaMedicaModal({
   getProfesionalNombre: (id: any) => string;
 }) {
   const [profesionalId, setProfesionalId] = useState<string>("");
-  const [fecha, setFecha] = useState<string>(() => new Date().toISOString().slice(0, 16));
+  const [fecha, setFecha] = useState<string>(nowDateTimeLocal());
   const [categoria, setCategoria] = useState<Categoria>("Evolución");
   const [consultaId, setConsultaId] = useState<string>("");
   const [visibilidad, setVisibilidad] = useState<"Equipo" | "Privada">("Equipo");
@@ -72,10 +81,11 @@ export default function NuevaNotaMedicaModal({
 
   const save = async () => {
     if (!canSave) return;
+    const ms = fecha ? new Date(fecha).getTime() : undefined;
     await onSubmit({
       profesionalId,
       consultaId: consultaId || undefined,
-      fecha: new Date(fecha).getTime(),
+      fecha: ms,
       categoria,
       visibilidad,
       titulo: titulo.trim() || undefined,
@@ -120,9 +130,13 @@ export default function NuevaNotaMedicaModal({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Fecha y hora 
+          </label>
           <input
+            lang="es-AR"
             type="datetime-local"
+            step={60}
             className={inputBase}
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
@@ -136,17 +150,13 @@ export default function NuevaNotaMedicaModal({
             value={categoria}
             onChange={(e) => setCategoria(e.target.value as Categoria)}
           >
-            {[
-              "Evolución",
-              "Indicación",
-              "Interconsulta",
-              "Epicrisis",
-              "Administrativa",
-            ].map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
+            {["Evolución", "Indicación", "Interconsulta", "Epicrisis", "Administrativa"].map(
+              (c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              )
+            )}
           </select>
         </div>
 
@@ -186,30 +196,6 @@ export default function NuevaNotaMedicaModal({
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
           />
-        </div>
-
-        <div className="sm:col-span-2">
-          <label className="mb-2 block text-sm font-medium text-gray-700">Visibilidad</label>
-          <div className="flex gap-4">
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="radio"
-                className="h-4 w-4 accent-emerald-600"
-                checked={visibilidad === "Equipo"}
-                onChange={() => setVisibilidad("Equipo")}
-              />
-              Equipo
-            </label>
-            <label className="inline-flex items-center gap-2 text-sm text-gray-700">
-              <input
-                type="radio"
-                className="h-4 w-4 accent-emerald-600"
-                checked={visibilidad === "Privada"}
-                onChange={() => setVisibilidad("Privada")}
-              />
-              Privada
-            </label>
-          </div>
         </div>
       </div>
     </Modal>
