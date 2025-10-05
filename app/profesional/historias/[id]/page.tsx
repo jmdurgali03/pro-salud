@@ -247,10 +247,10 @@ export default function HistorialPacientePage() {
             setPageTrat(1);
           }}
           items={[
-            { key: "resumen", label: "Resumen", icon: LayoutGrid, helper: "Todo" },
-            { key: "consultas", label: "Consultas", icon: Stethoscope, helper: "Sólo consultas" },
-            { key: "notas", label: "Notas médicas", icon: NotebookText, helper: "Sólo notas" },
-            { key: "tratamientos", label: "Tratamientos", icon: Pill, helper: "Sólo tratamientos" },
+            { key: "resumen", label: "Resumen", icon: LayoutGrid},
+            { key: "consultas", label: "Consultas", icon: Stethoscope },
+            { key: "notas", label: "Notas médicas", icon: NotebookText },
+            { key: "tratamientos", label: "Tratamientos", icon: Pill},
           ]}
         />
       </div>
