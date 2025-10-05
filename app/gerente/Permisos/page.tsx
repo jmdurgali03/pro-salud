@@ -58,23 +58,23 @@ export default function PermisosPage() {
 
   /* -------------------- ACTUALIZAR ROL -------------------- */
   const handleActualizarRol = async (
-  id: Id<"users">,
-  role: "paciente" | "profesional" | "recepcionista" | "gerente"
-) => {
-  try {
-    await actualizarRol({ id, role });
-    setToast({ mensaje: " Rol actualizado correctamente", tipo: "success" });
-    setRoles((prev) => {
-      const nuevo = { ...prev };
-      delete nuevo[id.toString()];
-      return nuevo;
-    });
-    setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
-  } catch (err) {
-    setToast({ mensaje: "❌ Error al actualizar rol", tipo: "error" });
-    setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
-  }
-};
+    id: Id<"users">,
+    role: "paciente" | "profesional" | "recepcionista" | "gerente"
+  ) => {
+    try {
+      await actualizarRol({ id, role });
+      setToast({ mensaje: " Rol actualizado correctamente", tipo: "success" });
+      setRoles((prev) => {
+        const nuevo = { ...prev };
+        delete nuevo[id.toString()];
+        return nuevo;
+      });
+      setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
+    } catch (err) {
+      setToast({ mensaje: "❌ Error al actualizar rol", tipo: "error" });
+      setTimeout(() => setToast({ mensaje: "", tipo: null }), 3000);
+    }
+  };
 
 
   /* -------------------- ELIMINAR USUARIO -------------------- */
@@ -100,9 +100,9 @@ export default function PermisosPage() {
       <div className="w-full px-10 py-10 space-y-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-8 bg-gradient-to-b from-indigo-500 to-blue-500 rounded-full"></div>
+          <div className="w-1.5 h-8 bg-gradient-to-b from-amber-500 to-orange-500 rounded-full"></div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <ShieldCheck className="w-6 h-6 text-indigo-500" />
+            <ShieldCheck className="w-6 h-6 text-amber-500" />
             Gestión de Permisos
           </h1>
         </div>
@@ -139,9 +139,8 @@ export default function PermisosPage() {
                 return (
                   <tr
                     key={idStr}
-                    className={`border-t transition-all ${
-                      modificado ? "bg-blue-50" : "hover:bg-gray-50"
-                    }`}
+                    className={`border-t transition-all ${modificado ? "bg-blue-50" : "hover:bg-gray-50"
+                      }`}
                   >
                     <td className="p-4 font-medium">
                       {u.nombre} {u.apellido}
@@ -156,9 +155,8 @@ export default function PermisosPage() {
                             [idStr]: e.target.value,
                           }))
                         }
-                        className={`border rounded-md px-2 py-1 text-sm focus:ring-indigo-500 ${
-                          modificado ? "border-blue-400 bg-blue-100" : ""
-                        }`}
+                        className={`border rounded-md px-2 py-1 text-sm focus:ring-indigo-500 ${modificado ? "border-blue-400 bg-blue-100" : ""
+                          }`}
                       >
                         <option value="paciente">Paciente</option>
                         <option value="profesional">Profesional</option>
@@ -175,14 +173,13 @@ export default function PermisosPage() {
                       <button
                         disabled={!modificado}
                         onClick={() => handleActualizarRol(u._id as Id<"users">,
-                          rolActual as "paciente" | "profesional" | "recepcionista" | "gerente" )
+                          rolActual as "paciente" | "profesional" | "recepcionista" | "gerente")
                         }
 
-                        className={`px-4 py-1 rounded-lg text-sm transition-all ${
-                          modificado
-                            ? "bg-blue-600 hover:bg-blue-700 text-white shadow"
-                            : "bg-gray-200 text-gray-500 cursor-not-allowed"
-                        }`}
+                        className={`px-4 py-1 rounded-lg text-sm transition-all ${modificado
+                          ? "bg-blue-600 hover:bg-blue-700 text-white shadow"
+                          : "bg-gray-200 text-gray-500 cursor-not-allowed"
+                          }`}
                       >
                         Guardar
                       </button>
@@ -224,11 +221,10 @@ export default function PermisosPage() {
             <button
               disabled={pagina === 1}
               onClick={() => setPagina((p) => p - 1)}
-              className={`px-3 py-1 rounded-md ${
-                pagina === 1
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-gray-200 hover:bg-gray-300"
-              }`}
+              className={`px-3 py-1 rounded-md ${pagina === 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-200 hover:bg-gray-300"
+                }`}
             >
               Anterior
             </button>
@@ -238,11 +234,10 @@ export default function PermisosPage() {
             <button
               disabled={pagina === totalPaginas}
               onClick={() => setPagina((p) => p + 1)}
-              className={`px-3 py-1 rounded-md ${
-                pagina === totalPaginas
-                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                  : "bg-gray-200 hover:bg-gray-300"
-              }`}
+              className={`px-3 py-1 rounded-md ${pagina === totalPaginas
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-gray-200 hover:bg-gray-300"
+                }`}
             >
               Siguiente
             </button>
@@ -252,11 +247,10 @@ export default function PermisosPage() {
         {/* ✅ Toast de éxito / error */}
         {toast.tipo && (
           <div
-            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white animate-in fade-in slide-in-from-bottom-4 duration-500 ${
-              toast.tipo === "success"
-                ? "bg-green-600 border border-green-400"
-                : "bg-red-600 border border-red-400"
-            }`}
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white animate-in fade-in slide-in-from-bottom-4 duration-500 ${toast.tipo === "success"
+              ? "bg-green-600 border border-green-400"
+              : "bg-red-600 border border-red-400"
+              }`}
           >
             {toast.tipo === "success" ? (
               <CheckCircle2 className="w-5 h-5 text-white" />

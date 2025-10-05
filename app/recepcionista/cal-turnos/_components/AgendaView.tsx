@@ -42,19 +42,17 @@ export function AgendaView({
     <div className="flex-1 p-4 overflow-y-auto relative">
       {/* Encabezado */}
       <div
-        className={`grid ${
-          days.length === 1
+        className={`grid ${days.length === 1
             ? "grid-cols-[80px_1fr]"
             : "grid-cols-[80px_repeat(7,minmax(100px,1fr))]"
-        } border-b border-gray-200 bg-gray-50 sticky top-0 z-10`}
+          } border-b border-gray-200 bg-gray-50 sticky top-0 z-10`}
       >
         <div className="p-2 text-xs font-semibold text-gray-500 text-right pr-3">Hora</div>
         {days.map((d, idx) => (
           <div
             key={idx}
-            className={`p-2 text-xs font-semibold text-gray-700 text-center ${
-              sameDay(d, new Date()) ? "bg-emerald-100 text-emerald-800 rounded-t-md" : ""
-            }`}
+            className={`p-2 text-xs font-semibold text-gray-700 text-center ${sameDay(d, new Date()) ? "bg-emerald-100 text-emerald-800 rounded-t-md" : ""
+              }`}
           >
             {dayHeader(d)}
           </div>
@@ -63,11 +61,10 @@ export function AgendaView({
 
       {/* Cuerpo principal */}
       <div
-        className={`grid ${
-          days.length === 1
+        className={`grid ${days.length === 1
             ? "grid-cols-[80px_1fr]"
             : "grid-cols-[80px_repeat(7,minmax(120px,1fr))]"
-        } relative`}
+          } relative`}
       >
         {/* Columna de horas */}
         <div className="border-r border-gray-200 bg-gray-50">
@@ -118,10 +115,10 @@ export function AgendaView({
                         minute: "2-digit",
                         hour12: false,
                       })} a ${end.toLocaleTimeString("es-AR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
-                    })}`}
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })}`}
                   >
                     <div className="px-2 py-1 truncate">
                       <strong>{turno.pacienteNombre}</strong>

@@ -43,7 +43,7 @@ export default function GerenteDashboardPage() {
   const especialidades = useQuery(api.especialidades.listar) ?? [];
 
   // 🔹 Nueva query: pacientes únicos por obra social (para torta)
-const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? [];
+  const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? [];
 
   const COLORS = ["#3B82F6", "#22C55E", "#EAB308", "#EC4899", "#14B8A6", "#8B5CF6"];
 
@@ -131,16 +131,14 @@ const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? 
         { label: "Reportes", href: "/gerente/reportes" },
       ]}
     >
-      <div className="w-full px-8 py-10 space-y-8">
+      <div className="w-full px-10 py-10 space-y-8">
         {/* Header */}
-        <div>
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-1.5 h-8 bg-gradient-to-b from-blue-500 to-sky-500 rounded-full"></div>
-            <h1 className="text-4xl font-bold text-gray-900">Panel de Control del Gerente</h1>
-          </div>
-          <p className="text-gray-600 text-lg ml-5">
-            Visualiza el estado general de la institución y el desempeño de las áreas.
-          </p>
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-8 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <TrendingUp className="w-6 h-6 text-indigo-500" />
+            Panel de Control del Gerente
+          </h1>
         </div>
 
         {/* KPIs Generales */}
@@ -152,7 +150,7 @@ const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? 
         </div>
 
         {/* Gráficos Generales */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Turnos por especialidad (usa solo las reales) */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -160,40 +158,33 @@ const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? 
             </h2>
             {turnosPorEspecialidad.length > 0 ? (
               <ResponsiveContainer width="100%" height={300}>
-  <BarChart data={turnosPorEspecialidad}>
-    <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-    <XAxis
-      dataKey="nombre"
-      tick={turnosPorEspecialidad.length <= 5} // ✅ muestra nombres solo si hay 5 o menos
-      interval={0}
-      angle={turnosPorEspecialidad.length > 5 ? 0 : -15} // leve inclinación si hay pocos
-      textAnchor="end"
-    />
-    <YAxis allowDecimals={false} />
-    <Tooltip
-      formatter={(value: number) => [`Turnos: ${value}`, "Cantidad"]}
-      labelFormatter={(label: string) => `Especialidad: ${label}`}
-    />
-    <Bar dataKey="turnos" radius={[4, 4, 0, 0]}>
-      {turnosPorEspecialidad.map((_, index) => {
-        // 🎨 Paleta de colores intercalados
-        const colors = [
-          "#3B82F6", // azul
-          "#22C55E", // verde
-          "#EAB308", // amarillo
-          "#EC4899", // rosa
-          "#14B8A6", // turquesa
-          "#8B5CF6", // violeta
-          "#F97316", // naranja
-          "#06B6D4", // celeste
-        ];
-        return <Cell key={`bar-${index}`} fill={colors[index % colors.length]} />;
-      })}
-    </Bar>
-  </BarChart>
-</ResponsiveContainer>
+                <BarChart data={turnosPorEspecialidad}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis
+                    dataKey="nombre"
+                    tick={turnosPorEspecialidad.length <= 5}
+                    interval={0}
+                    angle={turnosPorEspecialidad.length > 5 ? 0 : -15}
+                    textAnchor="end"
+                  />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip
+                    formatter={(value: number) => [`Turnos: ${value}`, "Cantidad"]}
+                    labelFormatter={(label: string) => `Especialidad: ${label}`}
+                  />
+                  <Bar dataKey="turnos" radius={[4, 4, 0, 0]}>
+                    {turnosPorEspecialidad.map((_, index) => {
+                      const colors = [
+                        "#3B82F6", "#22C55E", "#EAB308", "#EC4899",
+                        "#14B8A6", "#8B5CF6", "#F97316", "#06B6D4",
+                      ];
+                      return <Cell key={`bar-${index}`} fill={colors[index % colors.length]} />;
+                    })}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
             ) : (
-              <p className="text-gray-500 text-center">No hay datos disponibles.</p>
+              <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
             )}
           </div>
 
@@ -222,7 +213,7 @@ const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? 
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-gray-500 text-center">No hay datos disponibles.</p>
+              <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
             )}
           </div>
         </div>
@@ -237,21 +228,33 @@ const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? 
               type="month"
               value={mesSeleccionado}
               onChange={(e) => setMesSeleccionado(e.target.value)}
-              className="border border-gray-300 rounded-md px-3 py-1 text-gray-800"
+              className="border border-gray-200 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
             />
           </div>
 
-          <ul className="space-y-3 text-gray-700">
-            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> de turnos confirmados en {mesSeleccionado}.</li>
-            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> de turnos cancelados en {mesSeleccionado}.</li>
-            <li>📅 Cantidad promedio de turnos por día: <b>{indicadores.promedioDia}</b>.</li>
-            <li>
-              💬 Especialidades con mayor demanda:{" "}
-              {indicadores.topEspecialidades.length > 0 ? (
-                <b>{indicadores.topEspecialidades.join(" y ")}</b>
-              ) : (
-                "Sin datos."
-              )}
+          <ul className="space-y-3 text-sm text-gray-700">
+            <li className="flex items-start gap-2">
+              <span className="text-green-600 font-semibold">✅</span>
+              <span><b>{indicadores.porcentajeConfirmados}%</b> de turnos confirmados en {mesSeleccionado}.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-red-600 font-semibold">🚫</span>
+              <span><b>{indicadores.porcentajeCancelados}%</b> de turnos cancelados en {mesSeleccionado}.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-blue-600 font-semibold">📅</span>
+              <span>Cantidad promedio de turnos por día: <b>{indicadores.promedioDia}</b>.</span>
+            </li>
+            <li className="flex items-start gap-2">
+              <span className="text-purple-600 font-semibold">💬</span>
+              <span>
+                Especialidades con mayor demanda:{" "}
+                {indicadores.topEspecialidades.length > 0 ? (
+                  <b>{indicadores.topEspecialidades.join(" y ")}</b>
+                ) : (
+                  "Sin datos."
+                )}
+              </span>
             </li>
           </ul>
         </div>
@@ -271,7 +274,7 @@ function KPI({
   value: number | string;
 }) {
   return (
-    <div className="flex items-center gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition">
+    <div className="flex items-center gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
       <div className="p-3 bg-gray-50 rounded-lg">{icon}</div>
       <div>
         <p className="text-gray-500 text-sm">{title}</p>

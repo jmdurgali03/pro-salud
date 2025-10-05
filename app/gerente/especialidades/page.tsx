@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Plus, Edit, Trash, Search, CheckCircle2 } from "lucide-react";
+import { Plus, Edit, Trash, Search, CheckCircle2, Stethoscope } from "lucide-react";
 
 type Especialidad = {
   _id: Id<"especialidades">;
@@ -23,15 +23,15 @@ export default function EspecialidadesPage() {
   const [editando, setEditando] = useState<Especialidad | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
-  // 🔍 Filtrar especialidades por búsqueda
+  // Filtrar especialidades por búsqueda
   const especialidadesFiltradas = useMemo(() => {
     const term = busqueda.toLowerCase();
     return especialidades.filter((e) => e.nombre.toLowerCase().includes(term));
   }, [busqueda, especialidades]);
 
-  // 🔢 PAGINACIÓN: mostrar solo 6 especialidades por página
+  // Paginación: mostrar 8 especialidades por página (consistente con otras páginas)
   const [paginaActual, setPaginaActual] = useState(1);
-  const porPagina = 6;
+  const porPagina = 8;
   const totalPaginas = Math.ceil(especialidadesFiltradas.length / porPagina);
 
   const especialidadesPagina = useMemo(() => {
@@ -47,14 +47,21 @@ export default function EspecialidadesPage() {
     if (paginaActual > 1) setPaginaActual(paginaActual - 1);
   };
 
-  // ✅ Evita quedar atrapado en una página vacía después de eliminar
+  // Evita quedar atrapado en una página vacía después de eliminar
   useEffect(() => {
     if (paginaActual > totalPaginas && totalPaginas > 0) {
       setPaginaActual(totalPaginas);
     }
   }, [paginaActual, totalPaginas]);
 
-  // ➕ Crear nueva especialidad
+  // Ocultar toast automáticamente
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
+  // Crear nueva especialidad
   const handleCrear = async () => {
     if (!nueva.trim()) return;
     await crear({ nombre: nueva.trim() });
@@ -62,7 +69,7 @@ export default function EspecialidadesPage() {
     setToast("Especialidad creada correctamente.");
   };
 
-  // ✏️ Guardar edición
+  // Guardar edición
   const handleEditar = async () => {
     if (!editando) return;
     await editar({ id: editando._id, nombre: editando.nombre.trim() });
@@ -70,7 +77,7 @@ export default function EspecialidadesPage() {
     setToast("Especialidad actualizada correctamente.");
   };
 
-  // 🗑️ Eliminar especialidad
+  // Eliminar especialidad
   const handleEliminar = async (id: Id<"especialidades">) => {
     await eliminar({ id });
     setToast("Especialidad eliminada correctamente.");
@@ -85,28 +92,12 @@ export default function EspecialidadesPage() {
     >
       <div className="w-full px-10 py-10 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-indigo-500 rounded-full"></div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Gestión de Especialidades Médicas
-            </h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={nueva}
-              onChange={(e) => setNueva(e.target.value)}
-              placeholder="Nueva especialidad..."
-              className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-indigo-500"
-            />
-            <button
-              onClick={handleCrear}
-              className="flex items-center gap-2 bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700 transition-colors"
-            >
-              <Plus size={18} /> Agregar
-            </button>
-          </div>
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-8 bg-gradient-to-b from-teal-500 to-emerald-500 rounded-full"></div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Stethoscope className="w-6 h-6 text-teal-500" />
+            Gestión de Especialidades Médicas
+          </h1>
         </div>
 
         {/* Buscador */}
@@ -116,11 +107,26 @@ export default function EspecialidadesPage() {
             value={busqueda}
             onChange={(e) => {
               setBusqueda(e.target.value);
-              setPaginaActual(1); // resetear a la página 1 al buscar
+              setPaginaActual(1);
             }}
             placeholder="Buscar especialidad..."
             className="w-full outline-none text-sm"
           />
+          <div className="flex items-center gap-2 border-l pl-3">
+            <input
+              type="text"
+              value={nueva}
+              onChange={(e) => setNueva(e.target.value)}
+              placeholder="Nueva especialidad..."
+              className="px-3 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none"
+            />
+            <button
+              onClick={handleCrear}
+              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-all text-sm font-medium whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" /> Agregar
+            </button>
+          </div>
         </div>
 
         {/* Tabla */}
@@ -145,36 +151,46 @@ export default function EspecialidadesPage() {
                         onChange={(e) =>
                           setEditando({ ...editando, nombre: e.target.value })
                         }
-                        className="border rounded-lg px-2 py-1 w-full text-sm"
+                        className="border border-teal-300 rounded-lg px-3 py-1 w-full text-sm focus:ring-2 focus:ring-teal-500 outline-none"
                       />
                     ) : (
-                      esp.nombre
+                      <span className="font-medium">{esp.nombre}</span>
                     )}
                   </td>
-                  <td className="p-4 text-center flex items-center justify-center gap-3">
-                    {editando?._id === esp._id ? (
-                      <button
-                        onClick={handleEditar}
-                        className="text-green-600 font-medium hover:underline"
-                      >
-                        Guardar
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setEditando(esp)}
-                          className="text-blue-600 font-medium hover:underline"
-                        >
-                          <Edit size={16} className="inline mr-1" /> Editar
-                        </button>
-                        <button
-                          onClick={() => handleEliminar(esp._id)}
-                          className="text-red-600 font-medium hover:underline"
-                        >
-                          <Trash size={16} className="inline mr-1" /> Eliminar
-                        </button>
-                      </>
-                    )}
+                  <td className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-3">
+                      {editando?._id === esp._id ? (
+                        <>
+                          <button
+                            onClick={handleEditar}
+                            className="text-green-600 text-sm font-medium hover:underline"
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={() => setEditando(null)}
+                            className="text-gray-600 text-sm font-medium hover:underline"
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setEditando(esp)}
+                            className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1"
+                          >
+                            <Edit className="w-4 h-4" /> Editar
+                          </button>
+                          <button
+                            onClick={() => handleEliminar(esp._id)}
+                            className="text-red-600 text-sm font-medium hover:underline flex items-center gap-1"
+                          >
+                            <Trash className="w-4 h-4" /> Eliminar
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -182,7 +198,7 @@ export default function EspecialidadesPage() {
                 <tr>
                   <td
                     colSpan={2}
-                    className="p-6 text-center text-gray-400 italic"
+                    className="p-6 text-center text-gray-400 italic text-sm"
                   >
                     No hay especialidades registradas
                   </td>
@@ -190,49 +206,45 @@ export default function EspecialidadesPage() {
               )}
             </tbody>
           </table>
+
+          {/* Paginación */}
+          {totalPaginas > 1 && (
+            <div className="flex justify-center items-center gap-3 py-4 text-sm">
+              <button
+                onClick={anteriorPagina}
+                disabled={paginaActual === 1}
+                className={`px-3 py-1 rounded-md ${paginaActual === 1
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-gray-200 hover:bg-gray-300"
+                  }`}
+              >
+                Anterior
+              </button>
+              <span>
+                Página {paginaActual} de {totalPaginas}
+              </span>
+              <button
+                onClick={siguientePagina}
+                disabled={paginaActual === totalPaginas}
+                className={`px-3 py-1 rounded-md ${paginaActual === totalPaginas
+                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                    : "bg-gray-200 hover:bg-gray-300"
+                  }`}
+              >
+                Siguiente
+              </button>
+            </div>
+          )}
         </div>
-
-        {/* 🔸 Controles de paginación */}
-        {totalPaginas > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-4">
-            <button
-              onClick={anteriorPagina}
-              disabled={paginaActual === 1}
-              className={`px-4 py-2 border rounded-lg transition ${
-                paginaActual === 1
-                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "text-gray-700 border-gray-300 hover:bg-gray-100"
-              }`}
-            >
-              ← Anterior
-            </button>
-
-            <span className="text-gray-600">
-              Página {paginaActual} de {totalPaginas}
-            </span>
-
-            <button
-              onClick={siguientePagina}
-              disabled={paginaActual === totalPaginas}
-              className={`px-4 py-2 border rounded-lg transition ${
-                paginaActual === totalPaginas
-                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "text-gray-700 border-gray-300 hover:bg-gray-100"
-              }`}
-            >
-              Siguiente →
-            </button>
-          </div>
-        )}
 
         {/* Toast */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl border border-indigo-200 bg-indigo-50 px-5 py-3 shadow-lg text-indigo-700 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <CheckCircle2 className="w-5 h-5" />
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white bg-green-600 border border-green-400 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <CheckCircle2 className="w-5 h-5 text-white" />
             <p className="font-medium">{toast}</p>
             <button
               onClick={() => setToast(null)}
-              className="ml-3 text-indigo-500 hover:text-indigo-700 text-lg"
+              className="ml-2 text-white hover:text-green-100 text-lg font-bold"
             >
               ×
             </button>

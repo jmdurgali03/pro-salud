@@ -35,47 +35,47 @@ export default function CalendarioRecepcionistaPage() {
   const [selectedProfesional, setSelectedProfesional] = useState<string>("todos");
 
   // 🔹 Limitar la consulta al mes visible (mejor rendimiento)
- // 🔹 Calcular rango dinámico según la vista actual
-const getRangeForView = (view: string, base: Date) => {
-  const start = new Date(base);
-  const end = new Date(base);
+  // 🔹 Calcular rango dinámico según la vista actual
+  const getRangeForView = (view: string, base: Date) => {
+    const start = new Date(base);
+    const end = new Date(base);
 
-  if (view === "month") {
-    start.setDate(1);
-    end.setMonth(base.getMonth() + 1, 0);
-  } else if (view === "week") {
-    const day = base.getDay();
-    const diffToMonday = (day + 6) % 7;
-    start.setDate(base.getDate() - diffToMonday);
-    end.setDate(start.getDate() + 6);
-  } else {
-    // vista 'day'
-    start.setHours(0, 0, 0, 0);
-    end.setHours(23, 59, 59, 999);
-  }
+    if (view === "month") {
+      start.setDate(1);
+      end.setMonth(base.getMonth() + 1, 0);
+    } else if (view === "week") {
+      const day = base.getDay();
+      const diffToMonday = (day + 6) % 7;
+      start.setDate(base.getDate() - diffToMonday);
+      end.setDate(start.getDate() + 6);
+    } else {
+      // vista 'day'
+      start.setHours(0, 0, 0, 0);
+      end.setHours(23, 59, 59, 999);
+    }
 
-  return {
-    from: start.getTime(),
-    to: end.getTime(),
+    return {
+      from: start.getTime(),
+      to: end.getTime(),
+    };
   };
-};
 
-const { from, to } = getRangeForView(view, currentDate);
+  const { from, to } = getRangeForView(view, currentDate);
 
-// 🔹 Consultar turnos solo dentro del rango visible
-const turnos =
-  (useQuery(api.turnos.listarRango, { from, to }) as TurnoConJoin[] | undefined) ??
-  [];
+  // 🔹 Consultar turnos solo dentro del rango visible
+  const turnos =
+    (useQuery(api.turnos.listarRango, { from, to }) as TurnoConJoin[] | undefined) ??
+    [];
 
-// 🔹 Profesionales únicos (nombre + apellido)
-const profesionales = Array.from(
-  new Map(
-    turnos.map((t) => [
-      t.profesionalId,
-      { nombre: t.profesionalNombre, apellido: t.profesionalApellido },
-    ])
-  ).entries()
-).map(([id, datos]) => ({ id, ...datos }));
+  // 🔹 Profesionales únicos (nombre + apellido)
+  const profesionales = Array.from(
+    new Map(
+      turnos.map((t) => [
+        t.profesionalId,
+        { nombre: t.profesionalNombre, apellido: t.profesionalApellido },
+      ])
+    ).entries()
+  ).map(([id, datos]) => ({ id, ...datos }));
 
 
   // 🔹 Filtro por profesional
@@ -94,16 +94,16 @@ const profesionales = Array.from(
 
   // 🔹 Corrige comparación de días (sin desfase UTC)
   const getEventsForDay = (day: number, isCurrentMonth: boolean) => {
-  if (!isCurrentMonth && view === "month") return [];
-  return turnosFiltrados.filter((t) => {
-    const fecha = new Date(t.start);
-    return (
-      fecha.getFullYear() === currentDate.getFullYear() &&
-      fecha.getMonth() === currentDate.getMonth() &&
-      fecha.getDate() === day
-    );
-  });
-};
+    if (!isCurrentMonth && view === "month") return [];
+    return turnosFiltrados.filter((t) => {
+      const fecha = new Date(t.start);
+      return (
+        fecha.getFullYear() === currentDate.getFullYear() &&
+        fecha.getMonth() === currentDate.getMonth() &&
+        fecha.getDate() === day
+      );
+    });
+  };
 
 
   // ---- Navegación temporal
@@ -136,17 +136,6 @@ const profesionales = Array.from(
   // ---- Render principal
   return (
     <>
-      <AppSidebar
-        panelName="Panel Recepcionista"
-        links={[
-          { href: "/recepcionista", label: "Inicio", icon: Home },
-          { href: "/recepcionista/cal-turnos", label: "Turnos", icon: Calendar },
-          { href: "/recepcionista/pacientes", label: "Pacientes", icon: Users },
-          { href: "/recepcionista/profesional", label: "Profesionales", icon: BriefcaseMedical },
-          { href: "/recepcionista/historias", label: "Historias Clínicas", icon: NotepadTextDashed },
-        ]}
-      />
-
       <PageWrapper
         breadcrumbs={[
           { label: "Inicio", href: "/recepcionista" },
@@ -204,41 +193,41 @@ const profesionales = Array.from(
             </div>
 
             {/* ---- Contenido principal (sidebar + calendario) */}
-<div className="grid grid-cols-[260px_1fr] gap-6 px-6 pb-8 relative">
-  {/* Sidebar fijo con sombra sutil */}
-  <aside className="sticky top-24 h-fit bg-gray-50 rounded-xl border border-gray-100 shadow-sm p-3">
-    <CalendarioSidebar
-      turnos={turnosFiltrados}
-      onSelectTurno={setSelectedTurno}
-    />
-  </aside>
+            <div className="grid grid-cols-[260px_1fr] gap-6 px-6 pb-8 relative">
+              {/* Sidebar fijo con sombra sutil */}
+              <aside className="sticky top-24 h-fit bg-gray-50 rounded-xl border border-gray-100 shadow-sm p-3">
+                <CalendarioSidebar
+                  turnos={turnosFiltrados}
+                  onSelectTurno={setSelectedTurno}
+                />
+              </aside>
 
-  {/* Zona del calendario ampliada */}
-  <section className="overflow-hidden rounded-xl bg-white">
-    {view === "month" ? (
-      <CalendarioGrid
-        diasSemana={["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]}
-        weeks={weeks}
-        getEventsForDay={getEventsForDay}
-        onSelectTurno={setSelectedTurno}
-      />
-    ) : (
-      <AgendaView
-        days={agendaDays}
-        turnos={turnosFiltrados}
-        onSelectTurno={setSelectedTurno}
-        slotMinutes={30}
-        startHour={8}
-        endHour={20}
-      />
-    )}
-  </section>
-</div>
-
-         
+              {/* Zona del calendario ampliada */}
+              <section className="overflow-hidden rounded-xl bg-white">
+                {view === "month" ? (
+                  <CalendarioGrid
+                    diasSemana={["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]}
+                    weeks={weeks}
+                    getEventsForDay={getEventsForDay}
+                    onSelectTurno={setSelectedTurno}
+                  />
+                ) : (
+                  <AgendaView
+                    days={agendaDays}
+                    turnos={turnosFiltrados}
+                    onSelectTurno={setSelectedTurno}
+                    slotMinutes={30}
+                    startHour={8}
+                    endHour={20}
+                  />
+                )}
+              </section>
             </div>
+
+
           </div>
-        
+        </div>
+
 
         {/* ---- Modal de detalle de turno */}
         {selectedTurno && (

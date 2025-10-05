@@ -5,7 +5,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Plus, Edit, Trash, Search, CheckCircle2, XCircle, ChevronLeft, ChevronRight, AlertTriangle } from "lucide-react";
+import { Plus, Edit, Trash, Search, CheckCircle2, XCircle, ChevronLeft, ChevronRight, AlertTriangle, Heart, Cross } from "lucide-react";
 
 type ObraSocial = {
   _id: Id<"obrasSociales">;
@@ -24,15 +24,15 @@ export default function ObrasSocialesPage() {
   const [toast, setToast] = useState<{ tipo: "success" | "error"; mensaje: string } | null>(null);
   const [confirmarEliminar, setConfirmarEliminar] = useState<Id<"obrasSociales"> | null>(null);
 
-  // 🔍 Filtro
+  // Filtro
   const obrasFiltradas = useMemo(() => {
     const term = busqueda.toLowerCase();
     return obrasSociales.filter((os) => os.nombre.toLowerCase().includes(term));
   }, [busqueda, obrasSociales]);
 
-  // 🔢 PAGINACIÓN
+  // Paginación: 8 por página para consistencia
   const [paginaActual, setPaginaActual] = useState(1);
-  const porPagina = 6;
+  const porPagina = 8;
   const totalPaginas = Math.ceil(obrasFiltradas.length / porPagina);
 
   useEffect(() => {
@@ -49,7 +49,7 @@ export default function ObrasSocialesPage() {
   const siguientePagina = () => paginaActual < totalPaginas && setPaginaActual(paginaActual + 1);
   const anteriorPagina = () => paginaActual > 1 && setPaginaActual(paginaActual - 1);
 
-  // ➕ Crear
+  // Crear
   const handleCrear = async () => {
     if (!nueva.trim()) return;
     try {
@@ -68,7 +68,7 @@ export default function ObrasSocialesPage() {
     }
   };
 
-  // ✏️ Editar
+  // Editar
   const handleEditar = async () => {
     if (!editando) return;
     try {
@@ -80,7 +80,7 @@ export default function ObrasSocialesPage() {
     }
   };
 
-  // 🗑️ Confirmar eliminación
+  // Confirmar eliminación
   const handleEliminarConfirmado = async () => {
     if (!confirmarEliminar) return;
     try {
@@ -93,7 +93,7 @@ export default function ObrasSocialesPage() {
     }
   };
 
-  // 🧹 Auto ocultar toast
+  // Auto ocultar toast
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
@@ -109,26 +109,12 @@ export default function ObrasSocialesPage() {
     >
       <div className="w-full px-10 py-10 space-y-8">
         {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-1.5 h-8 bg-gradient-to-b from-sky-500 to-blue-500 rounded-full"></div>
-            <h1 className="text-3xl font-bold text-gray-900">Gestión de Obras Sociales</h1>
-          </div>
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={nueva}
-              onChange={(e) => setNueva(e.target.value)}
-              placeholder="Nueva obra social..."
-              className="px-3 py-2 border rounded-lg text-sm focus:ring-2 focus:ring-blue-500"
-            />
-            <button
-              onClick={handleCrear}
-              className="flex items-center gap-2 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
-            >
-              <Plus size={18} /> Agregar
-            </button>
-          </div>
+        <div className="flex items-center gap-3">
+          <div className="w-1.5 h-8 bg-gradient-to-b from-red-300 to-rose-500 rounded-full"></div>
+          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+            <Cross className="w-6 h-6 text-red-500" />
+            Gestión de Obras Sociales
+          </h1>
         </div>
 
         {/* Buscador */}
@@ -143,6 +129,21 @@ export default function ObrasSocialesPage() {
             placeholder="Buscar obra social..."
             className="w-full outline-none text-sm"
           />
+          <div className="flex items-center gap-2 border-l pl-3">
+            <input
+              type="text"
+              value={nueva}
+              onChange={(e) => setNueva(e.target.value)}
+              placeholder="Nueva obra social..."
+              className="px-3 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-red-500 outline-none"
+            />
+            <button
+              onClick={handleCrear}
+              className="flex items-center gap-2 bg-red-500 text-white px-4 py-2 rounded-lg hover:bg-red-700 transition-all text-sm font-medium whitespace-nowrap"
+            >
+              <Plus className="w-4 h-4" /> Agregar
+            </button>
+          </div>
         </div>
 
         {/* Tabla */}
@@ -162,102 +163,110 @@ export default function ObrasSocialesPage() {
                       <input
                         value={editando.nombre}
                         onChange={(e) => setEditando({ ...editando, nombre: e.target.value })}
-                        className="border rounded-lg px-2 py-1 w-full text-sm"
+                        className="border border-red-300 rounded-lg px-3 py-1 w-full text-sm focus:ring-2 focus:ring-red-500 outline-none"
                       />
                     ) : (
-                      os.nombre
+                      <span className="font-medium">{os.nombre}</span>
                     )}
                   </td>
-                  <td className="p-4 text-center flex items-center justify-center gap-3">
-                    {editando?._id === os._id ? (
-                      <button
-                        onClick={handleEditar}
-                        className="text-green-600 font-medium hover:underline"
-                      >
-                        Guardar
-                      </button>
-                    ) : (
-                      <>
-                        <button
-                          onClick={() => setEditando(os)}
-                          className="text-blue-600 font-medium hover:underline"
-                        >
-                          <Edit size={16} className="inline mr-1" /> Editar
-                        </button>
-                        <button
-                          onClick={() => setConfirmarEliminar(os._id)}
-                          className="text-red-600 font-medium hover:underline"
-                        >
-                          <Trash size={16} className="inline mr-1" /> Eliminar
-                        </button>
-                      </>
-                    )}
+                  <td className="p-4 text-center">
+                    <div className="flex items-center justify-center gap-3">
+                      {editando?._id === os._id ? (
+                        <>
+                          <button
+                            onClick={handleEditar}
+                            className="text-green-600 text-sm font-medium hover:underline"
+                          >
+                            Guardar
+                          </button>
+                          <button
+                            onClick={() => setEditando(null)}
+                            className="text-gray-600 text-sm font-medium hover:underline"
+                          >
+                            Cancelar
+                          </button>
+                        </>
+                      ) : (
+                        <>
+                          <button
+                            onClick={() => setEditando(os)}
+                            className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1"
+                          >
+                            <Edit className="w-4 h-4" /> Editar
+                          </button>
+                          <button
+                            onClick={() => setConfirmarEliminar(os._id)}
+                            className="text-red-600 text-sm font-medium hover:underline flex items-center gap-1"
+                          >
+                            <Trash className="w-4 h-4" /> Eliminar
+                          </button>
+                        </>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
               {obrasPagina.length === 0 && (
                 <tr>
-                  <td colSpan={2} className="p-6 text-center text-gray-400 italic">
+                  <td colSpan={2} className="p-6 text-center text-gray-400 italic text-sm">
                     No hay obras sociales registradas
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
+
+          {/* Paginación */}
+          {totalPaginas > 1 && (
+            <div className="flex justify-center items-center gap-3 py-4 text-sm">
+              <button
+                onClick={anteriorPagina}
+                disabled={paginaActual === 1}
+                className={`px-3 py-1 rounded-md flex items-center gap-1 ${paginaActual === 1
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-200 hover:bg-gray-300"
+                  }`}
+              >
+                <ChevronLeft className="w-4 h-4" /> Anterior
+              </button>
+              <span>
+                Página {paginaActual} de {totalPaginas}
+              </span>
+              <button
+                onClick={siguientePagina}
+                disabled={paginaActual === totalPaginas}
+                className={`px-3 py-1 rounded-md flex items-center gap-1 ${paginaActual === totalPaginas
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-gray-200 hover:bg-gray-300"
+                  }`}
+              >
+                Siguiente <ChevronRight className="w-4 h-4" />
+              </button>
+            </div>
+          )}
         </div>
 
-        {/* 🔸 Paginación */}
-        {totalPaginas > 1 && (
-          <div className="flex justify-center items-center gap-4 mt-4">
-            <button
-              onClick={anteriorPagina}
-              disabled={paginaActual === 1}
-              className={`px-4 py-2 border rounded-lg transition ${
-                paginaActual === 1
-                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "text-gray-700 border-gray-300 hover:bg-gray-100"
-              }`}
-            >
-              <ChevronLeft size={16} /> Anterior
-            </button>
-            <span className="text-gray-600">
-              Página {paginaActual} de {totalPaginas}
-            </span>
-            <button
-              onClick={siguientePagina}
-              disabled={paginaActual === totalPaginas}
-              className={`px-4 py-2 border rounded-lg transition ${
-                paginaActual === totalPaginas
-                  ? "text-gray-400 border-gray-200 cursor-not-allowed"
-                  : "text-gray-700 border-gray-300 hover:bg-gray-100"
-              }`}
-            >
-              Siguiente <ChevronRight size={16} />
-            </button>
-          </div>
-        )}
-
-        {/* 🔔 Confirmación de eliminación */}
+        {/* Confirmación de eliminación */}
         {confirmarEliminar && (
           <div className="fixed inset-0 bg-black/40 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl p-8 shadow-xl text-center max-w-sm">
-              <AlertTriangle className="mx-auto text-red-500 mb-4 w-10 h-10" />
+            <div className="bg-white rounded-xl p-6 shadow-xl text-center max-w-sm">
+              <AlertTriangle className="mx-auto text-red-500 mb-3 w-12 h-12" />
               <h2 className="text-lg font-semibold text-gray-800 mb-2">
                 ¿Eliminar obra social?
               </h2>
               <p className="text-gray-600 mb-6 text-sm">
                 Esta acción no se puede deshacer.
               </p>
-              <div className="flex justify-center gap-4">
+              <div className="flex justify-center gap-3">
                 <button
                   onClick={() => setConfirmarEliminar(null)}
-                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100"
+                  className="px-4 py-2 rounded-lg border border-gray-300 hover:bg-gray-100 text-sm font-medium"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleEliminarConfirmado}
-                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700"
+                  className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 text-sm font-medium"
                 >
                   Eliminar
                 </button>
@@ -266,16 +275,24 @@ export default function ObrasSocialesPage() {
           </div>
         )}
 
-        {/* 🧾 Toast */}
+        {/* Toast */}
         {toast && (
           <div
-            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl px-5 py-3 shadow-lg text-white animate-in fade-in slide-in-from-bottom-4 duration-500 ${
-              toast.tipo === "success" ? "bg-green-600" : "bg-red-600"
-            }`}
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 rounded-xl px-5 py-3 shadow-lg text-white border animate-in fade-in slide-in-from-bottom-4 duration-500 ${toast.tipo === "success"
+              ? "bg-green-600 border-green-400"
+              : "bg-red-600 border-red-400"
+              }`}
           >
-            {toast.tipo === "success" ? <CheckCircle2 /> : <XCircle />}
+            {toast.tipo === "success" ? (
+              <CheckCircle2 className="w-5 h-5" />
+            ) : (
+              <XCircle className="w-5 h-5" />
+            )}
             <p className="font-medium">{toast.mensaje}</p>
-            <button onClick={() => setToast(null)} className="ml-2 text-white text-lg">
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 text-white hover:text-gray-100 text-lg font-bold"
+            >
               ×
             </button>
           </div>

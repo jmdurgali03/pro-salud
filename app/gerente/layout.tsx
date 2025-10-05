@@ -6,14 +6,12 @@ import { Home, BriefcaseMedical, Users, Cross, Stethoscope, ChartLine, BadgeChec
 
 const links = [
   { href: "/gerente", label: "Inicio", icon: Home },
+  { href: "/gerente/permisos", label: "Permisos", icon: BadgeCheck },
   { href: "/gerente/reportes", label: "Reportes", icon: ChartLine },
   { href: "/gerente/pacientes", label: "Pacientes", icon: Users },
   { href: "/gerente/profesional", label: "Profesionales", icon: BriefcaseMedical },
   { href: "/gerente/especialidades", label: "Especialidades", icon: Stethoscope },
   { href: "/gerente/obras-sociales", label: "Obras Sociales", icon: Cross },
-    { href: "/gerente/permisos", label: "Permisos", icon: BadgeCheck },
-
-
 ];
 
 export default function GerenteLayout({ children }: { children: React.ReactNode }) {
