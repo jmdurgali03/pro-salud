@@ -43,7 +43,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const [profesionalId, setProfesionalId] = useState<Id<"profesionales"> | "">("");
   const [tipo, setTipo] = useState("");
   const [estado, setEstado] = useState<"Confirmado" | "Pendiente" | "Cancelado">("Pendiente");
-  const [fecha, setFecha] = useState<string>(""); // 🔹 nuevo campo de fecha
+  const [fecha, setFecha] = useState<string>("");
   const [horaInicio, setHoraInicio] = useState("09:00");
   const [horaFin, setHoraFin] = useState("10:00");
   const [error, setError] = useState<string | null>(null);
@@ -56,7 +56,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
       return { ...p, especialidadNombre: esp?.nombre || "Sin especialidad" };
     });
 
-  // Cargar datos al editar o resetear en nuevo
+  // 🔹 Cargar datos al abrir (modo edición o nuevo)
   useEffect(() => {
     if (turno) {
       setPacienteId(turno.pacienteId);
@@ -80,7 +80,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     }
   }, [turno, open, defaultDate]);
 
-  // Ajustar automáticamente hora fin
+  // 🔹 Ajuste automático de hora fin si la diferencia es incorrecta
   useEffect(() => {
     const [hInicio, mInicio] = horaInicio.split(":").map(Number);
     const [hFin, mFin] = horaFin.split(":").map(Number);
@@ -94,6 +94,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     }
   }, [horaInicio]);
 
+  // 🔹 Guardar o editar turno
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -104,17 +105,19 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     if (!estado) return setError("Debe seleccionar un estado");
     if (!fecha) return setError("Debe seleccionar una fecha");
 
-    const baseDate = new Date(fecha);
+    // ✅ Arma la fecha local correctamente sin corrimiento
+    const [year, month, day] = fecha.split("-").map(Number);
+    const baseDate = new Date(year, month - 1, day);
+
     const [h1, m1] = horaInicio.split(":").map(Number);
     const [h2, m2] = horaFin.split(":").map(Number);
+
     const start = new Date(baseDate);
     start.setHours(h1, m1, 0, 0);
     const end = new Date(baseDate);
     end.setHours(h2, m2, 0, 0);
 
-    if (end <= start) {
-      return setError("La hora de fin debe ser posterior a la de inicio");
-    }
+    if (end <= start) return setError("La hora de fin debe ser posterior a la de inicio");
 
     try {
       if (turno) {
@@ -143,6 +146,7 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     }
   };
 
+  // 🔹 Eliminar turno existente
   const handleDelete = async () => {
     if (turno) {
       await eliminarTurno({ id: turno._id });
@@ -277,7 +281,11 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
           </div>
 
           {/* Error */}
-          {error && <div className="mt-3 p-2 bg-red-100 text-red-700 rounded">{error}</div>}
+          {error && (
+            <div className="mt-3 p-2 bg-red-100 text-red-700 rounded">
+              {error}
+            </div>
+          )}
         </form>
       </DialogContent>
     </Dialog>

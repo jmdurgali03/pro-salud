@@ -20,8 +20,18 @@ export function CalendarioHeader({
   onViewChange,
 }: Props) {
   const meses = [
-    "ENERO","FEBRERO","MARZO","ABRIL","MAYO","JUNIO",
-    "JULIO","AGOSTO","SEPTIEMBRE","OCTUBRE","NOVIEMBRE","DICIEMBRE",
+    "ENERO",
+    "FEBRERO",
+    "MARZO",
+    "ABRIL",
+    "MAYO",
+    "JUNIO",
+    "JULIO",
+    "AGOSTO",
+    "SEPTIEMBRE",
+    "OCTUBRE",
+    "NOVIEMBRE",
+    "DICIEMBRE",
   ];
 
   return (
@@ -36,7 +46,7 @@ export function CalendarioHeader({
         </button>
       </div>
 
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center space-x-4">
           <button onClick={onPrev} className="p-2 hover:bg-white/20 rounded-lg">
             <ChevronLeft className="w-6 h-6" />
@@ -54,6 +64,7 @@ export function CalendarioHeader({
             {meses[currentDate.getMonth()]} {currentDate.getFullYear()}
           </h2>
         </div>
+
         <div className="flex items-center space-x-2">
           {(["month", "week", "day"] as const).map((v) => (
             <button

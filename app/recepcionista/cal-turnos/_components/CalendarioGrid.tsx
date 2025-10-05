@@ -4,7 +4,7 @@ import { TURNO_COLOR_MAP, TurnoConJoin } from "./types";
 
 type Props = {
   diasSemana: string[];
-  weeks: { day: number; isCurrentMonth: boolean }[][];
+  weeks: { date: Date; isCurrentMonth: boolean }[][];
   getEventsForDay: (day: number, isCurrentMonth: boolean) => TurnoConJoin[];
   onSelectTurno: (t: TurnoConJoin) => void;
 };
@@ -16,35 +16,43 @@ export function CalendarioGrid({
   onSelectTurno,
 }: Props) {
   return (
-    <div className="flex-1 p-6">
-      <div className="grid grid-cols-8 gap-1">
+    <div className="flex-1 p-4 md:p-6 overflow-hidden">
+      {/* Encabezado de días */}
+      <div className="grid grid-cols-7 gap-1 mb-1">
         {diasSemana.map((dia) => (
           <div
             key={dia}
-            className="text-center text-xs font-semibold text-gray-500 py-2"
+            className="text-center text-xs font-semibold text-gray-500 py-2 uppercase tracking-wide"
           >
             {dia}
           </div>
         ))}
       </div>
 
+      {/* Celdas */}
       {weeks.map((week, i) => (
-        <div key={i} className="grid grid-cols-8 gap-1">
+        <div key={i} className="grid grid-cols-7 gap-1">
           {week.map((dayObj, j) => {
-            const events = getEventsForDay(dayObj.day, dayObj.isCurrentMonth);
+            const events = getEventsForDay(
+              dayObj.date.getDate(),
+              dayObj.isCurrentMonth
+            );
+
             return (
               <div
                 key={j}
-                className={`min-h-28 border border-gray-200 rounded-lg p-2 ${
-                  dayObj.isCurrentMonth ? "bg-white" : "bg-gray-50"
+                className={`min-h-[100px] rounded-lg border border-gray-200 p-2 transition-all duration-200 ${
+                  dayObj.isCurrentMonth
+                    ? "bg-white hover:bg-emerald-50"
+                    : "bg-gray-50 text-gray-400"
                 }`}
               >
                 <div
-                  className={`text-sm font-medium mb-1 ${
+                  className={`text-sm font-semibold mb-1 ${
                     dayObj.isCurrentMonth ? "text-gray-700" : "text-gray-400"
                   }`}
                 >
-                  {dayObj.day}
+                  {dayObj.date.getDate()}
                 </div>
 
                 <div className="space-y-1">
@@ -52,11 +60,16 @@ export function CalendarioGrid({
                     <button
                       key={ev._id}
                       onClick={() => onSelectTurno(ev)}
-                      className={`w-full text-left px-2 py-1 rounded border text-xs cursor-pointer truncate ${TURNO_COLOR_MAP[ev.estado]}`}
-                      title={`${ev.pacienteNombre} ${ev.pacienteApellido} — ${new Date(ev.start).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })}`}
-
+                      className={`w-full text-left px-2 py-1 rounded border text-xs cursor-pointer truncate transition-all hover:opacity-90 ${TURNO_COLOR_MAP[ev.estado]}`}
+                      title={`${ev.pacienteNombre} ${ev.pacienteApellido} — ${new Date(
+                        ev.start
+                      ).toLocaleTimeString("es-AR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
+                      })}`}
                     >
-                      {ev.pacienteNombre } {ev.pacienteApellido}
+                      {ev.pacienteNombre} {ev.pacienteApellido}
                     </button>
                   ))}
                   {events.length > 3 && (

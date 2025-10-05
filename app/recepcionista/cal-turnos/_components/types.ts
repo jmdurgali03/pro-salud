@@ -16,6 +16,7 @@ export type TurnoConJoin = {
   // 🔹 Profesional
   profesionalId: Id<"profesionales">;
   profesionalNombre: string;
+  profesionalApellido: string;
   profesionalEstado: "Activo" | "Inactivo";
   especialidadNombre?: string;
 };

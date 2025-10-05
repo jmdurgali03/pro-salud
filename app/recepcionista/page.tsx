@@ -10,7 +10,7 @@ import { AppSidebar } from "@/components/sidebar";
 const actions = [
     {
         title: "Agendar Turno",
-        description: "Programa citas para pacientes",
+        description: "Programa turnos para pacientes",
         icon: Calendar,
         href: "/recepcionista/cal-turnos",
         gradient: "from-blue-500 to-cyan-500",

@@ -24,11 +24,11 @@ export default function Features() {
                                 />
                             </CardDecorator>
 
-                            <h3 className="mt-6 font-medium">Gestion de Citas</h3>
+                            <h3 className="mt-6 font-medium">Gestion de Turnos</h3>
                         </CardHeader>
 
                         <CardContent>
-                            <p className="text-sm">Programa y gestiona citas de forma eficiente, con recordatorios automáticos.</p>
+                            <p className="text-sm">Programa y gestiona turno de forma eficiente, con recordatorios automáticos.</p>
                         </CardContent>
                     </Card>
 

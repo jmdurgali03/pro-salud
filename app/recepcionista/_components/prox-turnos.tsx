@@ -15,7 +15,9 @@ type TurnoConJoin = {
     tipo: string;
     estado: "Confirmado" | "Pendiente" | "Cancelado";
     pacienteNombre: string;
+    pacienteApellido: string;
     profesionalNombre: string;
+    profesionalApellido: string;
     especialidadNombre: string;
     obrasSocialesPaciente: string[];
 };
@@ -77,10 +79,10 @@ export default function ProximosTurnosHoy() {
 
                                     <div className="flex-1 min-w-0">
                                         <div className="font-semibold text-gray-900 truncate">
-                                            {turno.pacienteNombre}
+                                            {turno.pacienteNombre} {turno.pacienteApellido}
                                         </div>
                                         <div className="text-sm text-gray-600 flex items-center gap-2 mt-1">
-                                            <span className="truncate">Profesional: {turno.profesionalNombre}</span>
+                                            <span className="truncate">Profesional: {turno.profesionalNombre} {turno.profesionalApellido}</span>
                                             <span className="text-gray-400">•</span>
                                             <span className="truncate">{turno.especialidadNombre}</span>
                                         </div>
