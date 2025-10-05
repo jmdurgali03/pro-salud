@@ -9,7 +9,6 @@ export type Nota = {
   consultaId?: Id<"consultas"> | null;
   fecha: number;
   categoria: "Evolución" | "Indicación" | "Interconsulta" | "Epicrisis" | "Administrativa";
-  visibilidad: "Equipo" | "Privada";
   titulo?: string;
   texto: string;
 };
@@ -36,7 +35,7 @@ export default function NotasMedicasTable({
             <th className="px-4 py-3">Categoría</th>
             <th className="px-4 py-3">Título</th>
             <th className="px-4 py-3">Profesional</th>
-            <th className="px-4 py-3">Visibilidad</th>
+
             <th className="px-4 py-3 w-24"></th>
           </tr>
         </thead>
@@ -68,7 +67,6 @@ export default function NotasMedicasTable({
                     <td className="px-4 py-3 text-sm">
                       {getProfesionalNombre(n.profesionalId)}
                     </td>
-                    <td className="px-4 py-3 text-sm">{n.visibilidad}</td>
                     <td className="px-4 py-3 text-right">
                       <button
                         onClick={() => setExpandId(abierto ? null : idStr)}
