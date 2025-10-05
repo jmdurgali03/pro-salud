@@ -1,4 +1,4 @@
-// app/recepcionista/historias/[id]/page.tsx
+// app/profesional/historias/[id]/page.tsx
 "use client";
 
 import { useParams } from "next/navigation";
@@ -7,20 +7,22 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
-import Section from "../../pacientes/_components/Section";
-import ConsultasTable from "../../pacientes/_components/ConsultasTable";
-import NuevaConsultaModal from "../../pacientes/_components/NuevaConsultaModal";
-import NuevoDiagnosticoModal from "../../pacientes/_components/NuevoDiagnosticoModal";
-import NuevoTratamientoModal from "../../pacientes/_components/NuevoTratamientoModal";
-import TratamientosTable from "../../pacientes/_components/TratamientosTable";
-import NuevaNotaMedicaModal from "../../pacientes/_components/NuevaNotaMedicaModal";
-import NotasMedicasTable, { Nota } from "../../pacientes/_components/NotasMedicasTable";
+// ---------------------- Componentes de Pacientes ----------------------
+import Section from "../../../recepcionista/pacientes/_components/Section";
+import ConsultasTable from "../../../recepcionista/pacientes/_components/ConsultasTable";
+import NuevaConsultaModal from "../../../recepcionista/pacientes/_components/NuevaConsultaModal";
+import NuevoDiagnosticoModal from "../../../recepcionista/pacientes/_components/NuevoDiagnosticoModal";
+import NuevoTratamientoModal from "../../../recepcionista/pacientes/_components/NuevoTratamientoModal";
+import TratamientosTable from "../../../recepcionista/pacientes/_components/TratamientosTable";
+import NuevaNotaMedicaModal from "../../../recepcionista/pacientes/_components/NuevaNotaMedicaModal";
+import NotasMedicasTable, { Nota } from "../../../recepcionista/pacientes/_components/NotasMedicasTable";
 
-// Nuevos componentes
-import HeroPaciente from "../../pacientes/_components/HeroPaciente";
-import SubnavSticky from "../../pacientes/_components/SubnavSticky";
-import Panel from "../../pacientes/_components/Panel";
-import { KPIGrid } from "../../pacientes/_components/KPI";
+// ---------------------- Nuevos componentes ----------------------
+import HeroPaciente from "../../../recepcionista/pacientes/_components/HeroPaciente";
+import SubnavSticky from "../../../recepcionista/pacientes/_components/SubnavSticky";
+import Panel from "../../../recepcionista/pacientes/_components/Panel";
+import { KPIGrid } from "../../../recepcionista/pacientes/_components/KPI";
+
 
 /* -------------------- Tipos locales (sin cambios funcionales) -------------------- */
 type PacienteExtendido = {
@@ -230,8 +232,24 @@ export default function HistorialPacientePage() {
             title="Consultas"
             right={
               <div className="flex gap-2">
-
-
+                <button
+                  onClick={() => setOpenConsulta(true)}
+                  className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
+                >
+                  Nueva consulta
+                </button>
+                <button
+                  onClick={() => setOpenDx(true)}
+                  disabled={!hayConsultas}
+                  title={hayConsultas ? "Crear diagnóstico" : "Primero registrá una consulta"}
+                  className={`rounded-lg px-4 py-2 text-sm font-medium border shadow-sm ${
+                    hayConsultas
+                      ? "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
+                      : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
+                  }`}
+                >
+                  Nuevo diagnóstico
+                </button>
               </div>
             }
           >
@@ -248,6 +266,15 @@ export default function HistorialPacientePage() {
           <Section
             id="notas"
             title="Notas médicas"
+            right={
+              <button
+                onClick={() => setOpenNota(true)}
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
+                title="Registrar nota médica (evolución, indicación, etc.)"
+              >
+                Nueva nota
+              </button>
+            }
           >
             <Panel>
               <NotasMedicasTable
@@ -261,6 +288,14 @@ export default function HistorialPacientePage() {
           <Section
             id="tratamientos"
             title="Tratamientos"
+            right={
+              <button
+                onClick={() => setOpenTrat(true)}
+                className="inline-flex items-center gap-2 self-start rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-100"
+              >
+                Asignar tratamiento
+              </button>
+            }
           >
             <Panel>
               <TratamientosTable

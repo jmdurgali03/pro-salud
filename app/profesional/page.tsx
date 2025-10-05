@@ -9,6 +9,7 @@ import {
   ArrowRight,
   Home,
   Users,
+  NotepadTextDashed,
 } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useUser, UserButton } from "@clerk/nextjs";
@@ -52,6 +53,7 @@ const links = [
   { href: "/profesional", label: "Inicio", icon: Home },
   { href: "/profesional/cal-turnos", label: "Turnos", icon: Calendar },
   { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
+  { href: "/profesional/historias", label: "Historias Clínicas", icon: NotepadTextDashed },
 ];
 
 export default function ProfesionalHome() {
