@@ -5,7 +5,8 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Plus, Edit, Trash, Search, CheckCircle2, Stethoscope } from "lucide-react";
+import { Plus, Search, CheckCircle2, Stethoscope } from "lucide-react";
+import { EspecialidadesGrid } from "./especialidad-card";
 
 type Especialidad = {
   _id: Id<"especialidades">;
@@ -20,7 +21,7 @@ export default function EspecialidadesPage() {
 
   const [busqueda, setBusqueda] = useState("");
   const [nueva, setNueva] = useState("");
-  const [editando, setEditando] = useState<Especialidad | null>(null);
+  const [editando, setEditando] = useState<Id<"especialidades"> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
 
   // Filtrar especialidades por búsqueda
@@ -29,7 +30,7 @@ export default function EspecialidadesPage() {
     return especialidades.filter((e) => e.nombre.toLowerCase().includes(term));
   }, [busqueda, especialidades]);
 
-  // Paginación: mostrar 8 especialidades por página (consistente con otras páginas)
+  // Paginación: mostrar 8 especialidades por página
   const [paginaActual, setPaginaActual] = useState(1);
   const porPagina = 8;
   const totalPaginas = Math.ceil(especialidadesFiltradas.length / porPagina);
@@ -69,12 +70,22 @@ export default function EspecialidadesPage() {
     setToast("Especialidad creada correctamente.");
   };
 
+  // Iniciar edición
+  const handleIniciarEdicion = (especialidad: Especialidad) => {
+    setEditando(especialidad._id);
+  };
+
   // Guardar edición
-  const handleEditar = async () => {
-    if (!editando) return;
-    await editar({ id: editando._id, nombre: editando.nombre.trim() });
+  const handleGuardarEdicion = async (id: Id<"especialidades">, nombre: string) => {
+    if (!nombre.trim()) return;
+    await editar({ id, nombre: nombre.trim() });
     setEditando(null);
     setToast("Especialidad actualizada correctamente.");
+  };
+
+  // Cancelar edición
+  const handleCancelarEdicion = () => {
+    setEditando(null);
   };
 
   // Eliminar especialidad
@@ -100,142 +111,90 @@ export default function EspecialidadesPage() {
           </h1>
         </div>
 
-        {/* Buscador */}
-        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-          <Search className="text-gray-400 w-5 h-5" />
-          <input
-            value={busqueda}
-            onChange={(e) => {
-              setBusqueda(e.target.value);
-              setPaginaActual(1);
-            }}
-            placeholder="Buscar especialidad..."
-            className="w-full outline-none text-sm"
-          />
-          <div className="flex items-center gap-2 border-l pl-3">
-            <input
-              type="text"
-              value={nueva}
-              onChange={(e) => setNueva(e.target.value)}
-              placeholder="Nueva especialidad..."
-              className="px-3 py-1 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none"
-            />
-            <button
-              onClick={handleCrear}
-              className="flex items-center gap-2 bg-teal-600 text-white px-4 py-2 rounded-lg hover:bg-teal-700 transition-all text-sm font-medium whitespace-nowrap"
-            >
-              <Plus className="w-4 h-4" /> Agregar
-            </button>
+        {/* Buscador y formulario de creación */}
+        <div className="bg-white border border-gray-200 rounded-xl shadow-sm p-5 space-y-4">
+          <div className="flex flex-col md:flex-row gap-4">
+            {/* Buscador */}
+            <div className="flex-1 flex items-center gap-3 border border-gray-200 rounded-lg p-3">
+              <Search className="text-gray-400 w-5 h-5" />
+              <input
+                value={busqueda}
+                onChange={(e) => {
+                  setBusqueda(e.target.value);
+                  setPaginaActual(1);
+                }}
+                placeholder="Buscar especialidad..."
+                className="w-full outline-none text-sm"
+              />
+            </div>
+
+            {/* Formulario de nueva especialidad */}
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={nueva}
+                onChange={(e) => setNueva(e.target.value)}
+                onKeyDown={(e) => e.key === "Enter" && handleCrear()}
+                placeholder="Nueva especialidad..."
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none w-64"
+              />
+              <button
+                onClick={handleCrear}
+                disabled={!nueva.trim()}
+                className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-lg hover:bg-teal-700 transition-all text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Plus className="w-4 h-4" /> Agregar
+              </button>
+            </div>
+          </div>
+
+          {/* Contador */}
+          <div className="flex items-center justify-between text-sm text-gray-600">
+            <span>
+              {especialidadesFiltradas.length} especialidad{especialidadesFiltradas.length !== 1 ? 'es' : ''}
+              {busqueda && ' encontrada(s)'}
+            </span>
           </div>
         </div>
 
-        {/* Tabla */}
-        <div className="overflow-hidden border border-gray-200 rounded-xl shadow bg-white">
-          <table className="w-full text-sm text-gray-700">
-            <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="p-4 text-left">Nombre</th>
-                <th className="p-4 text-center w-40">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {especialidadesPagina.map((esp) => (
-                <tr
-                  key={esp._id.toString()}
-                  className="border-t hover:bg-gray-50 transition-all"
-                >
-                  <td className="p-4">
-                    {editando?._id === esp._id ? (
-                      <input
-                        value={editando.nombre}
-                        onChange={(e) =>
-                          setEditando({ ...editando, nombre: e.target.value })
-                        }
-                        className="border border-teal-300 rounded-lg px-3 py-1 w-full text-sm focus:ring-2 focus:ring-teal-500 outline-none"
-                      />
-                    ) : (
-                      <span className="font-medium">{esp.nombre}</span>
-                    )}
-                  </td>
-                  <td className="p-4 text-center">
-                    <div className="flex items-center justify-center gap-3">
-                      {editando?._id === esp._id ? (
-                        <>
-                          <button
-                            onClick={handleEditar}
-                            className="text-green-600 text-sm font-medium hover:underline"
-                          >
-                            Guardar
-                          </button>
-                          <button
-                            onClick={() => setEditando(null)}
-                            className="text-gray-600 text-sm font-medium hover:underline"
-                          >
-                            Cancelar
-                          </button>
-                        </>
-                      ) : (
-                        <>
-                          <button
-                            onClick={() => setEditando(esp)}
-                            className="text-blue-600 text-sm font-medium hover:underline flex items-center gap-1"
-                          >
-                            <Edit className="w-4 h-4" /> Editar
-                          </button>
-                          <button
-                            onClick={() => handleEliminar(esp._id)}
-                            className="text-red-600 text-sm font-medium hover:underline flex items-center gap-1"
-                          >
-                            <Trash className="w-4 h-4" /> Eliminar
-                          </button>
-                        </>
-                      )}
-                    </div>
-                  </td>
-                </tr>
-              ))}
-              {especialidadesPagina.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={2}
-                    className="p-6 text-center text-gray-400 italic text-sm"
-                  >
-                    No hay especialidades registradas
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        {/* Grid de especialidades */}
+        <EspecialidadesGrid
+          especialidades={especialidadesPagina}
+          editando={editando}
+          onEditar={handleIniciarEdicion}
+          onEliminar={handleEliminar}
+          onGuardar={handleGuardarEdicion}
+          onCancelar={handleCancelarEdicion}
+        />
 
-          {/* Paginación */}
-          {totalPaginas > 1 && (
-            <div className="flex justify-center items-center gap-3 py-4 text-sm">
-              <button
-                onClick={anteriorPagina}
-                disabled={paginaActual === 1}
-                className={`px-3 py-1 rounded-md ${paginaActual === 1
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-              >
-                Anterior
-              </button>
-              <span>
-                Página {paginaActual} de {totalPaginas}
-              </span>
-              <button
-                onClick={siguientePagina}
-                disabled={paginaActual === totalPaginas}
-                className={`px-3 py-1 rounded-md ${paginaActual === totalPaginas
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-              >
-                Siguiente
-              </button>
-            </div>
-          )}
-        </div>
+        {/* Paginación */}
+        {totalPaginas > 1 && (
+          <div className="flex justify-center items-center gap-3 py-4">
+            <button
+              onClick={anteriorPagina}
+              disabled={paginaActual === 1}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${paginaActual === 1
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
+                }`}
+            >
+              Anterior
+            </button>
+            <span className="text-sm text-gray-600">
+              Página {paginaActual} de {totalPaginas}
+            </span>
+            <button
+              onClick={siguientePagina}
+              disabled={paginaActual === totalPaginas}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${paginaActual === totalPaginas
+                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
+                }`}
+            >
+              Siguiente
+            </button>
+          </div>
+        )}
 
         {/* Toast */}
         {toast && (

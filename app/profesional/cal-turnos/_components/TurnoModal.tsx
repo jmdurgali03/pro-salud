@@ -1,6 +1,6 @@
 "use client";
 
-import { X, CalendarDays, Clock, User, Stethoscope, Hourglass } from "lucide-react";
+import { X, CalendarDays, Clock, User, Stethoscope, Hourglass, BriefcaseMedical } from "lucide-react";
 import { TURNO_COLOR_MAP, TurnoConJoin } from "./types";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -66,7 +66,7 @@ export function TurnoModal({
           </h2>
 
           {/* Contenido */}
-          <div className="space-y-3 text-sm text-gray-700">
+          <div className="space-y-6 text-sm text-gray-700">
             <div className="flex items-center gap-2">
               <User className="h-4 w-4 text-purple-500" />
               <span className="font-medium">Paciente:</span>
@@ -78,7 +78,7 @@ export function TurnoModal({
             </div>
 
             <div className="flex items-center gap-2">
-              <Stethoscope className="h-4 w-4 text-purple-500" />
+              <BriefcaseMedical className="h-4 w-4 text-purple-500" />
               <span className="font-medium">Profesional:</span>
               <span className="text-gray-800">
                 {(turno.profesionalNombre || "Profesional") +
@@ -88,6 +88,7 @@ export function TurnoModal({
             </div>
 
             <div className="flex items-center gap-2">
+              <Stethoscope className="h-4 w-4 text-purple-500" />
               <span className="ml-0.5 font-medium">Especialidad:</span>
               <span className="text-gray-800">
                 {turno.especialidadNombre || "—"}
