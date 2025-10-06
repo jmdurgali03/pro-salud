@@ -5,7 +5,6 @@ import { useMemo, useRef, useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
 
 // Componentes
@@ -306,10 +305,10 @@ export default function HistorialPacientePage() {
             setPageTrat(1);
           }}
           items={[
-            { key: "resumen", label: "Resumen", icon: LayoutGrid},
+            { key: "resumen", label: "Resumen", icon: LayoutGrid },
             { key: "consultas", label: "Consultas", icon: Stethoscope },
             { key: "notas", label: "Notas médicas", icon: NotebookText },
-            { key: "tratamientos", label: "Tratamientos", icon: Pill},
+            { key: "tratamientos", label: "Tratamientos", icon: Pill },
           ]}
         />
       </div>
@@ -344,11 +343,10 @@ export default function HistorialPacientePage() {
                     onClick={() => setOpenDx(true)}
                     disabled={!hayConsultas}
                     title={hayConsultas ? "Crear diagnóstico" : "Primero registrá una consulta"}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium border shadow-sm ${
-                      hayConsultas
+                    className={`rounded-lg px-4 py-2 text-sm font-medium border shadow-sm ${hayConsultas
                         ? "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
                         : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                    }`}
+                      }`}
                   >
                     Nuevo diagnóstico
                   </button>

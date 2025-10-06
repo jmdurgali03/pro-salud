@@ -5,6 +5,7 @@ import type { Profesional, ProfesionalInput } from "./page";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useState, useRef, useEffect } from "react";
+import { Check } from "lucide-react";
 
 type Props = {
   initialData?: Profesional;
@@ -40,7 +41,6 @@ export default function ProfesionalForm({
   const especialidades = useQuery(api.especialidades.listar);
   const obrasSociales = useQuery(api.obrasSociales.listar);
 
-  // 🔹 Hooks SIEMPRE ejecutados
   const [nombre, setNombre] = useState(initialData?.nombre ?? "");
   const [apellido, setApellido] = useState(initialData?.apellido ?? "");
   const [dni, setDni] = useState(initialData?.dni ?? "");
@@ -57,7 +57,6 @@ export default function ProfesionalForm({
   );
   const [estado, setEstado] = useState<"Activo" | "Inactivo">(initialData?.estado ?? "Activo");
 
-  // Dropdown obras sociales
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -109,9 +108,12 @@ export default function ProfesionalForm({
     onSubmit(data);
   };
 
-  // 🔹 Render condicional (pero hooks ya ejecutados arriba)
   if (!especialidades || !obrasSociales) {
-    return <p className="text-gray-500">Cargando datos...</p>;
+    return (
+      <div className="flex items-center justify-center py-8">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+      </div>
+    );
   }
 
   const selectedNames = (obrasSociales ?? [])
@@ -119,109 +121,153 @@ export default function ProfesionalForm({
     .map((os) => os.nombre);
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-3">
-      <input
-        value={nombre}
-        onChange={(e) => setNombre(sanitizeNombre(e.target.value))}
-        placeholder="Nombre"
-        className="w-full border rounded px-3 py-2"
-        required
-        maxLength={60}
-        pattern="[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*"
-        title="Solo letras y espacios. Ej: Juan Pérez"
-      />
+    <form onSubmit={handleSubmit} className="space-y-5">
+      {/* Nombre y Apellido */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Nombre <span className="text-red-500">*</span>
+          </label>
+          <input
+            value={nombre}
+            onChange={(e) => setNombre(sanitizeNombre(e.target.value))}
+            placeholder="Ej: Juan Carlos"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            required
+            maxLength={60}
+            pattern="[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*"
+            title="Solo letras y espacios"
+          />
+        </div>
 
-      <input
-        value={apellido}
-        onChange={(e) => setApellido(sanitizeApellido(e.target.value))}
-        placeholder="Apellido"
-        className="w-full border rounded px-3 py-2"
-        required
-        maxLength={60}
-        pattern="[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*"
-        title="Solo letras y espacios. Ej: Juan Pérez"
-      />
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Apellido <span className="text-red-500">*</span>
+          </label>
+          <input
+            value={apellido}
+            onChange={(e) => setApellido(sanitizeApellido(e.target.value))}
+            placeholder="Ej: Pérez González"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            required
+            maxLength={60}
+            pattern="[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+(?:\s[A-Za-zÁÉÍÓÚÜáéíóúüÑñ]+)*"
+            title="Solo letras y espacios"
+          />
+        </div>
+      </div>
 
+      {/* DNI y Matrícula (solo crear) */}
       {!initialData && (
-        <>
-          <input
-            type="text"
-            value={dni}
-            onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
-            placeholder="DNI (8 dígitos)"
-            className="w-full border rounded px-3 py-2"
-            required
-            maxLength={8}
-            pattern="\d{8}"
-            title="Debe contener 8 dígitos"
-          />
-          <input
-            type="text"
-            value={matricula}
-            onChange={(e) => setMatricula(e.target.value.replace(/\D/g, "").slice(0, 4))}
-            placeholder="Matrícula (4 dígitos)"
-            className="w-full border rounded px-3 py-2"
-            required
-            maxLength={4}
-            pattern="\d{4}"
-            title="Debe contener 4 dígitos"
-          />
-        </>
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              DNI <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={dni}
+              onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
+              placeholder="12345678"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              required
+              maxLength={8}
+              pattern="\d{8}"
+              title="8 dígitos numéricos"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-2">
+              Matrícula <span className="text-red-500">*</span>
+            </label>
+            <input
+              type="text"
+              value={matricula}
+              onChange={(e) => setMatricula(e.target.value.replace(/\D/g, "").slice(0, 4))}
+              placeholder="1234"
+              className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+              required
+              maxLength={4}
+              pattern="\d{4}"
+              title="4 dígitos numéricos"
+            />
+          </div>
+        </div>
       )}
 
-      <select
-        value={especialidadId}
-        onChange={(e) => setEspecialidadId(e.target.value as Id<"especialidades">)}
-        className="w-full border rounded px-3 py-2"
-        required
-      >
-        <option value="">Seleccionar especialidad</option>
-        {(especialidades ?? []).map((esp) => (
-          <option key={esp._id} value={esp._id}>
-            {esp.nombre}
-          </option>
-        ))}
-      </select>
+      {/* Especialidad */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Especialidad <span className="text-red-500">*</span>
+        </label>
+        <select
+          value={especialidadId}
+          onChange={(e) => setEspecialidadId(e.target.value as Id<"especialidades">)}
+          className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all bg-white"
+          required
+        >
+          <option value="">Seleccionar especialidad...</option>
+          {(especialidades ?? []).map((esp) => (
+            <option key={esp._id} value={esp._id}>
+              {esp.nombre}
+            </option>
+          ))}
+        </select>
+      </div>
 
-      <input
-        type="email"
-        value={contacto}
-        onChange={(e) => setContacto(e.target.value)}
-        placeholder="Contacto (ej: usuario@gmail.com)"
-        className="w-full border rounded px-3 py-2"
-        required
-      />
+      {/* Contacto y Teléfono */}
+      <div className="grid grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Contacto (Email) <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="email"
+            value={contacto}
+            onChange={(e) => setContacto(e.target.value)}
+            placeholder="usuario@ejemplo.com"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            required
+          />
+        </div>
 
-      <input
-        type="tel"
-        inputMode="numeric"
-        value={telefono}
-        onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 10))}
-        placeholder="Teléfono (10 dígitos)"
-        className="w-full border rounded px-3 py-2"
-        required
-        maxLength={10}
-        pattern="\d{10}"
-        title="Debe contener exactamente 10 dígitos"
-      />
+        <div>
+          <label className="block text-sm font-semibold text-gray-700 mb-2">
+            Teléfono <span className="text-red-500">*</span>
+          </label>
+          <input
+            type="tel"
+            inputMode="numeric"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value.replace(/\D/g, "").slice(0, 10))}
+            placeholder="3871234567"
+            className="w-full border border-gray-300 rounded-lg px-4 py-2.5 text-sm focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+            required
+            maxLength={10}
+            pattern="\d{10}"
+            title="10 dígitos numéricos"
+          />
+        </div>
+      </div>
 
-      {/* Dropdown Obras Sociales */}
+      {/* Obras Sociales */}
       <div ref={dropdownRef} className="relative">
-        <label className="text-sm text-gray-800 block mb-1">Obras Sociales</label>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">
+          Obras Sociales
+        </label>
         <button
           type="button"
           onClick={() => setIsOpen(!isOpen)}
-          className={`w-full border rounded-lg p-2 text-left flex items-center justify-between bg-white hover:bg-gray-50 transition-colors ${
-            obrasSeleccionadas.length === 0 ? "border-gray-300" : "border-gray-400"
-          }`}
+          className="w-full border border-gray-300 rounded-lg p-3 text-left flex items-center justify-between bg-white hover:border-gray-400 transition-all focus:ring-2 focus:ring-purple-500 focus:border-transparent"
         >
-          <span className="text-gray-900">
+          <span className="text-sm">
             {selectedNames.length > 0 ? (
-              <span className="flex flex-wrap gap-1">
+              <span className="flex flex-wrap gap-1.5">
                 {selectedNames.map((name, i) => (
                   <span
                     key={i}
-                    className="inline-block px-2 py-0.5 rounded-full text-xs font-medium bg-cyan-100 text-cyan-700"
+                    className="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-700 border border-purple-200"
                   >
                     {name}
                   </span>
@@ -242,24 +288,29 @@ export default function ProfesionalForm({
         </button>
 
         {isOpen && (
-          <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+          <div className="absolute z-10 w-full mt-2 bg-white border border-gray-300 rounded-lg shadow-xl max-h-60 overflow-y-auto">
             {(obrasSociales ?? []).length > 0 ? (
               obrasSociales.map((os) => (
                 <label
                   key={os._id}
-                  className="flex items-center gap-3 px-4 py-2 hover:bg-gray-50 cursor-pointer transition-colors"
+                  className="flex items-center gap-3 px-4 py-3 hover:bg-purple-50 cursor-pointer transition-colors border-b last:border-b-0"
                 >
-                  <input
-                    type="checkbox"
-                    checked={obrasSeleccionadas.includes(os._id)}
-                    onChange={() => handleObraSocialChange(os._id)}
-                    className="w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-gray-300"
-                  />
-                  <span className="text-gray-900 flex-1">{os.nombre}</span>
+                  <div className="relative flex items-center">
+                    <input
+                      type="checkbox"
+                      checked={obrasSeleccionadas.includes(os._id)}
+                      onChange={() => handleObraSocialChange(os._id)}
+                      className="w-5 h-5 rounded border-gray-300 text-purple-600 focus:ring-purple-500 cursor-pointer"
+                    />
+                    {obrasSeleccionadas.includes(os._id) && (
+                      <Check className="w-3 h-3 text-white absolute left-1 pointer-events-none" />
+                    )}
+                  </div>
+                  <span className="text-sm text-gray-900 flex-1">{os.nombre}</span>
                 </label>
               ))
             ) : (
-              <div className="px-4 py-3 text-sm text-gray-500 italic">
+              <div className="px-4 py-3 text-sm text-gray-500 italic text-center">
                 No hay obras sociales disponibles
               </div>
             )}
@@ -267,30 +318,56 @@ export default function ProfesionalForm({
         )}
       </div>
 
-      <select
-        value={estado}
-        onChange={(e) => setEstado(e.target.value as "Activo" | "Inactivo")}
-        className="w-full border rounded px-3 py-2"
-      >
-        <option value="Activo">Activo</option>
-        <option value="Inactivo">Inactivo</option>
-      </select>
+      {/* Estado */}
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Estado</label>
+        <div className="flex gap-4">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              value="Activo"
+              checked={estado === "Activo"}
+              onChange={(e) => setEstado(e.target.value as "Activo")}
+              className="w-4 h-4 text-green-600 focus:ring-green-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Activo</span>
+          </label>
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="radio"
+              value="Inactivo"
+              checked={estado === "Inactivo"}
+              onChange={(e) => setEstado(e.target.value as "Inactivo")}
+              className="w-4 h-4 text-red-600 focus:ring-red-500"
+            />
+            <span className="text-sm font-medium text-gray-700">Inactivo</span>
+          </label>
+        </div>
+      </div>
 
-      <div className="flex justify-end gap-2 pt-2">
+      {/* Botones */}
+      <div className="flex justify-end gap-3 pt-4 border-t">
         <button
           type="button"
           onClick={onCancel}
-          className="px-3 py-2 rounded bg-gray-200 hover:bg-gray-300 disabled:opacity-60"
+          className="px-5 py-2.5 rounded-lg bg-gray-100 text-gray-700 font-medium hover:bg-gray-200 disabled:opacity-60 transition-all"
           disabled={submitting}
         >
           Cancelar
         </button>
         <button
           type="submit"
-          className="px-3 py-2 rounded bg-blue-600 text-white hover:bg-blue-500 disabled:opacity-60"
+          className="px-5 py-2.5 rounded-lg bg-gradient-to-r from-purple-600 to-pink-600 text-white font-medium hover:from-purple-700 hover:to-pink-700 disabled:opacity-60 transition-all shadow-md"
           disabled={submitting}
         >
-          {submitting ? "Guardando..." : "Guardar"}
+          {submitting ? (
+            <span className="flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin"></div>
+              Guardando...
+            </span>
+          ) : (
+            "Guardar"
+          )}
         </button>
       </div>
     </form>

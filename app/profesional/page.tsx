@@ -6,13 +6,10 @@ import {
   Calendar,
   ArrowRight,
   Users,
-  NotepadTextDashed,
   CircleUserIcon,
 } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
-import { useQuery } from "convex/react";
-import { api } from "@/convex/_generated/api";
 
 const actions = [
   {
@@ -42,24 +39,10 @@ const actions = [
     bgLight: "bg-green-50",
     shadowColor: "shadow-green-500/20",
   },
-  {
-    title: "Historias Clínicas",
-    description: "Acceso a registros médicos",
-    icon: NotepadTextDashed,
-    href: "/profesional/historias",
-    gradient: "from-orange-500 to-red-500",
-    bgLight: "bg-orange-50",
-    shadowColor: "shadow-orange-500/20",
-  },
 ];
 
 export default function ProfesionalHome() {
   const { user } = useUser();
-
-  // 🔹 Consultamos datos del profesional logueado
-  const profesional = useQuery(api.profesionales.getByClerkUser, {
-    clerkUserId: user?.id || "",
-  });
 
   return (
     <>

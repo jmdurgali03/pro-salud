@@ -112,21 +112,21 @@ export default function ProfesionalModal({
                 </label>
                 <div className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-900">
                   {especialidadesFinal.length > 0
-  ? especialidadesFinal.find((e) => e._id === initialData.especialidadId)?.nombre || "—"
-  : "Cargando..."}
+                    ? especialidadesFinal.find((e) => e._id === initialData.especialidadId)?.nombre || "—"
+                    : "Cargando..."}
 
                 </div>
               </div>
 
               {/* Franjas Horarias */}
               <div>
-                <label className="text-sm font-medium text-gray-700 block mb-2 flex items-center gap-2">
+                <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
                   <Clock className="w-4 h-4 text-blue-600" />
                   Franjas horarias
                 </label>
                 <div className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50 text-gray-900">
                   {initialData.franjasHorarias &&
-                  initialData.franjasHorarias.length > 0 ? (
+                    initialData.franjasHorarias.length > 0 ? (
                     <div className="space-y-1 text-sm">
                       {(() => {
                         const diasSemana = [
@@ -198,9 +198,8 @@ export default function ProfesionalModal({
                           const etiquetaDias =
                             g.inicio === g.fin
                               ? diasSemana[g.inicio - 1]
-                              : `${diasSemana[g.inicio - 1]}–${
-                                  diasSemana[g.fin - 1]
-                                }`;
+                              : `${diasSemana[g.inicio - 1]}–${diasSemana[g.fin - 1]
+                              }`;
                           const horarios = g.franjas
                             .map((f) => `${f.inicio} a ${f.fin}`)
                             .join(", ");
@@ -250,24 +249,24 @@ export default function ProfesionalModal({
                   Obras Sociales
                 </label>
                 <div className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
-  {obrasSocialesFinal.length > 0 ? (
-    getObrasSocialesNombres(initialData.obrasSociales).length > 0 ? (
-      <div className="flex flex-wrap gap-2">
-        {getObrasSocialesNombres(initialData.obrasSociales).map((name, i) => (
-          <span
-            key={i}
-            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-cyan-50 to-blue-50 text-cyan-700 border border-cyan-200"
-          >
-            {name}
-          </span>
-        ))}
-      </div>
-    ) : (
-      <span className="text-gray-400">Sin obras sociales</span>
-    )
-  ) : (
-    <span className="text-gray-400">Cargando...</span>
-  )}
+                  {obrasSocialesFinal.length > 0 ? (
+                    getObrasSocialesNombres(initialData.obrasSociales).length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {getObrasSocialesNombres(initialData.obrasSociales).map((name, i) => (
+                          <span
+                            key={i}
+                            className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-gradient-to-r from-cyan-50 to-blue-50 text-cyan-700 border border-cyan-200"
+                          >
+                            {name}
+                          </span>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-gray-400">Sin obras sociales</span>
+                    )
+                  ) : (
+                    <span className="text-gray-400">Cargando...</span>
+                  )}
                 </div>
               </div>
 
@@ -278,11 +277,10 @@ export default function ProfesionalModal({
                 </label>
                 <div className="w-full border border-gray-200 rounded-xl px-4 py-3 bg-gray-50">
                   <span
-                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      initialData.estado === "Activo"
+                    className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${initialData.estado === "Activo"
                         ? "bg-green-100 text-green-700 border border-green-200"
                         : "bg-red-100 text-red-700 border border-red-200"
-                    }`}
+                      }`}
                   >
                     {initialData.estado}
                   </span>

@@ -6,7 +6,30 @@ import ProfesionalModal from "./ProfesionalModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Plus, CheckCircle2, ChevronLeft, ChevronRight, BriefcaseMedical, Search } from "lucide-react";
+import { Plus, CheckCircle2, ChevronLeft, ChevronRight, BriefcaseMedical, Search, MoreHorizontal, ChevronDown, Eye, Edit, Trash2, AlertTriangle } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 export type Profesional = {
   _id: Id<"profesionales">;
@@ -42,6 +65,9 @@ const mapReason = (r: string, fallback?: string) => {
   }
 };
 
+type SortOption = "reciente" | "antiguo" | "a-z" | "z-a";
+type EstadoFilter = "todos" | "activo" | "inactivo";
+
 export default function ProfesionalesPage() {
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
@@ -52,21 +78,22 @@ export default function ProfesionalesPage() {
   const eliminar = useMutation(api.profesionales.eliminar);
 
   const [q, setQ] = useState("");
+  const [sortBy, setSortBy] = useState<SortOption>("reciente");
+  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>("todos");
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
   const [viendo, setViendo] = useState<Profesional | null>(null);
+  const [eliminando, setEliminando] = useState<Profesional | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
-  // Ocultar el toast automáticamente
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Crear profesional
   const handleCrear = async (data: ProfesionalInput & { dni: string; matricula: string }) => {
     try {
       setSaving(true);
@@ -85,7 +112,6 @@ export default function ProfesionalesPage() {
     }
   };
 
-  // Editar profesional
   const handleEditar = async (data: ProfesionalInput) => {
     if (!editando?._id) return;
     try {
@@ -105,11 +131,13 @@ export default function ProfesionalesPage() {
     }
   };
 
-  // Eliminar profesional
   const handleEliminar = async (id?: Id<"profesionales">) => {
     if (!id) return;
     const res: any = await eliminar({ id });
-    if (res?.ok) setToast("Profesional eliminado.");
+    if (res?.ok) {
+      setToast("Profesional eliminado.");
+      setEliminando(null);
+    }
   };
 
   const getEspecialidadNombre = (id: Id<"especialidades">) =>
@@ -118,23 +146,47 @@ export default function ProfesionalesPage() {
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
     ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean);
 
-  // Filtro del buscador
+  // Filtrado y ordenamiento
   const profesionalesFiltrados = useMemo(() => {
     const term = q.toLowerCase();
-    return profesionales.filter((p) => {
+    let filtered = profesionales.filter((p) => {
       const especialidad = getEspecialidadNombre(p.especialidadId).toLowerCase();
       const obras = getObrasSocialesNombres(p.obrasSociales).join(" ").toLowerCase();
-      return (
+      const matchesSearch =
         p.nombre.toLowerCase().includes(term) ||
         p.apellido.toLowerCase().includes(term) ||
         p.dni.toLowerCase().includes(term) ||
         especialidad.includes(term) ||
-        obras.includes(term)
-      );
-    });
-  }, [q, profesionales, especialidades, obrasSociales]);
+        obras.includes(term);
 
-  // Paginación (8 por página para consistencia)
+      const matchesEstado =
+        estadoFilter === "todos" ||
+        (estadoFilter === "activo" && p.estado === "Activo") ||
+        (estadoFilter === "inactivo" && p.estado === "Inactivo");
+
+      return matchesSearch && matchesEstado;
+    });
+
+    // Ordenamiento
+    filtered.sort((a, b) => {
+      switch (sortBy) {
+        case "reciente":
+          return b._id.toString().localeCompare(a._id.toString());
+        case "antiguo":
+          return a._id.toString().localeCompare(b._id.toString());
+        case "a-z":
+          return `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`);
+        case "z-a":
+          return `${b.apellido} ${b.nombre}`.localeCompare(`${a.apellido} ${a.nombre}`);
+        default:
+          return 0;
+      }
+    });
+
+    return filtered;
+  }, [q, profesionales, especialidades, obrasSociales, sortBy, estadoFilter]);
+
+  // Paginación
   const [page, setPage] = useState(1);
   const itemsPerPage = 8;
   const totalPages = Math.ceil(profesionalesFiltrados.length / itemsPerPage);
@@ -144,7 +196,6 @@ export default function ProfesionalesPage() {
     return profesionalesFiltrados.slice(startIndex, startIndex + itemsPerPage);
   }, [page, profesionalesFiltrados]);
 
-  // Si borra el último y queda vacía, vuelve atrás
   useEffect(() => {
     if (page > totalPages && totalPages > 0) {
       setPage(totalPages);
@@ -160,36 +211,78 @@ export default function ProfesionalesPage() {
     >
       <div className="w-full px-10 py-10 space-y-8">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <BriefcaseMedical className="w-6 h-6 text-purple-500" />
-            Gestión de Profesionales
-          </h1>
-        </div>
-
-        {/* Buscador */}
-        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-          <Search className="text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, DNI, matrícula, especialidad u obra social..."
-            value={q}
-            onChange={(e) => {
-              setQ(e.target.value);
-              setPage(1);
-            }}
-            className="w-full outline-none text-sm"
-          />
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-1.5 h-8 bg-gradient-to-b from-purple-500 to-pink-500 rounded-full"></div>
+            <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
+              <BriefcaseMedical className="w-6 h-6 text-purple-500" />
+              Gestión de Profesionales
+            </h1>
+          </div>
           <button
             onClick={() => {
               setModalError(null);
               setModalOpen(true);
             }}
-            className="px-4 py-2 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-all whitespace-nowrap flex items-center gap-2"
+            className="px-5 py-2.5 rounded-lg bg-purple-600 text-white text-sm font-medium hover:bg-purple-700 transition-all whitespace-nowrap flex items-center gap-2 shadow-md"
           >
-            <Plus className="w-4 h-4" /> Nuevo
+            <Plus className="w-5 h-5" /> Nuevo Profesional
           </button>
+        </div>
+
+        {/* Buscador y Filtros */}
+        <div className="space-y-3">
+          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+            <Search className="text-gray-400 w-5 h-5" />
+            <input
+              type="text"
+              placeholder="Buscar por nombre, DNI, matrícula, especialidad u obra social..."
+              value={q}
+              onChange={(e) => {
+                setQ(e.target.value);
+                setPage(1);
+              }}
+              className="w-full outline-none text-sm"
+            />
+          </div>
+
+          <div className="flex items-center gap-3">
+            {/* Ordenar por */}
+            <div className="relative">
+              <select
+                value={sortBy}
+                onChange={(e) => setSortBy(e.target.value as SortOption)}
+                className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all cursor-pointer shadow-sm"
+              >
+                <option value="reciente">Más reciente</option>
+                <option value="antiguo">Más antiguo</option>
+                <option value="a-z">A - Z</option>
+                <option value="z-a">Z - A</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            {/* Estado */}
+            <div className="relative">
+              <select
+                value={estadoFilter}
+                onChange={(e) => {
+                  setEstadoFilter(e.target.value as EstadoFilter);
+                  setPage(1);
+                }}
+                className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all cursor-pointer shadow-sm"
+              >
+                <option value="todos">Todos los estados</option>
+                <option value="activo">Activo</option>
+                <option value="inactivo">Inactivo</option>
+              </select>
+              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
+            </div>
+
+            <span className="text-sm text-gray-500 ml-auto">
+              {profesionalesFiltrados.length} resultado{profesionalesFiltrados.length !== 1 ? "s" : ""}
+            </span>
+          </div>
         </div>
 
         {/* Tabla */}
@@ -204,7 +297,7 @@ export default function ProfesionalesPage() {
                 <th className="p-4 text-left">Teléfono</th>
                 <th className="p-4 text-left">Obras Sociales</th>
                 <th className="p-4 text-center">Estado</th>
-                <th className="p-4 text-center w-32">Acciones</th>
+                <th className="p-4 text-center w-20">Acciones</th>
               </tr>
             </thead>
             <tbody>
@@ -235,8 +328,30 @@ export default function ProfesionalesPage() {
                     </span>
                   </td>
                   <td className="p-4 text-center">
-                    <button onClick={() => setViendo(prof)} className="text-purple-600 hover:text-purple-800 text-sm font-medium hover:underline mr-3">Ver</button>
-                    <button onClick={() => setEditando(prof)} className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline">Editar</button>
+                    <DropdownMenu>
+                      <DropdownMenuTrigger asChild>
+                        <button className="p-2 hover:bg-gray-100 rounded-lg transition-colors">
+                          <MoreHorizontal className="w-5 h-5 text-gray-600" />
+                        </button>
+                      </DropdownMenuTrigger>
+                      <DropdownMenuContent align="end" className="w-40">
+                        <DropdownMenuItem onClick={() => setViendo(prof)} className="cursor-pointer">
+                          <Eye className="w-4 h-4" />
+                          Ver detalles
+                        </DropdownMenuItem>
+                        <DropdownMenuItem onClick={() => setEditando(prof)} className="cursor-pointer">
+                          <Edit className="w-4 h-4" />
+                          Editar
+                        </DropdownMenuItem>
+                        <DropdownMenuItem
+                          onClick={() => setEliminando(prof)}
+                          className="cursor-pointer focus:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Eliminar
+                        </DropdownMenuItem>
+                      </DropdownMenuContent>
+                    </DropdownMenu>
                   </td>
                 </tr>
               ))}
@@ -280,7 +395,7 @@ export default function ProfesionalesPage() {
           )}
         </div>
 
-        {/* Modales */}
+        {/* Modal Crear */}
         {modalOpen && (
           <ProfesionalModal
             title="Nuevo Profesional"
@@ -292,6 +407,7 @@ export default function ProfesionalesPage() {
           />
         )}
 
+        {/* Modal Editar */}
         {editando && (
           <ProfesionalModal
             title="Editar Profesional"
@@ -304,12 +420,157 @@ export default function ProfesionalesPage() {
           />
         )}
 
+        {/* Dialog Ver Detalles */}
+        <Dialog open={!!viendo} onOpenChange={(open) => !open && setViendo(null)}>
+          <DialogContent className="sm:max-w-[600px]">
+            <DialogHeader className="bg-blue-600 -mx-6 -mt-6 px-6 py-6 rounded-t-lg">
+              <DialogTitle className="text-2xl font-bold text-white">
+                Ver Profesional
+              </DialogTitle>
+            </DialogHeader>
+            {viendo && (
+              <div className="space-y-6 mt-6">
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-2">
+                    Nombre completo
+                  </label>
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900">
+                    {viendo.nombre} {viendo.apellido}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-2">
+                      DNI
+                    </label>
+                    <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900">
+                      {viendo.dni}
+                    </div>
+                  </div>
+                  <div>
+                    <label className="text-sm font-medium text-gray-700 block mb-2">
+                      Matrícula
+                    </label>
+                    <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900">
+                      {viendo.matricula}
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-2">
+                    Especialidad
+                  </label>
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900">
+                    {getEspecialidadNombre(viendo.especialidadId)}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
+                    <span>🕐</span> Franjas horarias
+                  </label>
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900 flex items-center gap-2">
+                    <span>🕐</span> Lun—Vie 08:00 a 12:00, 16:00 a 20:00
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-2">
+                    Correo electrónico
+                  </label>
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900 break-all">
+                    {viendo.contacto}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-2">
+                    Teléfono
+                  </label>
+                  <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900">
+                    {viendo.telefono}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="text-sm font-medium text-gray-700 block mb-2">
+                    Obras Sociales
+                  </label>
+                  <div className="flex flex-wrap gap-2">
+                    {getObrasSocialesNombres(viendo.obrasSociales).map((os) => (
+                      <span
+                        key={os}
+                        className="px-3 py-1.5 text-sm rounded-lg bg-gray-100 text-gray-700 font-medium"
+                      >
+                        {os}
+                      </span>
+                    ))}
+                    {viendo.obrasSociales.length === 0 && (
+                      <span className="text-gray-400 italic text-sm">
+                        Sin obras sociales asignadas
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <button
+                    onClick={() => setViendo(null)}
+                    className="w-full px-4 py-2.5 rounded-lg bg-white border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 transition-colors"
+                  >
+                    Cerrar
+                  </button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
+
+        {/* Dialog Confirmar Eliminación */}
+        <AlertDialog open={!!eliminando} onOpenChange={(open) => !open && setEliminando(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                </div>
+              </div>
+              <AlertDialogTitle className="text-center">¿Eliminar profesional?</AlertDialogTitle>
+              <AlertDialogDescription className="text-center">
+                {eliminando && (
+                  <>
+                    Esta acción eliminará permanentemente al profesional &quot;<strong>{eliminando.nombre} {eliminando.apellido}</strong>&quot;.
+                    Los pacientes asociados no perderán su información, pero no tendrán cobertura asignada.
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:justify-center">
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => {
+                  if (eliminando) {
+                    handleEliminar(eliminando._id);
+                  }
+                }}
+                className="bg-red-600 hover:bg-red-700"
+              >
+                Eliminar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
         {/* Toast */}
         {toast && (
           <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white bg-purple-600 border border-purple-400 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <CheckCircle2 className="w-5 h-5 text-white" />
             <p className="font-medium">{toast}</p>
-            <button onClick={() => setToast(null)} className="ml-2 text-white hover:text-purple-100 text-lg font-bold">×</button>
+            <button onClick={() => setToast(null)} className="ml-2 text-white hover:text-purple-100 text-lg font-bold">
+              ×
+            </button>
           </div>
         )}
       </div>
