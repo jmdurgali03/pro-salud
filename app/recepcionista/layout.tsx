@@ -9,7 +9,6 @@ const links = [
   { href: "/recepcionista/cal-turnos", label: "Calendario", icon: Calendar },
   {href: "/recepcionista/turnos", label: "Turnos", icon: CalendarX2}, 
   { href: "/recepcionista/pacientes", label: "Pacientes", icon: Users },
-  { href: "/recepcionista/historias", label: "Historias Clinicas", icon: NotepadTextDashed },
   { href: "/recepcionista/profesional", label: "Profesionales", icon: BriefcaseMedical },
 ];
 

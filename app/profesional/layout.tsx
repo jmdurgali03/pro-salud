@@ -9,7 +9,6 @@ const links = [
     { href: "/profesional/perfil", label: "Perfil", icon: CircleUserIcon },
     { href: "/profesional/cal-turnos", label: "Turnos", icon: Calendar },
     { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
-    { href: "/profesional/historias", label: "Historias Clinicas", icon: NotepadTextDashed },
 ];
 
 export default function ProfesionalLayout({ children }: { children: React.ReactNode }) {

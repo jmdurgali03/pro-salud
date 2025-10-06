@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { Id } from "@/convex/_generated/dataModel";
-import Modal from "@/app/recepcionista/pacientes/_components/Modal";
+import Modal from "@/components/pacientes/Modal";
 
 export default function ConsultaModal({
   open,
