@@ -206,7 +206,8 @@ export default function CalendarioRecepcionistaPage() {
               <section className="overflow-hidden rounded-xl bg-white">
                 {view === "month" ? (
                   <CalendarioGrid
-                    diasSemana={["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"]}
+  diasSemana={["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]}
+
                     weeks={weeks}
                     getEventsForDay={getEventsForDay}
                     onSelectTurno={setSelectedTurno}

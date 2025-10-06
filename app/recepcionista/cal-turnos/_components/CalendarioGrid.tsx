@@ -10,7 +10,7 @@ type Props = {
 };
 
 export function CalendarioGrid({
-  diasSemana,
+  diasSemana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"], 
   weeks,
   getEventsForDay,
   onSelectTurno,

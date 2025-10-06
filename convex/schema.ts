@@ -20,52 +20,65 @@ export default defineSchema({
   // -------------------------
   // Turnos médicos
   // -------------------------
-  turnos: defineTable({
-    title: v.optional(v.string()),
-    pacienteId: v.id("pacientes"),
-    profesionalId: v.id("profesionales"),
-    tipo: v.string(),
-    estado: v.union(
-      v.literal("Confirmado"),
-      v.literal("Pendiente"),
-      v.literal("Cancelado"),
-      v.literal("Finalizado")
-    ),
-    start: v.number(),
-    end: v.number(),
-    notas: v.optional(v.string()),
-    creadoEn: v.number(),
-    actualizadoEn: v.number(),
-  })
-    .index("byStart", ["start"])
-    .index("byProfesional", ["profesionalId"])
-    .index("byPaciente", ["pacienteId"])
-    .index("byEstado", ["estado"]),
+ turnos: defineTable({
+  title: v.optional(v.string()),
+  pacienteId: v.id("pacientes"),
+  profesionalId: v.id("profesionales"),
+  tipo: v.string(),
+  estado: v.union(
+    v.literal("Confirmado"),
+    v.literal("Pendiente"),
+    v.literal("Cancelado"),
+    v.literal("Finalizado")
+  ),
+  start: v.number(),
+  end: v.number(),
+  duracion: v.optional(v.number()), // ✅ nuevo campo (en minutos)
+  notas: v.optional(v.string()),
+  creadoEn: v.number(),
+  actualizadoEn: v.number(),
+})
+  .index("byStart", ["start"])
+  .index("byProfesional", ["profesionalId"])
+  .index("byPaciente", ["pacienteId"])
+  .index("byEstado", ["estado"]),
+
 
   // -------------------------
   // Profesionales
   // -------------------------
-  profesionales: defineTable({
-    nombre: v.string(),
-    apellido: v.string(),
-    dni: v.string(),
-    matricula: v.string(),
-    especialidadId: v.id("especialidades"),
-    contacto: v.string(),
-    telefono: v.string(),
-    obrasSociales: v.array(v.id("obrasSociales")),
-    estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
-    usuario: v.string(),
-    password: v.string(),
-    clerkUserId: v.optional(v.string()),
-  })
-    .index("por_nombre", ["nombre"])
-    .index("por_dni", ["dni"])
-    .index("por_matricula", ["matricula"])
-    .index("por_telefono", ["telefono"])
-    .index("byClerkUser", ["clerkUserId"])
-    .index("byUsuario", ["usuario"])
-    .index("byContacto", ["contacto"]),
+profesionales: defineTable({
+  nombre: v.string(),
+  apellido: v.string(),
+  dni: v.string(),
+  matricula: v.string(),
+  especialidadId: v.id("especialidades"),
+  contacto: v.string(),
+  telefono: v.string(),
+  obrasSociales: v.array(v.id("obrasSociales")),
+  estado: v.union(v.literal("Activo"), v.literal("Inactivo")),
+  usuario: v.string(),
+  password: v.string(),
+  clerkUserId: v.optional(v.string()),
+
+  // ✅ NUEVO: franjas horarias por día
+  franjasHorarias: v.optional(
+    v.array(
+      v.object({
+        dia: v.number(),       // 0 = domingo ... 6 = sábado
+        inicio: v.string(),    // formato "HH:mm"
+        fin: v.string(),       // formato "HH:mm"
+      })
+    )
+  ),
+})
+  .index("por_nombre", ["nombre"])
+  .index("por_dni", ["dni"])
+  .index("por_matricula", ["matricula"])
+  .index("por_telefono", ["telefono"])
+  .index("byClerkUser", ["clerkUserId"])
+  .index("byUsuario", ["usuario"])
+  .index("byContacto", ["contacto"]),
 
   // -------------------------
   // Obras Sociales

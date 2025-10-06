@@ -1,6 +1,17 @@
 "use client";
 import { Id } from "@/convex/_generated/dataModel";
+import {
+  startOfMonth,
+  endOfMonth,
+  startOfWeek,
+  endOfWeek,
+  addDays as addDaysFns,
+} from "date-fns";
+import { es } from "date-fns/locale";
 
+/* -------------------------------------------------------------------------- */
+/* 🩺 Tipos de datos                                                          */
+/* -------------------------------------------------------------------------- */
 export type TurnoConJoin = {
   _id: Id<"turnos">;
   start: number;
@@ -21,14 +32,18 @@ export type TurnoConJoin = {
   especialidadNombre?: string;
 };
 
-// 🔹 Colores por estado del turno
+/* -------------------------------------------------------------------------- */
+/* 🎨 Colores por estado del turno                                           */
+/* -------------------------------------------------------------------------- */
 export const TURNO_COLOR_MAP: Record<string, string> = {
   Confirmado: "bg-green-100 border-green-400 text-green-700",
   Pendiente: "bg-yellow-100 border-yellow-400 text-yellow-700",
   Cancelado: "bg-red-100 border-red-400 text-red-700",
 };
 
-// 🔹 Helpers de fechas
+/* -------------------------------------------------------------------------- */
+/* 🧭 Helpers de fechas                                                      */
+/* -------------------------------------------------------------------------- */
 export const sameDay = (a: Date, b: Date) =>
   a.getFullYear() === b.getFullYear() &&
   a.getMonth() === b.getMonth() &&
@@ -40,29 +55,31 @@ export const addDays = (d: Date, days: number) => {
   return copy;
 };
 
-export const startOfWeekMonday = (d: Date) => {
-  const day = d.getDay();
-  const diff = (day === 0 ? -6 : 1) - day;
-  return addDays(d, diff);
-};
+/**
+ * 🔹 Devuelve el lunes de la semana de la fecha dada (formato local argentino)
+ */
+export const startOfWeekMonday = (d: Date) =>
+  startOfWeek(d, { weekStartsOn: 1, locale: es });
 
+/**
+ * 🔹 Genera los días visibles del mes (incluyendo días previos/siguientes
+ *    para completar las 6 filas del calendario mensual).
+ */
 export const getDaysInMonth = (date: Date) => {
-  const year = date.getFullYear();
-  const month = date.getMonth();
-  const firstDay = new Date(year, month, 1);
-  const start = startOfWeekMonday(firstDay);
+  const start = startOfWeek(startOfMonth(date), { weekStartsOn: 1, locale: es });
+  const end = endOfWeek(endOfMonth(date), { weekStartsOn: 1, locale: es });
 
   const days: { day: number; date: Date; isCurrentMonth: boolean }[] = [];
 
-  for (let i = 0; i < 42; i++) {
-    const d = addDays(start, i);
+  let current = start;
+  while (current <= end) {
     days.push({
-      day: d.getDate(), // 🔹 agregado
-      date: d,
-      isCurrentMonth: d.getMonth() === month,
+      day: current.getDate(),
+      date: current,
+      isCurrentMonth: current.getMonth() === date.getMonth(),
     });
+    current = addDaysFns(current, 1);
   }
 
   return days;
 };
-

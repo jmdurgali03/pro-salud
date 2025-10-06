@@ -49,22 +49,34 @@ export const startOfWeekMonday = (date: Date) => {
 export const getDaysInMonth = (date: Date) => {
   const year = date.getFullYear();
   const month = date.getMonth();
+
   const firstDay = new Date(year, month, 1);
   const lastDay = new Date(year, month + 1, 0);
-  const daysInMonth = lastDay.getDate();
-  const startingDayOfWeek = firstDay.getDay();
-  const days: { day: number; isCurrentMonth: boolean }[] = [];
 
-  const prevMonthLastDay = new Date(year, month, 0).getDate();
-  for (let i = startingDayOfWeek - 1; i >= 0; i--) {
-    days.push({ day: prevMonthLastDay - i, isCurrentMonth: false });
+  const daysInMonth = lastDay.getDate();
+  // 🟢 Ajuste: fuerza a que el lunes sea el primer día (0 = lunes)
+  const startingDayOfWeek = (firstDay.getDay() + 6) % 7;
+
+  const days: { day: number; date: Date; isCurrentMonth: boolean }[] = [];
+
+  // 🔹 Días del mes anterior para completar la primera semana
+  for (let i = 0; i < startingDayOfWeek; i++) {
+    const prev = new Date(year, month, -startingDayOfWeek + i + 1);
+    days.push({ day: prev.getDate(), date: prev, isCurrentMonth: false });
   }
+
+  // 🔹 Días del mes actual
   for (let i = 1; i <= daysInMonth; i++) {
-    days.push({ day: i, isCurrentMonth: true });
+    const current = new Date(year, month, i);
+    days.push({ day: i, date: current, isCurrentMonth: true });
   }
-  const remainingDays = 42 - days.length;
-  for (let i = 1; i <= remainingDays; i++) {
-    days.push({ day: i, isCurrentMonth: false });
+
+  // 🔹 Días del siguiente mes hasta completar 42 (6 semanas)
+  const remaining = 42 - days.length;
+  for (let i = 1; i <= remaining; i++) {
+    const next = new Date(year, month + 1, i);
+    days.push({ day: i, date: next, isCurrentMonth: false });
   }
+
   return days;
 };
