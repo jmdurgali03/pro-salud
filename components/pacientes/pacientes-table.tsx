@@ -3,8 +3,9 @@
 import { useEffect, useRef, useState } from "react";
 import { Edit2, Eye, MoreHorizontal, Trash2, Search } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
-import { PacienteRecord } from "../types";
-import { getObraSocialBadgeClass } from "../../_components/obra-social-badge";
+import { PacienteRecord } from "./types";
+import { getObraSocialBadgeClass } from "@/components/pacientes/obra-social-badge";
+
 
 type PacientesTableProps = {
   pacientes: PacienteRecord[];

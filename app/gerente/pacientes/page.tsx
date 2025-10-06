@@ -1,221 +1,239 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
-import { useQuery } from "convex/react";
-import { PageWrapper } from "@/components/page-wrapper";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { ChevronLeft, ChevronRight, CheckCircle2, Users, Search } from "lucide-react";
+import { PageWrapper } from "@/components/page-wrapper";
+import { useDebouncedValue } from "@/hooks/use-debounce";
+import { PacientesHeader } from "@/components/pacientes/pacientes-header";
+import { PacientesSearchBar, ObraSocialOption } from "@/components/pacientes/pacientes-search";
+import { PacientesTable } from "@/components/pacientes/pacientes-table";
+import { PacientesPagination } from "@/components/pacientes/pacientes-pagination";
+import { PacienteForm, PacienteFormValues } from "@/components/pacientes/paciente-form";
+import { ModalContainer } from "@/components/pacientes/modal-container";
+import { PacienteRecord } from "@/components/pacientes/types";
 
-export type Paciente = {
-  _id: Id<"pacientes">;
-  nombre: string;
-  apellido: string;
-  dni: string;
-  email?: string;
-  telefono?: string;
-  obrasSociales?: Id<"obrasSociales">[];
-  obrasSocialesNombres?: string[];
-  fechaNacimiento?: string;
-  genero?: string;
-};
 
-export default function GerentePacientesPage() {
-  const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
-  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+const ITEMS_PER_PAGE = 10;
 
-  const [q, setQ] = useState("");
-  const [page, setPage] = useState(1);
-  const [toast, setToast] = useState<string | null>(null);
+export default function PacientesPage() {
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebouncedValue(search, 250);
+  const [seleccionado, setSeleccionado] = useState<PacienteRecord | null>(null);
+  const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | null>(null);
+  const router = useRouter();
 
-  // Ocultar toast automáticamente
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
-  // Buscar coincidencias
-  const pacientesFiltrados = useMemo(() => {
-    const term = q.trim().toLowerCase();
-    if (!term) return pacientes;
-    return pacientes.filter((p) => {
-      const obras =
-        (p.obrasSocialesNombres ??
-          p.obrasSociales?.map(
-            (id) => obrasSociales.find((os) => os._id === id)?.nombre || ""
-          )) || [];
-      return (
-        p.nombre.toLowerCase().includes(term) ||
-        p.apellido.toLowerCase().includes(term) ||
-        p.dni?.toLowerCase().includes(term) ||
-        (p.email ?? "").toLowerCase().includes(term) ||
-        obras.join(" ").toLowerCase().includes(term)
-      );
-    });
-  }, [q, pacientes, obrasSociales]);
-
-  // Paginación
-  const itemsPerPage = 8;
-  const totalPages = Math.ceil(pacientesFiltrados.length / itemsPerPage);
-  const startIndex = (page - 1) * itemsPerPage;
-  const pacientesPaginados = pacientesFiltrados.slice(
-    startIndex,
-    startIndex + itemsPerPage
+  const pacientesConvex = useQuery(api.pacientes.listar, {}) as PacienteRecord[] | undefined;
+  const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
+  const obrasSociales = useMemo(
+    () => (obrasSocialesQuery ?? []) as ObraSocialOption[],
+    [obrasSocialesQuery]
   );
+  const [selectedObrasSociales, setSelectedObrasSociales] = useState<Id<"obrasSociales">[]>([]);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const prevPacientesRef = useRef<PacienteRecord[]>([]);
+  useEffect(() => {
+    if (Array.isArray(pacientesConvex)) {
+      prevPacientesRef.current = pacientesConvex;
+    }
+  }, [pacientesConvex]);
+
+  const isLoadingPac = pacientesConvex === undefined;
+  const isLoadingOS = obrasSocialesQuery === undefined;
 
   useEffect(() => {
-    if (page > totalPages) setPage(totalPages || 1);
-  }, [totalPages]);
+    setSelectedObrasSociales((current) => {
+      const filtered = current.filter((id) =>
+        obrasSociales.some((obra) => obra._id === id)
+      );
+      return filtered.length === current.length ? current : filtered;
+    });
+  }, [obrasSociales]);
+
+  const toggleObraSocial = useCallback((id: Id<"obrasSociales">) => {
+    setSelectedObrasSociales((current) =>
+      current.includes(id) ? current.filter((item) => item !== id) : [...current, id]
+    );
+  }, []);
+
+  const clearObrasSociales = useCallback(() => {
+    setSelectedObrasSociales([]);
+  }, []);
+
+  const filteredPacientes = useMemo(() => {
+    const base = (pacientesConvex ?? prevPacientesRef.current) || [];
+    const lista = Array.isArray(base) ? (base as PacienteRecord[]) : [];
+    const termino = debouncedSearch.trim().toLowerCase();
+
+    const coincide = (valor?: string | number | null) => {
+      if (valor === undefined || valor === null) return false;
+      const comoTexto = typeof valor === "string" ? valor.trim() : String(valor);
+      return comoTexto.toLowerCase().includes(termino);
+    };
+
+    const coincideConBusqueda = (paciente: PacienteRecord) => {
+      if (!termino) return true;
+      return (
+        coincide(paciente.nombre) ||
+        coincide(paciente.apellido) ||
+        coincide(paciente.dni) ||
+        coincide(paciente.email) ||
+        coincide(paciente.telefono) ||
+        coincide(paciente.fechaNacimiento) ||
+        coincide(paciente.genero) ||
+        (paciente.obrasSocialesNombres ?? []).some((nombre) => coincide(nombre))
+      );
+    };
+
+    const coincideConObras = (paciente: PacienteRecord) => {
+      if (selectedObrasSociales.length === 0) return true;
+      const obras = Array.isArray(paciente.obrasSociales) ? paciente.obrasSociales : [];
+      return obras.some((obraId) => selectedObrasSociales.includes(obraId));
+    };
+
+    return lista.filter((paciente) => coincideConBusqueda(paciente) && coincideConObras(paciente));
+  }, [pacientesConvex, debouncedSearch, selectedObrasSociales]);
+
+  const totalPages = useMemo(() => {
+    const count = filteredPacientes.length;
+    return count === 0 ? 1 : Math.ceil(count / ITEMS_PER_PAGE);
+  }, [filteredPacientes.length]);
+
+  const clampedPage = Math.min(currentPage, totalPages);
+
+  const paginatedPacientes = useMemo(() => {
+    const start = (clampedPage - 1) * ITEMS_PER_PAGE;
+    const end = start + ITEMS_PER_PAGE;
+    return filteredPacientes.slice(start, end);
+  }, [filteredPacientes, clampedPage]);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedObrasSociales]);
+
+  useEffect(() => {
+    if (currentPage !== clampedPage) {
+      setCurrentPage(clampedPage);
+    }
+  }, [currentPage, clampedPage]);
+
+  const crearPaciente = useMutation(api.pacientes.crear);
+  const actualizarPaciente = useMutation(api.pacientes.actualizar);
+  const eliminarPaciente = useMutation(api.pacientes.eliminar);
+
+  const closeModal = () => {
+    setModo(null);
+    setSeleccionado(null);
+  };
+
+  // ✅ Corregido: proteger campos opcionales con "?."
+  const sanitizeForm = (form: PacienteFormValues) => ({
+    ...form,
+    nombre: form.nombre.trim(),
+    apellido: form.apellido.trim(),
+    email: form.email?.trim() || "",
+    telefono: form.telefono?.trim() || "",
+    dni: form.dni.trim(),
+    fechaNacimiento: form.fechaNacimiento?.trim() || undefined,
+  });
+
+  const handleCrear = async (form: PacienteFormValues) => {
+    await crearPaciente(sanitizeForm(form));
+    closeModal();
+  };
+
+  const handleActualizar = async (id: Id<"pacientes">, form: PacienteFormValues) => {
+    await actualizarPaciente({ id, ...sanitizeForm(form) });
+    closeModal();
+  };
+
+  const handleEliminar = async (id: Id<"pacientes">) => {
+    await eliminarPaciente({ id });
+    closeModal();
+  };
+
+  const handleVer = (id: Id<"pacientes">) => {
+    router.push(`/recepcionista/pacientes/${id}`);
+  };
 
   return (
     <PageWrapper
       breadcrumbs={[
-        { label: "Inicio", href: "/gerente" },
-        { label: "Pacientes", href: "/gerente/pacientes" },
+        { label: "Inicio", href: "/recepcionista" },
+        { label: "Pacientes", href: "/recepcionista/pacientes" },
       ]}
     >
-      <div className="w-full px-10 py-10 space-y-8">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <div className="w-1.5 h-8 bg-gradient-to-b from-blue-500 to-cyan-500 rounded-full"></div>
-          <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
-            <Users className="w-6 h-6 text-blue-500" />
-            Registro de Pacientes
-          </h1>
-        </div>
-
-        {/* Buscador */}
-        <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-          <Search className="text-gray-400 w-5 h-5" />
-          <input
-            type="text"
-            placeholder="Buscar por nombre, DNI, email u obra social..."
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            className="w-full outline-none text-sm"
+      <div className="w-full">
+        <div className="w-full px-6 py-8 space-y-6">
+          <PacientesHeader hideCreateButton />
+          <PacientesSearchBar
+            value={search}
+            onChange={setSearch}
+            isLoading={isLoadingPac}
+            obrasSociales={obrasSociales}
+            selectedObrasSociales={selectedObrasSociales}
+            onToggleObraSocial={toggleObraSocial}
+            onClearObrasSociales={clearObrasSociales}
+            isLoadingObrasSociales={isLoadingOS}
           />
-          <button
-            onClick={() => setToast("Funcionalidad de exportar próximamente")}
-            className="px-4 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700 transition-all whitespace-nowrap"
-          >
-            Exportar
-          </button>
+          <PacientesTable
+            pacientes={paginatedPacientes}
+            onView={handleVer}
+            onEdit={(paciente) => {
+              setSeleccionado(paciente);
+              setModo("editar");
+            }}
+            onDelete={(paciente) => {
+              setSeleccionado(paciente);
+              setModo("eliminar");
+            }}
+            searchTerm={debouncedSearch}
+            isLoading={isLoadingPac}
+          />
+          <PacientesPagination
+            currentPage={clampedPage}
+            totalPages={totalPages}
+            onPageChange={setCurrentPage}
+            pageSize={ITEMS_PER_PAGE}
+            totalItems={filteredPacientes.length}
+          />
         </div>
 
-        {/* Tabla */}
-        <div className="overflow-hidden border border-gray-200 rounded-xl shadow bg-white">
-          <table className="w-full text-sm text-gray-700">
-            <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
-              <tr>
-                <th className="p-4 text-left">Nombre</th>
-                <th className="p-4 text-left">Apellido</th>
-                <th className="p-4 text-left">DNI</th>
-                <th className="p-4 text-left">Email</th>
-                <th className="p-4 text-left">Teléfono</th>
-                <th className="p-4 text-left">Obras Sociales</th>
-                <th className="p-4 text-center">Género</th>
-                <th className="p-4 text-center w-32">Acciones</th>
-              </tr>
-            </thead>
-            <tbody>
-              {pacientesPaginados.map((pac) => (
-                <tr
-                  key={pac._id.toString()}
-                  className="border-t hover:bg-gray-50 transition-all"
-                >
-                  <td className="p-4 font-medium">{pac.nombre}</td>
-                  <td className="p-4 font-medium">{pac.apellido}</td>
-                  <td className="p-4">{pac.dni}</td>
-                  <td className="p-4">{pac.email || "—"}</td>
-                  <td className="p-4">{pac.telefono || "—"}</td>
-                  <td className="p-4">
-                    <div className="flex flex-wrap gap-1">
-                      {(pac.obrasSocialesNombres ??
-                        pac.obrasSociales?.map(
-                          (id) =>
-                            obrasSociales.find((os) => os._id === id)?.nombre ||
-                            ""
-                        ) ??
-                        []
-                      ).map((os) => (
-                        <span
-                          key={os}
-                          className="px-2 py-1 text-xs rounded-full bg-blue-50 border border-blue-200 text-blue-700"
-                        >
-                          {os}
-                        </span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="p-4 text-center text-gray-500">{pac.genero || "—"}</td>
-                  <td className="p-4 text-center">
-                    <button
-                      onClick={() => setToast(`Viendo historial de ${pac.nombre}`)}
-                      className="text-blue-600 hover:text-blue-800 text-sm font-medium hover:underline"
-                    >
-                      Ver
-                    </button>
-                  </td>
-                </tr>
-              ))}
-              {pacientesFiltrados.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={8}
-                    className="p-6 text-center text-gray-400 italic text-sm"
-                  >
-                    No hay pacientes registrados
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
+        {modo && (
+          <ModalContainer onClose={closeModal}>
+            {modo === "crear" && (
+              <PacienteForm
+                title="Nuevo Paciente"
+                obrasSociales={obrasSociales}
+                onSubmit={handleCrear}
+                onCancel={closeModal}
+              />
+            )}
 
-          {/* Paginación */}
-          {totalPages > 1 && (
-            <div className="flex justify-center items-center gap-3 py-4 text-sm">
-              <button
-                disabled={page === 1}
-                onClick={() => setPage(page - 1)}
-                className={`px-3 py-1 rounded-md flex items-center gap-1 ${page === 1
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-              >
-                <ChevronLeft className="w-4 h-4" /> Anterior
-              </button>
-              <span>
-                Página {page} de {totalPages}
-              </span>
-              <button
-                disabled={page === totalPages}
-                onClick={() => setPage(page + 1)}
-                className={`px-3 py-1 rounded-md flex items-center gap-1 ${page === totalPages
-                    ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                    : "bg-gray-200 hover:bg-gray-300"
-                  }`}
-              >
-                Siguiente <ChevronRight className="w-4 h-4" />
-              </button>
-            </div>
-          )}
-        </div>
+            {modo === "editar" && seleccionado && (
+              <PacienteForm
+                title="Editar Paciente"
+                initialValues={{
+                  ...seleccionado,
+                  nombre: seleccionado.nombre ?? "",
+                  apellido: seleccionado.apellido ?? "",
+                  email: seleccionado.email ?? "",
+                  telefono: seleccionado.telefono ?? "",
+                  fechaNacimiento: seleccionado.fechaNacimiento ?? "",
+                  obrasSociales: seleccionado.obrasSociales ?? [],
+                  genero: seleccionado.genero ?? "Masculino",
+                }}
+                obrasSociales={obrasSociales}
+                onSubmit={(form) => handleActualizar(seleccionado._id, form)}
+                onCancel={closeModal}
+              />
+            )}
 
-        {/* Toast */}
-        {toast && (
-          <div
-            className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white bg-green-600 border border-green-400 animate-in fade-in slide-in-from-bottom-4 duration-500"
-          >
-            <CheckCircle2 className="w-5 h-5 text-white" />
-            <p className="font-medium">{toast}</p>
-            <button
-              onClick={() => setToast(null)}
-              className="ml-2 text-white hover:text-green-100 text-lg font-bold"
-            >
-              ×
-            </button>
-          </div>
+            
+          </ModalContainer>
         )}
       </div>
     </PageWrapper>

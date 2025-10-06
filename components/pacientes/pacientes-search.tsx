@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Filter, Search } from "lucide-react";
 import { Id } from "@/convex/_generated/dataModel";
-import { getObraSocialBadgeClass } from "../../_components/obra-social-badge";
+import { getObraSocialBadgeClass } from "@/components/pacientes/obra-social-badge";
+
 
 export type ObraSocialOption = {
   _id: Id<"obrasSociales">;

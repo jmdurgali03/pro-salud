@@ -7,14 +7,14 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useDebouncedValue } from "@/hooks/use-debounce";
-import { PacientesHeader } from "./_components/pacientes-header";
-import { PacientesSearchBar, ObraSocialOption } from "./_components/pacientes-search";
-import { PacientesTable } from "./_components/pacientes-table";
-import { PacienteForm, PacienteFormValues } from "./_components/paciente-form";
-import { ModalContainer } from "../_components/modal-container";
-import { ConfirmDialog } from "../_components/confirm-dialog";
-import { PacientesPagination } from "./_components/pacientes-pagination";
-import { PacienteRecord } from "./types";
+import { PacientesHeader } from "@/components/pacientes/pacientes-header";
+import { PacientesSearchBar, ObraSocialOption } from "@/components/pacientes/pacientes-search";
+import { PacientesTable } from "@/components/pacientes/pacientes-table";
+import { PacientesPagination } from "@/components/pacientes/pacientes-pagination";
+import { PacienteForm, PacienteFormValues } from "@/components/pacientes/paciente-form";
+import { ModalContainer } from "@/components/pacientes/modal-container";
+import { PacienteRecord } from '@/components/pacientes/types';
+
 
 const ITEMS_PER_PAGE = 10;
 

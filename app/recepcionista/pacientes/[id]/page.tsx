@@ -16,9 +16,9 @@ import {
   Venus,
 } from "lucide-react";
 
-import SidebarPaciente from "../_components/SidebarPaciente";
-import Section from "../_components/Section";
-import DataItem from "../_components/DataItem";
+import SidebarPaciente from "@/components/pacientes/SidebarPaciente";;
+import Section from "@/components/pacientes/Section";
+import DataItem from "@/components/pacientes/DataItem";
 import { PageWrapper } from "@/components/page-wrapper";
 
 type PacienteExtendido = {
