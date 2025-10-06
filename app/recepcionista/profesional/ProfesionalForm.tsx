@@ -167,6 +167,9 @@ export default function ProfesionalForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-5">
+    <label className="text-sm font-medium text-gray-700 block mb-2">
+          Nombres
+        </label>
       <input
         value={nombre}
         onChange={(e) => setNombre(e.target.value)}
@@ -174,6 +177,9 @@ export default function ProfesionalForm({
         className="w-full border rounded px-3 py-2"
         required
       />
+      <label className="text-sm font-medium text-gray-700 block mb-2">
+          Apellidos
+        </label>
       <input
         value={apellido}
         onChange={(e) => setApellido(e.target.value)}
@@ -184,6 +190,9 @@ export default function ProfesionalForm({
 
       {!initialData && (
         <div className="grid grid-cols-2 gap-4">
+          <label className="text-sm font-medium text-gray-700 block mb-2">
+          DNI
+        </label>
           <input
             type="text"
             value={dni}
@@ -192,6 +201,9 @@ export default function ProfesionalForm({
             className="w-full border rounded px-3 py-2"
             required
           />
+          <label className="text-sm font-medium text-gray-700 block mb-2">
+          Matricula
+        </label>
           <input
             type="text"
             value={matricula}
@@ -206,26 +218,17 @@ export default function ProfesionalForm({
       )}
 
       <div>
-        <label className="text-sm font-medium text-gray-700 block mb-2">
-          Especialidad
-        </label>
-        <select
-          value={especialidadId}
-          onChange={(e) =>
-            setEspecialidadId(e.target.value as Id<"especialidades">)
-          }
-          className="w-full border rounded px-3 py-2 bg-white"
-          required
-        >
-          <option value="">Seleccionar especialidad</option>
-          {especialidades.map((esp) => (
-            <option key={esp._id} value={esp._id}>
-              {esp.nombre}
-            </option>
-          ))}
-        </select>
-      </div>
+  <label className="text-sm font-medium text-gray-700 block mb-2">
+    Especialidad
+  </label>
+  <p className="w-full border rounded px-3 py-2 bg-gray-50 text-gray-800">
+    {especialidades.find((e) => e._id === especialidadId)?.nombre ?? "Sin especialidad"}
+  </p>
+</div>
 
+<label className="text-sm font-medium text-gray-700 block mb-2">
+          Email
+        </label>
       <input
         type="email"
         value={contacto}
@@ -234,6 +237,9 @@ export default function ProfesionalForm({
         className="w-full border rounded px-3 py-2"
         required
       />
+      <label className="text-sm font-medium text-gray-700 block mb-2">
+          Telefono
+        </label>
       <input
         type="tel"
         value={telefono}
