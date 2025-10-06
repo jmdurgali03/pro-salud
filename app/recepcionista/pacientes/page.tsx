@@ -13,8 +13,8 @@ import { PacientesTable } from "@/components/pacientes/pacientes-table";
 import { PacientesPagination } from "@/components/pacientes/pacientes-pagination";
 import { PacienteForm, PacienteFormValues } from "@/components/pacientes/paciente-form";
 import { ModalContainer } from "@/components/pacientes/modal-container";
-import { PacienteRecord } from '@/components/pacientes/types';
-
+import { PacienteRecord } from "@/components/pacientes/types";
+import { CheckCircle2 } from "lucide-react";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -33,6 +33,13 @@ export default function PacientesPage() {
   );
   const [selectedObrasSociales, setSelectedObrasSociales] = useState<Id<"obrasSociales">[]>([]);
   const [currentPage, setCurrentPage] = useState(1);
+
+  const [toast, setToast] = useState<string | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
   const prevPacientesRef = useRef<PacienteRecord[]>([]);
   useEffect(() => {
@@ -129,7 +136,6 @@ export default function PacientesPage() {
     setSeleccionado(null);
   };
 
-  // ✅ Corregido: proteger campos opcionales con "?."
   const sanitizeForm = (form: PacienteFormValues) => ({
     ...form,
     nombre: form.nombre.trim(),
@@ -141,18 +147,33 @@ export default function PacientesPage() {
   });
 
   const handleCrear = async (form: PacienteFormValues) => {
-    await crearPaciente(sanitizeForm(form));
-    closeModal();
+    try {
+      await crearPaciente(sanitizeForm(form));
+      closeModal();
+      setToast("Paciente creado correctamente.");
+    } catch {
+      setToast("Error al crear el paciente.");
+    }
   };
 
   const handleActualizar = async (id: Id<"pacientes">, form: PacienteFormValues) => {
-    await actualizarPaciente({ id, ...sanitizeForm(form) });
-    closeModal();
+    try {
+      await actualizarPaciente({ id, ...sanitizeForm(form) });
+      closeModal();
+      setToast("Paciente actualizado correctamente.");
+    } catch {
+      setToast("Error al actualizar el paciente.");
+    }
   };
 
   const handleEliminar = async (id: Id<"pacientes">) => {
-    await eliminarPaciente({ id });
-    closeModal();
+    try {
+      await eliminarPaciente({ id });
+      closeModal();
+      setToast("Paciente eliminado correctamente.");
+    } catch {
+      setToast("Error al eliminar el paciente.");
+    }
   };
 
   const handleVer = (id: Id<"pacientes">) => {
@@ -231,9 +252,18 @@ export default function PacientesPage() {
                 onCancel={closeModal}
               />
             )}
-
-            
           </ModalContainer>
+        )}
+
+        {/* ✅ Toast de confirmación */}
+        {toast && (
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white bg-emerald-600 border border-emerald-400 animate-in fade-in slide-in-from-bottom-4 duration-500">
+            <CheckCircle2 className="w-5 h-5 text-white" />
+            <p className="font-medium">{toast}</p>
+            <button onClick={() => setToast(null)} className="ml-2 text-white hover:text-gray-100 text-lg font-bold">
+              ×
+            </button>
+          </div>
         )}
       </div>
     </PageWrapper>
