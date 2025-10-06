@@ -9,21 +9,22 @@ import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
 
 // Componentes
-import Section from "../../../recepcionista/pacientes/_components/Section";
-import ConsultasTable from "../../../recepcionista/pacientes/_components/ConsultasTable";
-import NuevaConsultaModal from "../../../recepcionista/pacientes/_components/NuevaConsultaModal";
-import NuevoDiagnosticoModal from "../../../recepcionista/pacientes/_components/NuevoDiagnosticoModal";
-import NuevoTratamientoModal from "../../../recepcionista/pacientes/_components/NuevoTratamientoModal";
-import TratamientosTable from "../../../recepcionista/pacientes/_components/TratamientosTable";
-import NuevaNotaMedicaModal from "../../../recepcionista/pacientes/_components/NuevaNotaMedicaModal";
-import NotasMedicasTable, { Nota } from "../../../recepcionista/pacientes/_components/NotasMedicasTable";
-import HeroPaciente from "../../../recepcionista/pacientes/_components/HeroPaciente";
-import Panel from "../../../recepcionista/pacientes/_components/Panel";
-import { KPIGrid } from "../../../recepcionista/pacientes/_components/KPI";
+import Section from "@/components/pacientes/Section";
+import ConsultasTable from "@/components/pacientes/ConsultasTable";
+import NuevaConsultaModal from "@/components/pacientes/NuevaConsultaModal";
+import NuevoDiagnosticoModal from "@/components/pacientes/NuevoDiagnosticoModal";
+import NuevoTratamientoModal from "@/components/pacientes/NuevoTratamientoModal";
+import TratamientosTable from "@/components/pacientes/TratamientosTable";
+import NuevaNotaMedicaModal from "@/components/pacientes/NuevaNotaMedicaModal";
+import NotasMedicasTable, { Nota } from "@/components/pacientes/NotasMedicasTable";
+import HeroPaciente from "@/components/pacientes/HeroPaciente";
+import Panel from "@/components/pacientes/Panel";
+import { KPIGrid } from "@/components/pacientes/KPI";
+
 
 // Nuevos helpers UI
-import BigTabs from "../../../recepcionista/pacientes/_components/BigTabs";
-import Pagination from "../../../recepcionista/pacientes/_components/Pagination";
+import BigTabs from "@/components/pacientes//BigTabs";
+import Pagination from "@/components/pacientes/Pagination";
 
 // Icons para los tabs
 import { LayoutGrid, Stethoscope, NotebookText, Pill } from "lucide-react";

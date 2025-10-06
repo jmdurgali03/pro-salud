@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
 import { Calendar, BriefcaseMedical, ArrowRight, Home, Users, NotepadTextDashed } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
-import ProximosTurnosHoy from "./_components/prox-turnos";
+import ProximosTurnosHoy from "@/components/pacientes/prox-turnos";
 
 const actions = [
     {

@@ -7,22 +7,22 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 
-import Section from "../../pacientes/_components/Section";
-import ConsultasTable from "../../pacientes/_components/ConsultasTable";
-import NuevaConsultaModal from "../../pacientes/_components/NuevaConsultaModal";
-import NuevoDiagnosticoModal from "../../pacientes/_components/NuevoDiagnosticoModal";
-import NuevoTratamientoModal from "../../pacientes/_components/NuevoTratamientoModal";
-import TratamientosTable from "../../pacientes/_components/TratamientosTable";
-import NuevaNotaMedicaModal from "../../pacientes/_components/NuevaNotaMedicaModal";
-import NotasMedicasTable, { Nota } from "../../pacientes/_components/NotasMedicasTable";
+import Section from "@/components/pacientes/Section";
+import ConsultasTable from "@/components/pacientes/ConsultasTable";
+import NuevaConsultaModal from "@/components/pacientes/NuevaConsultaModal";
+import NuevoDiagnosticoModal from "@/components/pacientes/NuevoDiagnosticoModal";
+import NuevoTratamientoModal from "@/components/pacientes/NuevoTratamientoModal";
+import TratamientosTable from "@/components/pacientes/TratamientosTable";
+import NuevaNotaMedicaModal from "@/components/pacientes/NuevaNotaMedicaModal";
+import NotasMedicasTable, { Nota } from "@/components/pacientes/NotasMedicasTable";
 import { PageWrapper } from "@/components/page-wrapper";
 
 // Nuevos componentes UI
-import HeroPaciente from "../../pacientes/_components/HeroPaciente";
-import Panel from "../../pacientes/_components/Panel";
-import { KPIGrid } from "../../pacientes/_components/KPI";
-import BigTabs from "../../pacientes/_components/BigTabs";
-import Pagination from "../../pacientes/_components/Pagination";
+import HeroPaciente from "@/components/pacientes/HeroPaciente";
+import Panel from "@/components/pacientes/Panel";
+import { KPIGrid } from "@/components/pacientes/KPI";
+import BigTabs from "@/components/pacientes/BigTabs";
+import Pagination from "@/components/pacientes/Pagination";
 
 import { LayoutGrid, Stethoscope, NotebookText, Pill } from "lucide-react";
 

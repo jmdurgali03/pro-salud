@@ -3,16 +3,11 @@
 import * as React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import {
-  LogOut,
-  HeartPulse,
-  LucideIcon,
-  Stethoscope,
-  Mail,
-} from "lucide-react";
-import { UserButton, useAuth, useUser } from "@clerk/nextjs";
+import { HeartPulse, LucideIcon, Stethoscope, Mail } from "lucide-react";
+import { UserButton, useUser } from "@clerk/nextjs";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import dynamic from "next/dynamic";
 
 import {
   Sidebar,
@@ -23,18 +18,11 @@ import {
   SidebarMenuItem,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import {
-  AlertDialog,
-  AlertDialogTrigger,
-  AlertDialogContent,
-  AlertDialogHeader,
-  AlertDialogFooter,
-  AlertDialogTitle,
-  AlertDialogDescription,
-  AlertDialogCancel,
-  AlertDialogAction,
-} from "@/components/ui/alert-dialog";
-import { Button } from "@/components/ui/button";
+
+// 👉 cargamos el diálogo sólo en cliente para evitar hydration mismatch
+const LogoutDialog = dynamic(() => import("@/components/LogoutDialog.client"), {
+  ssr: false,
+});
 
 export type SidebarLink = {
   href: string;
@@ -49,10 +37,12 @@ type AppSidebarProps = {
 
 export function AppSidebar({ links, panelName, ...props }: AppSidebarProps) {
   const pathname = usePathname();
-  const { signOut } = useAuth();
   const { user } = useUser();
 
-  // 🔹 Consultar datos del profesional vinculado al usuario Clerk
+  // Evitar que SSR y el primer render de cliente difieran
+  const [mounted, setMounted] = React.useState(false);
+  React.useEffect(() => setMounted(true), []);
+
   const profesional = useQuery(api.profesionales.getByClerkUser, {
     clerkUserId: user?.id || "",
   });
@@ -116,77 +106,49 @@ export function AppSidebar({ links, panelName, ...props }: AppSidebarProps) {
       {/* Footer con user y logout */}
       <div className="mt-auto border-t border-gray-200/60 bg-white/50 backdrop-blur-sm">
         <div className="flex flex-col gap-3 p-3">
-          {/* 🔹 Bloque informativo del profesional */}
-          <div>
-            {profesional && (
-              <div className="w-full pb-3">
-                <div className="w-full rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
-                  <div className="flex items-start gap-3">
-                    <div className="flex-shrink-0">
-                      <UserButton
-                        appearance={{
-                          elements: {
-                            avatarBox: "w-10 h-10 rounded-full ring-2 ring-blue-500/20",
-                          },
-                        }}
-                      />
+          {/* Bloque informativo del profesional; usamos 'mounted' para no cambiar el HTML de SSR */}
+          {mounted && profesional ? (
+            <div className="w-full pb-3">
+              <div className="w-full rounded-lg border border-gray-200 bg-white p-3 shadow-sm">
+                <div className="flex items-start gap-3">
+                  <div className="flex-shrink-0">
+                    <UserButton
+                      appearance={{
+                        elements: {
+                          avatarBox: "w-10 h-10 rounded-full ring-2 ring-blue-500/20",
+                        },
+                      }}
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0 space-y-1">
+                    <p className="font-semibold text-sm text-gray-900 truncate">
+                      Dr. {profesional.nombre} {profesional.apellido}
+                    </p>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-600">
+                      <Stethoscope className="h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
+                      <span className="truncate">
+                        {profesional.especialidadNombre || "Sin especialidad"}
+                      </span>
                     </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <p className="font-semibold text-sm text-gray-900 truncate">
-                        Dr. {profesional.nombre} {profesional.apellido}
-                      </p>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-600">
-                        <Stethoscope className="h-3.5 w-3.5 flex-shrink-0 text-blue-600" />
-                        <span className="truncate">
-                          {profesional.especialidadNombre || "Sin especialidad"}
-                        </span>
-                      </div>
-                      <div className="flex items-center gap-1.5 text-xs text-gray-500">
-                        <Mail className="h-3.5 w-3.5 flex-shrink-0" />
-                        <span className="truncate">
-                          {profesional.contacto || "Sin contacto"}
-                        </span>
-                      </div>
+                    <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                      <Mail className="h-3.5 w-3.5 flex-shrink-0" />
+                      <span className="truncate">
+                        {profesional.contacto || "Sin contacto"}
+                      </span>
                     </div>
                   </div>
                 </div>
               </div>
-            )}
-          </div>
+            </div>
+          ) : (
+            // Skeleton para mantener estructura
+            <div className="w-full pb-3">
+              <div className="w-full h-[78px] rounded-lg border border-gray-200 bg-white p-3 shadow-sm animate-pulse" />
+            </div>
+          )}
 
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button
-                className="w-full hover:bg-red-50 hover:text-red-600 hover:border-red-200 flex items-center justify-center gap-2 rounded-xl transition-all duration-200 border border-gray-200 bg-white shadow-sm hover:shadow-md group"
-                variant="ghost"
-              >
-                <LogOut className="w-4 h-4 transition-transform group-hover:scale-110" />
-                <span className="font-medium">Salir</span>
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent className="rounded-2xl">
-              <AlertDialogHeader>
-                <AlertDialogTitle className="text-xl">
-                  ¿Cerrar sesión?
-                </AlertDialogTitle>
-                <AlertDialogDescription className="text-gray-600">
-                  Se cerrará tu sesión actual y tendrás que volver a iniciar
-                  sesión para acceder nuevamente.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel className="rounded-xl">
-                  Cancelar
-                </AlertDialogCancel>
-                <AlertDialogAction
-                  className="bg-gradient-to-r from-red-600 to-red-700 hover:from-red-700 hover:to-red-800 text-white rounded-xl shadow-lg shadow-red-600/30"
-                  onClick={() => signOut({ redirectUrl: "/" })}
-                >
-                  Cerrar sesión
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+          {/* Diálogo de logout: client-only sin SSR */}
+          <LogoutDialog />
         </div>
       </div>
 
