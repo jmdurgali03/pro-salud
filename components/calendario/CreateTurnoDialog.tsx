@@ -1,9 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
+import { Input } from "@/components/ui/input";
 
 import {
   Dialog,
@@ -12,7 +13,6 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import {
@@ -44,17 +44,37 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const [tipo, setTipo] = useState("");
   const [estado, setEstado] = useState<"Confirmado" | "Pendiente" | "Cancelado">("Pendiente");
   const [fecha, setFecha] = useState<string>("");
-  const [horaInicio, setHoraInicio] = useState("09:00");
-  const [horaFin, setHoraFin] = useState("10:00");
+  const [horaSeleccionada, setHoraSeleccionada] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
+  const [duracion, setDuracion] = useState(30);
 
-  // 🔹 Solo profesionales activos
+  // 🔹 Solo profesionales activos con nombre de especialidad
   const profesionalesConEspecialidad = profesionales
     .filter((p) => p.estado === "Activo")
     .map((p) => {
       const esp = especialidades.find((e) => e._id === p.especialidadId);
       return { ...p, especialidadNombre: esp?.nombre || "Sin especialidad" };
     });
+
+  // 🔹 Obtener franjas horarias del profesional
+  const profesional = useMemo(
+    () => profesionales.find((p) => p._id === profesionalId),
+    [profesionalId, profesionales]
+  );
+
+  const franjas = profesional?.franjasHorarias ?? [];
+
+  // 🔹 Traer horas disponibles dinámicamente
+  const horasArgs =
+    profesionalId && fecha
+      ? {
+          profesionalId: profesionalId as Id<"profesionales">,
+          fecha,
+          duracion,
+        }
+      : "skip";
+
+  const horasDisponibles = useQuery(api.turnos.horasDisponibles, horasArgs) ?? [];
 
   // 🔹 Cargar datos al abrir (modo edición o nuevo)
   useEffect(() => {
@@ -64,10 +84,12 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
       setTipo(turno.tipo);
       setEstado(turno.estado);
       const d1 = new Date(turno.start);
-      const d2 = new Date(turno.end);
       setFecha(d1.toISOString().split("T")[0]);
-      setHoraInicio(`${d1.getHours().toString().padStart(2, "0")}:${d1.getMinutes().toString().padStart(2, "0")}`);
-      setHoraFin(`${d2.getHours().toString().padStart(2, "0")}:${d2.getMinutes().toString().padStart(2, "0")}`);
+      const hora = `${d1.getHours().toString().padStart(2, "0")}:${d1
+        .getMinutes()
+        .toString()
+        .padStart(2, "0")}`;
+      setHoraSeleccionada(hora);
     } else {
       const hoy = defaultDate || new Date();
       setPacienteId("");
@@ -75,49 +97,22 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
       setTipo("");
       setEstado("Pendiente");
       setFecha(hoy.toISOString().split("T")[0]);
-      setHoraInicio("09:00");
-      setHoraFin("10:00");
+      setHoraSeleccionada("");
     }
   }, [turno, open, defaultDate]);
 
-  // 🔹 Ajuste automático de hora fin si la diferencia es incorrecta
-  useEffect(() => {
-    const [hInicio, mInicio] = horaInicio.split(":").map(Number);
-    const [hFin, mFin] = horaFin.split(":").map(Number);
-    const diff = (hFin * 60 + mFin) - (hInicio * 60 + mInicio);
-    if (diff < 30 || diff > 120) {
-      const nuevaHora = new Date();
-      nuevaHora.setHours(hInicio + 1, mInicio, 0, 0);
-      const hh = nuevaHora.getHours().toString().padStart(2, "0");
-      const mm = nuevaHora.getMinutes().toString().padStart(2, "0");
-      setHoraFin(`${hh}:${mm}`);
-    }
-  }, [horaInicio]);
-
-  // 🔹 Guardar o editar turno
+  // 🧩 Crear o editar turno
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
 
-    if (!pacienteId) return setError("Debe seleccionar un paciente");
-    if (!profesionalId) return setError("Debe seleccionar un profesional");
-    if (!tipo) return setError("Debe seleccionar un tipo de consulta");
-    if (!estado) return setError("Debe seleccionar un estado");
-    if (!fecha) return setError("Debe seleccionar una fecha");
+    if (!pacienteId || !profesionalId || !fecha || !horaSeleccionada)
+      return setError("Debe completar todos los campos obligatorios.");
 
-    // ✅ Arma la fecha local correctamente sin corrimiento
     const [year, month, day] = fecha.split("-").map(Number);
-    const baseDate = new Date(year, month - 1, day);
-
-    const [h1, m1] = horaInicio.split(":").map(Number);
-    const [h2, m2] = horaFin.split(":").map(Number);
-
-    const start = new Date(baseDate);
-    start.setHours(h1, m1, 0, 0);
-    const end = new Date(baseDate);
-    end.setHours(h2, m2, 0, 0);
-
-    if (end <= start) return setError("La hora de fin debe ser posterior a la de inicio");
+    const [h, m] = horaSeleccionada.split(":").map(Number);
+    const start = new Date(year, month - 1, day, h, m, 0, 0);
+    const end = new Date(start.getTime() + duracion * 60 * 1000);
 
     try {
       if (turno) {
@@ -146,7 +141,6 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     }
   };
 
-  // 🔹 Eliminar turno existente
   const handleDelete = async () => {
     if (turno) {
       await eliminarTurno({ id: turno._id });
@@ -154,13 +148,45 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
     }
   };
 
+  // 🕗 --- FILTRO DE HORARIOS SEGÚN FRANJAS HORARIAS ---
+  // 🔹 Convertir "HH:mm" a minutos para comparar fácilmente
+const horaToMin = (h: string) => {
+  const [hh, mm] = h.split(":").map(Number);
+  return hh * 60 + mm;
+};
+
+// 🔹 Filtrar horarios según TODAS las franjas del profesional
+const horariosFiltrados = useMemo(() => {
+  if (!profesional || !horasDisponibles) return [];
+
+  const franjas = profesional.franjasHorarias ?? [];
+
+  // Si el profesional no tiene franjas configuradas, mostrar todo
+  if (franjas.length === 0) return horasDisponibles;
+
+  return horasDisponibles.filter((hora: string) => {
+    const min = horaToMin(hora);
+    const finTurno = min + duracion; // hora de fin del turno
+
+    // ✅ Mantener solo los horarios que caen dentro de alguna franja completa
+    return franjas.some((f: any) => {
+      const inicioMin = horaToMin(f.inicio);
+      const finMin = horaToMin(f.fin);
+      return min >= inicioMin && finTurno <= finMin;
+    });
+  });
+}, [profesional, horasDisponibles, duracion]);
+
+
+  // --- FIN DEL FILTRO ---
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
         {trigger || <Button className="bg-blue-600">+ Añadir Turno</Button>}
       </DialogTrigger>
 
-      <DialogContent>
+      <DialogContent className="max-w-md">
         <DialogHeader>
           <DialogTitle>{turno ? "Editar Turno" : "Nuevo Turno"}</DialogTitle>
         </DialogHeader>
@@ -191,7 +217,10 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             <Label>Profesional</Label>
             <Select
               value={profesionalId || ""}
-              onValueChange={(val) => setProfesionalId(val as Id<"profesionales">)}
+              onValueChange={(val) => {
+                setProfesionalId(val as Id<"profesionales">);
+                setHoraSeleccionada("");
+              }}
             >
               <SelectTrigger>
                 <SelectValue placeholder="Seleccionar profesional" />
@@ -237,52 +266,87 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
             </Select>
           </div>
 
-          {/* Fecha y horas */}
-          <div className="grid grid-cols-3 gap-4">
-            <div>
-              <Label>Fecha</Label>
-              <Input
-                type="date"
-                value={fecha}
-                onChange={(e) => setFecha(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label>Hora inicio</Label>
-              <Input
-                type="time"
-                value={horaInicio}
-                onChange={(e) => setHoraInicio(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label>Hora fin</Label>
-              <Input
-                type="time"
-                value={horaFin}
-                onChange={(e) => setHoraFin(e.target.value)}
-                required
-              />
-            </div>
+          {/* Fecha */}
+          <div>
+            <Label>Fecha</Label>
+            <input
+              type="date"
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
+              className="w-full border rounded-md p-2"
+            />
           </div>
 
+          {/* Duración */}
+          <div>
+            <Label>Duración del turno (minutos)</Label>
+            <Input
+              type="number"
+              min={10}
+              max={120}
+              step={1}
+              value={duracion}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setDuracion(Number(e.target.value))
+              }
+              className="w-28"
+            />
+          </div>
+
+          {/* Horarios disponibles */}
+          {profesionalId && fecha && (
+            <div>
+              <Label>Horarios disponibles</Label>
+
+              {!horasDisponibles ? (
+                <p className="text-gray-400 text-sm mt-1">Cargando horarios...</p>
+              ) : horariosFiltrados.length === 0 ? (
+                <p className="text-gray-500 text-sm mt-1">
+                  No hay horarios disponibles dentro del horario de atención
+                </p>
+              ) : (
+                <div className="grid grid-cols-3 gap-2 mt-2">
+                  {horariosFiltrados.map((hora: string) => (
+                    <button
+                      key={hora}
+                      type="button"
+                      onClick={() => setHoraSeleccionada(hora)}
+                      className={`border rounded-md px-3 py-1 text-sm transition-all ${
+                        horaSeleccionada === hora
+                          ? "bg-emerald-600 text-white border-emerald-600"
+                          : "hover:bg-gray-100"
+                      }`}
+                    >
+                      {hora}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Botones */}
-          <div className="flex justify-between">
+          <div className="flex justify-between items-center pt-3 border-t mt-3">
             {turno && (
-              <Button type="button" variant="destructive" onClick={handleDelete}>
+              <Button
+                type="button"
+                variant="destructive"
+                onClick={handleDelete}
+                className="bg-red-600 hover:bg-red-700"
+              >
                 Eliminar
               </Button>
             )}
-            <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
+            <Button
+              type="submit"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white ml-auto"
+            >
               {turno ? "Guardar cambios" : "Guardar Turno"}
             </Button>
           </div>
 
-          {/* Error */}
           {error && (
-            <div className="mt-3 p-2 bg-red-100 text-red-700 rounded">
+            <div className="mt-3 p-2 bg-red-100 text-red-700 rounded text-sm">
               {error}
             </div>
           )}

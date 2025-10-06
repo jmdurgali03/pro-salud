@@ -31,10 +31,19 @@ export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
               className="w-full text-left bg-white text-blue-700 p-2 rounded-lg hover:bg-blue-100 transition text-sm font-medium border border-blue-100"
             >
               <div className="truncate">{event.pacienteNombre} { event.pacienteApellido}</div>
-              <div className="text-xs text-gray-500 truncate">
-               {new Date(event.start).toLocaleDateString("es-AR")} •{" "}
-{new Date(event.start).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })}
-
+               <div className="text-xs text-gray-500 truncate">
+                {new Date(event.start).toLocaleDateString("es-AR")} •{" "}
+                {new Date(event.start).toLocaleTimeString("es-AR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                })}{" "}
+                -{" "}
+                {new Date(event.end).toLocaleTimeString("es-AR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
+                })}
               </div>
             </button>
           ))}

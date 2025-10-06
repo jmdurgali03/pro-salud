@@ -39,6 +39,12 @@ export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
                   hour: "2-digit",
                   minute: "2-digit",
                   hour12: false,
+                })}{" "}
+                -{" "}
+                {new Date(event.end).toLocaleTimeString("es-AR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  hour12: false,
                 })}
               </div>
             </button>

@@ -82,12 +82,24 @@ export const editar = mutation({
     telefono: v.optional(v.string()),
     obrasSociales: v.optional(v.array(v.id("obrasSociales"))),
     estado: v.optional(v.union(v.literal("Activo"), v.literal("Inactivo"))),
+
+    // ✅ NUEVO
+    franjasHorarias: v.optional(
+      v.array(
+        v.object({
+          dia: v.number(),
+          inicio: v.string(),
+          fin: v.string(),
+        })
+      )
+    ),
   },
   handler: async (ctx, { id, ...data }): Promise<EditResp> => {
     const actual = await ctx.db.get(id);
     if (!actual) return { ok: false, reason: "NOT_FOUND" };
 
     const patch: Record<string, any> = {};
+
     if (data.nombre !== undefined) patch.nombre = data.nombre.trim();
     if (data.apellido !== undefined) patch.apellido = data.apellido.trim();
     if (data.contacto !== undefined) patch.contacto = data.contacto.trim();
@@ -97,18 +109,29 @@ export const editar = mutation({
 
     if (data.telefono !== undefined) {
       const tel = onlyDigits(data.telefono);
-      if (tel.length !== 10) return { ok: false, reason: "BAD_INPUT", message: "El teléfono debe tener 10 dígitos." };
+      if (tel.length !== 10)
+        return { ok: false, reason: "BAD_INPUT", message: "El teléfono debe tener 10 dígitos." };
       if (tel !== actual.telefono) {
-        const dup = await ctx.db.query("profesionales").withIndex("por_telefono", q => q.eq("telefono", tel)).first();
-        if (dup && dup._id !== id) return { ok: false, reason: "TELEFONO_DUP" };
+        const dup = await ctx.db
+          .query("profesionales")
+          .withIndex("por_telefono", (q) => q.eq("telefono", tel))
+          .first();
+        if (dup && dup._id !== id)
+          return { ok: false, reason: "TELEFONO_DUP" };
       }
       patch.telefono = tel;
+    }
+
+    // ✅ NUEVO — Guardar franjas horarias
+    if (data.franjasHorarias !== undefined) {
+      patch.franjasHorarias = data.franjasHorarias;
     }
 
     await ctx.db.patch(id, patch);
     return { ok: true };
   },
 });
+
 
 export const eliminar = mutation({
   args: { id: v.id("profesionales") },
