@@ -68,7 +68,8 @@ export const crear = mutation({
     estado: v.union(
       v.literal("Confirmado"),
       v.literal("Pendiente"),
-      v.literal("Cancelado")
+      v.literal("Cancelado"),
+      v.literal("Finalizado")
     ),
     start: v.number(),
     end: v.number(),
@@ -206,7 +207,8 @@ export const editar = mutation({
       v.union(
         v.literal("Confirmado"),
         v.literal("Pendiente"),
-        v.literal("Cancelado")
+        v.literal("Cancelado"),
+        v.literal("Finalizado")
       )
     ),
     start: v.optional(v.number()),
@@ -314,6 +316,7 @@ export const listarConNombres = query({
             pacienteApellido: paciente?.apellido ?? "Paciente sin apellido",
             profesionalNombre: profesional?.nombre ?? "Profesional sin nombre",
             profesionalApellido: profesional?.apellido ?? "Profesional sin apellido",
+            profesionalEstado: profesional?.estado ?? "Inactivo",
             especialidadNombre: especialidad?.nombre ?? "",
             obrasSocialesPaciente,
           };
@@ -567,5 +570,47 @@ export const horasDisponibles = query({
 }
 
 return disponibles;
+  },
+});
+
+export const actualizarEstado = mutation({
+  args: {
+    turnoId: v.id("turnos"),
+    estado: v.union(
+      v.literal("Pendiente"),
+      v.literal("Confirmado"),
+      v.literal("Cancelado"),
+      v.literal("Finalizado")
+    ),
+  },
+  handler: async (ctx, { turnoId, estado }) => {
+    const turno = await ctx.db.get(turnoId);
+    if (!turno) throw new ConvexError("Turno no encontrado.");
+
+    const ahora = Date.now();
+
+    // 🔹 Bloquear cambios si ya fue finalizado manualmente
+    if (turno.estado === "Finalizado") {
+      throw new ConvexError("No se puede modificar un turno ya finalizado.");
+    }
+
+    // 🔹 Bloquear solo si el turno ya terminó (end < ahora)
+    if (turno.end < ahora) {
+      throw new ConvexError("No se pueden modificar turnos que ya finalizaron.");
+    }
+
+    // 🔹 Permitir cambios antes o durante la franja
+    await ctx.db.patch(turnoId, {
+      estado,
+      actualizadoEn: ahora,
+    });
+
+    console.log("✅ Estado del turno actualizado:", {
+      turnoId,
+      anterior: turno.estado,
+      nuevo: estado,
+    });
+
+    return { ok: true, nuevoEstado: estado };
   },
 });

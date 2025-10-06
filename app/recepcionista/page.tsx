@@ -9,7 +9,7 @@ import ProximosTurnosHoy from "./_components/prox-turnos";
 const actions = [
     {
         title: "Gestión de Turnos",
-        description: "Agenda y administra citas médicas",
+        description: "Agenda y administra turnos médicos",
         icon: Calendar,
         href: "/recepcionista/cal-turnos",
         gradient: "from-blue-500 to-cyan-500",

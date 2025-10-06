@@ -34,14 +34,22 @@ export function TurnoModal({
   const [pacienteId, setPacienteId] = useState<string>("");
   const [fecha, setFecha] = useState<string>("");
   const [horaSeleccionada, setHoraSeleccionada] = useState<string>("");
-  const [estado, setEstado] = useState<"Pendiente" | "Confirmado">("Pendiente");
+  type EstadoTurno = "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado";
+const [estado, setEstado] = useState<EstadoTurno>("Pendiente");
+
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+const [turnoLocal, setTurnoLocal] = useState<TurnoConJoin | undefined>(turno);
 
   const profesional = useMemo(
     () => profesionales.find((p) => p._id === profesionalId),
     [profesionalId, profesionales]
   );
+const actualizarEstado = useMutation(api.turnos.actualizarEstado);
+
+const [nuevoEstado, setNuevoEstado] = useState<EstadoTurno>(turno?.estado ?? "Pendiente");
+
+const [guardando, setGuardando] = useState(false);
 
   // 🔹 Cargar horarios disponibles según profesional y fecha
   const horasDisponibles =
@@ -80,60 +88,149 @@ export function TurnoModal({
       setLoading(false);
     }
   };
+  const [mensaje, setMensaje] = useState<string | null>(null);
+const [tipoMensaje, setTipoMensaje] = useState<"ok" | "error" | null>(null);
+
+const handleActualizarEstado = async () => {
+  if (!turnoLocal?._id) return;
+  setGuardando(true);
+  setMensaje(null);
+
+  try {
+    await actualizarEstado({
+    turnoId: turnoLocal._id,
+    estado: nuevoEstado as "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado",
+  });
+
+    setTurnoLocal((prev) =>
+  prev
+    ? { ...prev, estado: nuevoEstado as "Pendiente" | "Confirmado" | "Cancelado"  }
+    : prev
+);
+  setTipoMensaje("ok");
+  setMensaje("✅ Estado actualizado correctamente.");
+  } catch (err: any) {
+    console.error(err);
+    setTipoMensaje("error");
+    setMensaje("❌ Error al actualizar el estado del turno.");
+  } finally {
+    setGuardando(false);
+    setTimeout(() => {
+      setMensaje(null);
+      setTipoMensaje(null);
+    }, 3000);
+  }
+};
 
   /* ---------------- MODO VER ---------------- */
   if (modo === "ver" && turno) {
-    const fechaLocal = new Date(turno.start).toLocaleDateString("es-AR", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    });
-    const horaInicio = new Date(turno.start).toLocaleTimeString("es-AR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    const horaFin = new Date(turno.end).toLocaleTimeString("es-AR", {
-      hour: "2-digit",
-      minute: "2-digit",
-      hour12: false,
-    });
-    const badge = `inline-block rounded px-2 py-0.5 text-xs font-medium border ${TURNO_COLOR_MAP[turno.estado]}`;
+  const fechaLocal = new Date(turno.start).toLocaleDateString("es-AR", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
+  const horaInicio = new Date(turno.start).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const horaFin = new Date(turno.end).toLocaleTimeString("es-AR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  });
+  const badge = `inline-block rounded px-2 py-0.5 text-xs font-medium border ${TURNO_COLOR_MAP[turno.estado]}`;
 
-    return (
-      <ModalBase
-        onClose={onClose}
-        headerColor="from-emerald-600 to-emerald-700"
-        title="Detalles del Turno"
-      >
-        <div className="space-y-3 text-sm text-gray-700">
-          <Row icon={<User />} label="Paciente">
-            {turno.pacienteNombre} {turno.pacienteApellido ?? ""}
-          </Row>
-          <Row icon={<Stethoscope />} label="Profesional">
-            {turno.profesionalNombre} {turno.profesionalApellido ?? ""}
-          </Row>
-          <Row icon={<CalendarClock />} label="Fecha">
-            {fechaLocal}
-          </Row>
-          <Row icon={<Clock />} label="Horario">
-            {horaInicio} a {horaFin}
-          </Row>
-          <Row label="Estado">
-            <span className={badge}>{turno.estado}</span>
-          </Row>
-        </div>
-        <div className="flex justify-end mt-4">
-          <button
-            onClick={onClose}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-md text-sm"
+  // 🔹 Color del header según estado
+  const headerColor =
+    turno.estado === "Pendiente"
+      ? "from-yellow-500 to-yellow-600"
+      : turno.estado === "Confirmado"
+      ? "from-emerald-600 to-emerald-700"
+      : "from-red-600 to-red-700";
+  return (
+    
+<ModalBase onClose={onClose} headerColor={headerColor} title="Detalles del Turno">
+      <div className="space-y-3 text-sm text-gray-700">
+        <Row icon={<User />} label="Paciente">
+          {turno.pacienteNombre} {turno.pacienteApellido ?? ""}
+        </Row>
+        <Row icon={<Stethoscope />} label="Profesional">
+          {turno.profesionalNombre} {turno.profesionalApellido ?? ""}
+        </Row>
+        <Row icon={<CalendarClock />} label="Fecha">
+          {fechaLocal}
+        </Row>
+        <Row icon={<Clock />} label="Horario">
+          {horaInicio} a {horaFin}
+        </Row>
+        <Row label="Estado actual">
+          <span className={badge}>{turno.estado}</span>
+        </Row>
+      </div>
+
+      {/* 🔹 BLOQUE DE GESTIÓN DEL TURNO */}
+      <div className="mt-6 border-t pt-4">
+        <h4 className="font-semibold text-gray-800 mb-2">
+          Gestión del turno
+        </h4>
+        <div className="flex flex-col gap-3">
+          <select
+            value={nuevoEstado}
+            onChange={(e) => setNuevoEstado(e.target.value as EstadoTurno)}
+
+            className="border rounded-md p-2 text-sm"
           >
-            Cerrar
+            <option value="Pendiente">Pendiente</option>
+            <option value="Confirmado">Confirmado</option>
+            <option value="Cancelado">Cancelado</option>
+            <option value="Finalizado">Finalizado</option>
+          </select>
+
+          <button
+            disabled={guardando}
+            onClick={handleActualizarEstado}
+            className={`px-4 py-2 rounded-md text-white flex items-center justify-center gap-2 ${
+              guardando
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700"
+            }`}
+          >
+            <CheckCircle2 className="w-4 h-4" />
+            {guardando ? "Guardando..." : "Guardar cambios"}
           </button>
         </div>
-      </ModalBase>
-    );
-  }
+      </div>
+
+      <div className="flex justify-end mt-5 border-t pt-4">
+        <button
+          onClick={onClose}
+          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700"
+        >
+          Cerrar
+        </button>
+      </div>
+{/* 🔹 Mensaje animado de resultado */}
+{mensaje && (
+  <div
+    className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 
+      w-[90%] max-w-sm text-center p-3 rounded-xl shadow-lg border
+      animate-in fade-in slide-in-from-bottom-4
+      ${
+        tipoMensaje === "ok"
+          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+          : "bg-red-50 text-red-700 border-red-300"
+      }`}
+  >
+    {mensaje}
+  </div>
+)}
+
+
+    </ModalBase>
+  );
+}
+
 
   /* ---------------- MODO CREAR ---------------- */
   return (
