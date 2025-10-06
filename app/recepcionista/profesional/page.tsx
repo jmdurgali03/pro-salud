@@ -14,8 +14,8 @@ import {
   Clock,
 } from "lucide-react";
 import ProfesionalModal from "./ProfesionalModal";
-import { getObraSocialBadgeClass } from "../_components/obra-social-badge";
 import { ProfesionalSearchBar, ObraSocialOption } from "./_components/profesional-search";
+import { getObraSocialBadgeClass } from "@/components/pacientes/obra-social-badge";
 
 /* ---------------- Tipos ---------------- */
 export type Profesional = {
@@ -218,11 +218,10 @@ export default function ProfesionalesPage() {
                   </td>
                   <td className="p-4 text-center">
                     <span
-                      className={`px-3 py-1 rounded-full text-xs font-medium ${
-                        p.estado === "Activo"
+                      className={`px-3 py-1 rounded-full text-xs font-medium ${p.estado === "Activo"
                           ? "bg-green-100 text-green-700"
                           : "bg-red-100 text-red-700"
-                      }`}
+                        }`}
                     >
                       {p.estado}
                     </span>
@@ -274,33 +273,33 @@ export default function ProfesionalesPage() {
 
         {/* Modales */}
         {editando && (
-  <ProfesionalModal
-    title="Editar Profesional"
-    initialData={editando}
-    onSubmit={async (datosActualizados) => {
-      setLoadingModal(true);
+          <ProfesionalModal
+            title="Editar Profesional"
+            initialData={editando}
+            onSubmit={async (datosActualizados) => {
+              setLoadingModal(true);
 
-      // 🔹 Desestructuramos las franjas que vienen del formulario
-      const { franjasHorarias, ...resto } = datosActualizados;
+              // 🔹 Desestructuramos las franjas que vienen del formulario
+              const { franjasHorarias, ...resto } = datosActualizados;
 
-      
 
-      // 🔹 Mandamos TODO al backend, incluyendo las franjas
-      const resp = await editar({
-        id: editando._id,
-        ...resto,
-        franjasHorarias, // ✅ AHORA SÍ se envían al backend
-      });
 
-  
+              // 🔹 Mandamos TODO al backend, incluyendo las franjas
+              const resp = await editar({
+                id: editando._id,
+                ...resto,
+                franjasHorarias, // ✅ AHORA SÍ se envían al backend
+              });
 
-      setLoadingModal(false);
-      setEditando(null);
-    }}
-    onCancel={() => setEditando(null)}
-    loading={loadingModal}
-  />
-)}
+
+
+              setLoadingModal(false);
+              setEditando(null);
+            }}
+            onCancel={() => setEditando(null)}
+            loading={loadingModal}
+          />
+        )}
 
 
 
@@ -309,7 +308,7 @@ export default function ProfesionalesPage() {
             title="Ver Profesional"
             initialData={viendo}
             viewMode
-            onSubmit={() => {}}
+            onSubmit={() => { }}
             onCancel={() => setViendo(null)}
             loading={false}
           />
