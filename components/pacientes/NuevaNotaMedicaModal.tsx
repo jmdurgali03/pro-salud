@@ -1,7 +1,6 @@
-// app/recepcionista/pacientes/_components/NuevaNotaMedicaModal.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Modal, {
   CancelButton,
   PrimaryButton,
@@ -17,7 +16,6 @@ type Categoria =
   | "Epicrisis"
   | "Administrativa";
 
-// Helpers: ahora local → "YYYY-MM-DDTHH:MM" para <input type="datetime-local">
 function nowDateTimeLocal(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -33,6 +31,7 @@ export default function NuevaNotaMedicaModal({
   profesionales,
   consultas,
   getProfesionalNombre,
+  fixedProfesionalId, // 👈 nuevo (opcional)
 }: {
   open: boolean;
   onClose: () => void;
@@ -48,8 +47,9 @@ export default function NuevaNotaMedicaModal({
   profesionales: any[];
   consultas: { _id: string; fecha: number; motivo: string; profesionalId: string }[];
   getProfesionalNombre: (id: any) => string;
+  fixedProfesionalId?: string; // 👈 nuevo (opcional)
 }) {
-  const [profesionalId, setProfesionalId] = useState<string>("");
+  const [profesionalId, setProfesionalId] = useState<string>(fixedProfesionalId ?? "");
   const [fecha, setFecha] = useState<string>(nowDateTimeLocal());
   const [categoria, setCategoria] = useState<Categoria>("Evolución");
   const [consultaId, setConsultaId] = useState<string>("");
@@ -57,9 +57,21 @@ export default function NuevaNotaMedicaModal({
   const [titulo, setTitulo] = useState("");
   const [texto, setTexto] = useState("");
 
-  const canSave = profesionalId && texto.trim().length > 2;
+  useEffect(() => {
+    if (open) {
+      setProfesionalId(fixedProfesionalId ?? "");
+      setFecha(nowDateTimeLocal());
+      setCategoria("Evolución");
+      setConsultaId("");
+      setVisibilidad("Equipo");
+      setTitulo("");
+      setTexto("");
+    }
+  }, [open, fixedProfesionalId]);
 
-  const profOptions = useMemo(
+  const canSave = (fixedProfesionalId ?? profesionalId) && texto.trim().length > 2;
+
+  const profOptionsAll = useMemo(
     () =>
       (profesionales ?? []).map((p: any) => ({
         id: p._id as string,
@@ -67,6 +79,10 @@ export default function NuevaNotaMedicaModal({
       })),
     [profesionales]
   );
+
+  const profOptions = fixedProfesionalId
+    ? profOptionsAll.filter((o) => o.id === fixedProfesionalId)
+    : profOptionsAll;
 
   const consultaOptions = useMemo(
     () =>
@@ -83,7 +99,7 @@ export default function NuevaNotaMedicaModal({
     if (!canSave) return;
     const ms = fecha ? new Date(fecha).getTime() : undefined;
     await onSubmit({
-      profesionalId,
+      profesionalId: (fixedProfesionalId ?? profesionalId)!,
       consultaId: consultaId || undefined,
       fecha: ms,
       categoria,
@@ -94,7 +110,7 @@ export default function NuevaNotaMedicaModal({
     setTexto("");
     setTitulo("");
     setConsultaId("");
-    setProfesionalId("");
+    setProfesionalId(fixedProfesionalId ?? "");
   };
 
   return (
@@ -117,10 +133,11 @@ export default function NuevaNotaMedicaModal({
           <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
           <select
             className={selectBase}
-            value={profesionalId}
+            value={(fixedProfesionalId ?? profesionalId) as string}
             onChange={(e) => setProfesionalId(e.target.value)}
+            disabled={!!fixedProfesionalId} // 👈 bloqueado si viene fijo
           >
-            <option value="">Seleccioná un profesional…</option>
+            {!fixedProfesionalId && <option value="">Seleccioná un profesional…</option>}
             {profOptions.map((o) => (
               <option key={o.id} value={o.id}>
                 {o.label}

@@ -1,4 +1,3 @@
-// app/profesional/historias/[id]/page.tsx
 "use client";
 
 import { useParams } from "next/navigation";
@@ -7,6 +6,7 @@ import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
+import { useUser } from "@clerk/nextjs";
 
 // Componentes
 import Section from "@/components/pacientes/Section";
@@ -20,7 +20,6 @@ import NotasMedicasTable, { Nota } from "@/components/pacientes/NotasMedicasTabl
 import HeroPaciente from "@/components/pacientes/HeroPaciente";
 import Panel from "@/components/pacientes/Panel";
 import { KPIGrid } from "@/components/pacientes/KPI";
-
 
 // Nuevos helpers UI
 import BigTabs from "@/components/pacientes//BigTabs";
@@ -83,6 +82,12 @@ export default function HistorialPacientePage() {
   const { id } = useParams();
   const pacienteId = id as Id<"pacientes">;
 
+  // Clerk: usuario actual -> profesional actual
+  const { user } = useUser();
+  const profesionalActual = useQuery(api.profesionales.getByClerkUser, {
+    clerkUserId: user?.id || "",
+  });
+
   // Queries
   const paciente = useQuery(api.pacientes.getById, { id: pacienteId }) as PacienteExtendido | null;
   const consultasQ = useQuery(api.consultas.listarPorPaciente, { pacienteId }) as Consulta[] | undefined;
@@ -90,6 +95,7 @@ export default function HistorialPacientePage() {
   const tratamientosQ = useQuery(api.tratamientos.listarPorPaciente, { pacienteId }) as Tratamiento[] | undefined;
   const notasQ = useQuery(api.observaciones.listarPorPaciente, { pacienteId }) as Nota[] | undefined;
 
+  // (Seguimos trayendo listas si las usan en tablas)
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
 
@@ -170,30 +176,55 @@ export default function HistorialPacientePage() {
     return tratamientos.slice(start, start + PAGE_SIZE);
   }, [tratamientos, pageTrat]);
 
-  // Handlers (sin cambios funcionales)
+  /* ======================== SUBMITS (forzado profesional actual) ======================== */
+
+  const ensureProfesional = () => {
+    if (!profesionalActual?._id) {
+      throw new Error("No se encontró el profesional vinculado a este usuario.");
+    }
+    return profesionalActual;
+  };
+
+  // CONSULTA: fuerza profesionalId
   const submitConsulta = async (data: {
     motivo: string;
-    profesionalId: Id<"profesionales">;
+    profesionalId?: Id<"profesionales">; // ignorado
     notas?: string;
   }) => {
-    await crearConsulta({ pacienteId, ...data });
+    const yo = ensureProfesional();
+    await crearConsulta({
+      pacienteId,
+      motivo: data.motivo,
+      notas: data.notas,
+      profesionalId: yo._id,
+    });
     setOpenConsulta(false);
   };
 
+  // DIAGNÓSTICO: fuerza profesionalId
   const submitDiagnostico = async (data: {
     consultaId: Id<"consultas">;
     descripcion: string;
-    profesionalId: Id<"profesionales">;
+    profesionalId?: Id<"profesionales">; // ignorado
     estado: "Presuntivo" | "Definitivo";
     fecha?: number;
   }) => {
-    await crearDiagnostico({ pacienteId, ...data });
+    const yo = ensureProfesional();
+    await crearDiagnostico({
+      pacienteId,
+      consultaId: data.consultaId,
+      descripcion: data.descripcion,
+      estado: data.estado,
+      fecha: data.fecha,
+      profesionalId: yo._id,
+    });
     setOpenDx(false);
   };
 
+  // TRATAMIENTO: el schema pide 'profesional' como string (no id)
   const submitTratamiento = async (data: {
     titulo: string;
-    profesional: string;
+    profesional?: string; // ignorado
     indicaciones: string;
     fechaInicio?: number;
     fechaFin?: number | null;
@@ -201,12 +232,25 @@ export default function HistorialPacientePage() {
     cronico?: boolean;
     notas?: string;
   }) => {
-    await crearTratamiento({ pacienteId, ...data } as any);
+    const yo = ensureProfesional();
+    const profesionalStr = `${yo.apellido}, ${yo.nombre}`;
+    await crearTratamiento({
+      pacienteId,
+      titulo: data.titulo,
+      indicaciones: data.indicaciones,
+      fechaInicio: data.fechaInicio ?? Date.now(),
+      fechaFin: data.fechaFin ?? undefined,
+      estado: data.estado,
+      cronico: data.cronico,
+      notas: data.notas,
+      profesional: profesionalStr, // ✔ string
+    } as any);
     setOpenTrat(false);
   };
 
+  // NOTA: fuerza profesionalId
   const submitNota = async (data: {
-    profesionalId: Id<"profesionales">;
+    profesionalId?: Id<"profesionales">; // ignorado
     consultaId?: Id<"consultas">;
     fecha?: number;
     categoria: "Evolución" | "Indicación" | "Interconsulta" | "Epicrisis" | "Administrativa";
@@ -214,11 +258,24 @@ export default function HistorialPacientePage() {
     titulo?: string;
     texto: string;
   }) => {
-    await crearNota({ pacienteId, ...data });
+    const yo = ensureProfesional();
+    await crearNota({
+      pacienteId,
+      consultaId: data.consultaId,
+      fecha: data.fecha ?? Date.now(),
+      categoria: data.categoria,
+      visibilidad: data.visibilidad,
+      titulo: data.titulo,
+      texto: data.texto,
+      profesionalId: yo._id,
+    });
     setOpenNota(false);
   };
 
   /* ========================== RENDER ========================== */
+  // Para no romper modales existentes, si necesitan 'profesionales', les pasamos SOLO el actual.
+  const profesionalesSoloActual = profesionalActual ? [profesionalActual] : [];
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* HERO */}
@@ -260,7 +317,6 @@ export default function HistorialPacientePage() {
       {/* CONTENIDO */}
       <div className="mx-auto max-w-6xl px-6 py-6">
         <main className="min-w-0 space-y-6">
-          {/* Resumen (KPIs) */}
           {(tab === "resumen") && (
             <section id="resumen" ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm">
               <KPIGrid
@@ -272,7 +328,6 @@ export default function HistorialPacientePage() {
             </section>
           )}
 
-          {/* Consultas */}
           {(tab === "resumen" || tab === "consultas") && (
             <Section
               id="consultas"
@@ -315,7 +370,6 @@ export default function HistorialPacientePage() {
             </Section>
           )}
 
-          {/* Notas médicas */}
           {(tab === "resumen" || tab === "notas") && (
             <Section
               id="notas"
@@ -344,7 +398,6 @@ export default function HistorialPacientePage() {
             </Section>
           )}
 
-          {/* Tratamientos */}
           {(tab === "resumen" || tab === "tratamientos") && (
             <Section
               id="tratamientos"
@@ -381,32 +434,41 @@ export default function HistorialPacientePage() {
         open={openConsulta}
         onClose={() => setOpenConsulta(false)}
         onSubmit={submitConsulta}
-        profesionales={profesionales}
+        // Solo el profesional actual para no dar opciones
+        profesionales={profesionalActual ? [profesionalActual] : []}
         espNombrePorId={espNombrePorId}
+        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
       />
 
       <NuevoDiagnosticoModal
         open={openDx}
         onClose={() => setOpenDx(false)}
         onSubmit={submitDiagnostico}
-        profesionales={profesionales}
+        // Solo el profesional actual
+        profesionales={profesionalActual ? [profesionalActual] : []}
         consultas={consultas}
         getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
       />
 
       <NuevaNotaMedicaModal
         open={openNota}
         onClose={() => setOpenNota(false)}
         onSubmit={submitNota}
-        profesionales={profesionales}
+        // Solo el profesional actual
+        profesionales={profesionalActual ? [profesionalActual] : []}
         consultas={consultas}
         getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
       />
 
       <NuevoTratamientoModal
         open={openTrat}
         onClose={() => setOpenTrat(false)}
         onSubmit={submitTratamiento}
+        fixedProfesionalName={
+          profesionalActual ? `${profesionalActual.apellido}, ${profesionalActual.nombre}` : undefined
+        } // ⬅️ ver paso 2 (opcional)
       />
     </div>
   );

@@ -1,7 +1,6 @@
-// app/recepcionista/pacientes/_components/NuevaConsultaModal.tsx
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Modal, {
   CancelButton,
   PrimaryButton,
@@ -16,6 +15,7 @@ export default function NuevaConsultaModal({
   onSubmit,
   profesionales,
   espNombrePorId,
+  fixedProfesionalId, // 👈 nuevo (opcional)
 }: {
   open: boolean;
   onClose: () => void;
@@ -26,14 +26,23 @@ export default function NuevaConsultaModal({
   }) => Promise<void> | void;
   profesionales: any[];
   espNombrePorId: Map<string, string>;
+  fixedProfesionalId?: string; // 👈 nuevo (opcional)
 }) {
   const [motivo, setMotivo] = useState("");
-  const [profesionalId, setProfesionalId] = useState<string>("");
+  const [profesionalId, setProfesionalId] = useState<string>(fixedProfesionalId ?? "");
   const [notas, setNotas] = useState("");
 
-  const canSave = motivo.trim().length > 1 && profesionalId;
+  useEffect(() => {
+    if (open) {
+      setMotivo("");
+      setNotas("");
+      setProfesionalId(fixedProfesionalId ?? "");
+    }
+  }, [open, fixedProfesionalId]);
 
-  const profOptions = useMemo(
+  const canSave = motivo.trim().length > 1 && (fixedProfesionalId ?? profesionalId);
+
+  const profOptionsAll = useMemo(
     () =>
       (profesionales ?? []).map((p: any) => ({
         id: p._id as string,
@@ -44,11 +53,19 @@ export default function NuevaConsultaModal({
     [profesionales, espNombrePorId]
   );
 
+  const profOptions = fixedProfesionalId
+    ? profOptionsAll.filter((o) => o.id === fixedProfesionalId)
+    : profOptionsAll;
+
   const save = async () => {
     if (!canSave) return;
-    await onSubmit({ motivo: motivo.trim(), profesionalId, notas: notas.trim() || undefined });
+    await onSubmit({
+      motivo: motivo.trim(),
+      profesionalId: (fixedProfesionalId ?? profesionalId)!,
+      notas: notas.trim() || undefined,
+    });
     setMotivo("");
-    setProfesionalId("");
+    setProfesionalId(fixedProfesionalId ?? "");
     setNotas("");
   };
 
@@ -82,10 +99,11 @@ export default function NuevaConsultaModal({
           <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
           <select
             className={selectBase}
-            value={profesionalId}
+            value={(fixedProfesionalId ?? profesionalId) as string}
             onChange={(e) => setProfesionalId(e.target.value)}
+            disabled={!!fixedProfesionalId} // 👈 bloqueado si viene fijo
           >
-            <option value="">Seleccioná un profesional…</option>
+            {!fixedProfesionalId && <option value="">Seleccioná un profesional…</option>}
             {profOptions.map((o: any) => (
               <option key={o.id} value={o.id}>
                 {o.label}

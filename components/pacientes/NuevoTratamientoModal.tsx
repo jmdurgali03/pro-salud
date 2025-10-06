@@ -1,7 +1,6 @@
-// app/recepcionista/pacientes/_components/NuevoTratamientoModal.tsx
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Modal, {
   CancelButton,
   PrimaryButton,
@@ -12,7 +11,6 @@ import Modal, {
 
 type Estado = "Activo" | "Suspendido" | "Finalizado";
 
-// Helpers: fecha local → "YYYY-MM-DD"
 function todayDateInput(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
@@ -23,6 +21,7 @@ export default function NuevoTratamientoModal({
   open,
   onClose,
   onSubmit,
+  fixedProfesionalName, // 👈 nuevo (opcional)
 }: {
   open: boolean;
   onClose: () => void;
@@ -36,16 +35,31 @@ export default function NuevoTratamientoModal({
     cronico?: boolean;
     notas?: string;
   }) => Promise<void> | void;
+  fixedProfesionalName?: string; // 👈 nuevo (opcional)
 }) {
   const [titulo, setTitulo] = useState("");
-  const [profesional, setProfesional] = useState("");
+  const [profesional, setProfesional] = useState(fixedProfesionalName ?? "");
   const [fechaInicio, setFechaInicio] = useState<string>(todayDateInput());
   const [fechaFin, setFechaFin] = useState<string>("");
-  const [finActivo, setFinActivo] = useState<boolean>(false); // <-- para controlar el placeholder/selector
+  const [finActivo, setFinActivo] = useState<boolean>(false);
   const [estado, setEstado] = useState<Estado>("Activo");
   const [cronico, setCronico] = useState(false);
   const [indicaciones, setIndicaciones] = useState("");
   const [notas, setNotas] = useState("");
+
+  useEffect(() => {
+    if (open) {
+      setTitulo("");
+      setProfesional(fixedProfesionalName ?? "");
+      setIndicaciones("");
+      setNotas("");
+      setCronico(false);
+      setFechaFin("");
+      setFinActivo(false);
+      setFechaInicio(todayDateInput());
+      setEstado("Activo");
+    }
+  }, [open, fixedProfesionalName]);
 
   const canSave = titulo.trim().length > 1 && indicaciones.trim().length > 1;
 
@@ -56,7 +70,7 @@ export default function NuevoTratamientoModal({
 
     await onSubmit({
       titulo: titulo.trim(),
-      profesional: profesional.trim(),
+      profesional: (fixedProfesionalName ?? profesional).trim(),
       indicaciones: indicaciones.trim(),
       fechaInicio: inicioMs,
       fechaFin: finMs,
@@ -65,7 +79,7 @@ export default function NuevoTratamientoModal({
       notas: notas.trim() || undefined,
     });
     setTitulo("");
-    setProfesional("");
+    setProfesional(fixedProfesionalName ?? "");
     setIndicaciones("");
     setNotas("");
     setCronico(false);
@@ -104,15 +118,15 @@ export default function NuevoTratamientoModal({
           <input
             className={inputBase}
             placeholder="Nombre del profesional"
-            value={profesional}
+            value={fixedProfesionalName ?? profesional}
             onChange={(e) => setProfesional(e.target.value)}
+            disabled={!!fixedProfesionalName} // 👈 bloqueado si viene fijo
+            readOnly={!!fixedProfesionalName}
           />
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Fecha de inicio 
-          </label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de inicio</label>
           <input
             lang="es-AR"
             type="date"
@@ -123,11 +137,7 @@ export default function NuevoTratamientoModal({
         </div>
 
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Fecha de fin 
-          </label>
-
-          {/* Truco: placeholder humano cuando está vacío */}
+          <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de fin</label>
           <input
             lang="es-AR"
             type={finActivo ? "date" : "text"}
@@ -137,7 +147,6 @@ export default function NuevoTratamientoModal({
             value={fechaFin}
             onFocus={() => setFinActivo(true)}
             onBlur={(e) => {
-              // si quedó vacío, volvemos a mostrar el placeholder en español
               if (!e.currentTarget.value) setFinActivo(false);
             }}
             onChange={(e) => setFechaFin(e.target.value)}
