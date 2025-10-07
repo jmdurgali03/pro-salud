@@ -15,6 +15,7 @@ import { PacienteForm, PacienteFormValues } from "@/components/pacientes/pacient
 import { ModalContainer } from "@/components/pacientes/modal-container";
 import { PacienteRecord } from "@/components/pacientes/types";
 import { CheckCircle2 } from "lucide-react";
+import { PacienteView } from "@/app/gerente/pacientes/paciente-view";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -22,7 +23,7 @@ export default function PacientesPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
   const [seleccionado, setSeleccionado] = useState<PacienteRecord | null>(null);
-  const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | null>(null);
+  const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | "ver" | null>(null);
   const router = useRouter();
 
   const pacientesConvex = useQuery(api.pacientes.listar, {}) as PacienteRecord[] | undefined;
@@ -177,7 +178,11 @@ export default function PacientesPage() {
   };
 
   const handleVer = (id: Id<"pacientes">) => {
-    router.push(`/recepcionista/pacientes/${id}`);
+    const paciente = paginatedPacientes.find(p => p._id === id);
+    if (paciente) {
+      setSeleccionado(paciente);
+      setModo("ver");
+    }
   };
 
   return (
@@ -251,6 +256,10 @@ export default function PacientesPage() {
                 onSubmit={(form) => handleActualizar(seleccionado._id, form)}
                 onCancel={closeModal}
               />
+            )}
+
+            {modo === "ver" && seleccionado && (
+              <PacienteView paciente={seleccionado} onCancel={closeModal} />
             )}
           </ModalContainer>
         )}

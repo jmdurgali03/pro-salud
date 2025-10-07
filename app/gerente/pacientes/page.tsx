@@ -14,6 +14,7 @@ import { PacientesPagination } from "@/components/pacientes/pacientes-pagination
 import { PacienteForm, PacienteFormValues } from "@/components/pacientes/paciente-form";
 import { ModalContainer } from "@/components/pacientes/modal-container";
 import { PacienteRecord } from "@/components/pacientes/types";
+import { PacienteView } from "./paciente-view";
 
 
 const ITEMS_PER_PAGE = 10;
@@ -22,7 +23,7 @@ export default function PacientesPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
   const [seleccionado, setSeleccionado] = useState<PacienteRecord | null>(null);
-  const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | null>(null);
+  const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | "ver" | null>(null);
   const router = useRouter();
 
   const pacientesConvex = useQuery(api.pacientes.listar, {}) as PacienteRecord[] | undefined;
@@ -129,7 +130,6 @@ export default function PacientesPage() {
     setSeleccionado(null);
   };
 
-  // ✅ Corregido: proteger campos opcionales con "?."
   const sanitizeForm = (form: PacienteFormValues) => ({
     ...form,
     nombre: form.nombre.trim(),
@@ -156,7 +156,11 @@ export default function PacientesPage() {
   };
 
   const handleVer = (id: Id<"pacientes">) => {
-    router.push(`/recepcionista/pacientes/${id}`);
+    const paciente = paginatedPacientes.find(p => p._id === id);
+    if (paciente) {
+      setSeleccionado(paciente);
+      setModo("ver");
+    }
   };
 
   return (
@@ -232,7 +236,11 @@ export default function PacientesPage() {
               />
             )}
 
-            
+            {modo === "ver" && seleccionado && (
+              <PacienteView paciente={seleccionado} onCancel={closeModal} />
+            )}
+
+
           </ModalContainer>
         )}
       </div>

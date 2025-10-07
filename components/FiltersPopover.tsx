@@ -113,12 +113,6 @@ export function FiltersPopover({
                         <div className="md:col-span-2">
                             <div className="flex items-center justify-between mb-2">
                                 <h3 className="text-sm font-semibold text-gray-800">Obras Sociales</h3>
-                                <button
-                                    onClick={onClearObras}
-                                    className="text-xs text-gray-600 hover:text-gray-900 underline underline-offset-2"
-                                >
-                                    Limpiar
-                                </button>
                             </div>
 
                             <div className="relative mb-3">
@@ -165,11 +159,10 @@ export function FiltersPopover({
                                         <button
                                             key={opt}
                                             onClick={() => setEstado(opt)}
-                                            className={`w-full text-left px-3 py-2 rounded-lg border transition ${
-                                                estado === opt
-                                                    ? "bg-purple-50 border-purple-300 text-purple-700"
-                                                    : "bg-white border-gray-200 hover:bg-gray-50"
-                                            }`}
+                                            className={`w-full text-left px-3 py-2 rounded-lg border transition ${estado === opt
+                                                ? "bg-purple-50 border-purple-300 text-purple-700"
+                                                : "bg-white border-gray-200 hover:bg-gray-50"
+                                                }`}
                                         >
                                             {opt}
                                         </button>
@@ -189,11 +182,10 @@ export function FiltersPopover({
                                         <button
                                             key={key}
                                             onClick={() => setOrden(key)}
-                                            className={`w-full text-left px-3 py-2 rounded-lg border transition ${
-                                                orden === key
-                                                    ? "bg-pink-50 border-pink-300 text-pink-700"
-                                                    : "bg-white border-gray-200 hover:bg-gray-50"
-                                            }`}
+                                            className={`w-full text-left px-3 py-2 rounded-lg border transition ${orden === key
+                                                ? "bg-pink-50 border-pink-300 text-pink-700"
+                                                : "bg-white border-gray-200 hover:bg-gray-50"
+                                                }`}
                                         >
                                             {label}
                                         </button>
