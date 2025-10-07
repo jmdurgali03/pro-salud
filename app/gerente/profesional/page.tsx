@@ -1,16 +1,15 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
 import ProfesionalModal from "./ProfesionalModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
-import { Plus, CheckCircle2, ChevronLeft, ChevronRight, BriefcaseMedical, Search, MoreHorizontal, ChevronDown, Eye, Edit, Trash2, AlertTriangle } from "lucide-react";
+import { Plus, CheckCircle2, ChevronLeft, ChevronRight, BriefcaseMedical, Search, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle, Filter as FilterIcon } from "lucide-react";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -31,6 +30,15 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 
+// IMPORTACIÓN DEL NUEVO COMPONENTE DE FILTROS Y SUS TIPOS
+import { FiltersPopover, EstadoFiltro, OrdenClave } from "@/components/FiltersPopover";
+
+// Tipo auxiliar para ObraSocial que usa el componente FiltersPopover
+export type ObraSocialOption = {
+    _id: Id<"obrasSociales">;
+    nombre: string;
+};
+
 export type Profesional = {
   _id: Id<"profesionales">;
   nombre: string;
@@ -42,6 +50,7 @@ export type Profesional = {
   telefono: string;
   obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
+  franjasHorarias?: { dia: number; inicio: string; fin: string }[];
 };
 
 export type ProfesionalInput = {
@@ -52,6 +61,7 @@ export type ProfesionalInput = {
   telefono: string;
   obrasSociales: Id<"obrasSociales">[];
   estado: "Activo" | "Inactivo";
+  franjasHorarias?: { dia: number; inicio: string; fin: string }[];
 };
 
 const mapReason = (r: string, fallback?: string) => {
@@ -65,21 +75,25 @@ const mapReason = (r: string, fallback?: string) => {
   }
 };
 
-type SortOption = "reciente" | "antiguo" | "a-z" | "z-a";
-type EstadoFilter = "todos" | "activo" | "inactivo";
-
 export default function ProfesionalesPage() {
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
-  const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
+  const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
+  const obrasSociales = useMemo(
+      () => (obrasSocialesQuery ?? []) as ObraSocialOption[],
+      [obrasSocialesQuery]
+  );
 
   const crear = useMutation(api.profesionales.crear);
   const editar = useMutation(api.profesionales.editar);
   const eliminar = useMutation(api.profesionales.eliminar);
 
   const [q, setQ] = useState("");
-  const [sortBy, setSortBy] = useState<SortOption>("reciente");
-  const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>("todos");
+  // NUEVOS ESTADOS PARA EL FILTRO POPUP
+  const [filtroObras, setFiltroObras] = useState<Id<"obrasSociales">[]>([]);
+  const [filtroEstado, setFiltroEstado] = useState<EstadoFiltro>("Todos");
+  const [orden, setOrden] = useState<OrdenClave>("reciente");
+
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
   const [viendo, setViendo] = useState<Profesional | null>(null);
@@ -88,11 +102,29 @@ export default function ProfesionalesPage() {
   const [modalError, setModalError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
+  // Handlers para el Popover
+  const toggleObraSocial = useCallback((id: Id<"obrasSociales">) => {
+      setFiltroObras((current) =>
+          current.includes(id) ? current.filter((x) => x !== id) : [...current, id]
+      );
+  }, []);
+  const clearObrasSociales = useCallback(() => setFiltroObras([]), []);
+
   useEffect(() => {
     if (!toast) return;
     const t = setTimeout(() => setToast(null), 4000);
     return () => clearTimeout(t);
   }, [toast]);
+  
+  // Paginación
+  const [page, setPage] = useState(1);
+  const itemsPerPage = 8;
+  
+  // Resetea la página al cambiar cualquier criterio de filtrado/ordenamiento
+  useEffect(() => {
+      setPage(1);
+  }, [q, filtroObras, filtroEstado, orden]);
+
 
   const handleCrear = async (data: ProfesionalInput & { dni: string; matricula: string }) => {
     try {
@@ -146,12 +178,20 @@ export default function ProfesionalesPage() {
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
     ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean);
 
-  // Filtrado y ordenamiento
+  // Filtrado y ordenamiento (ACTUALIZADO para usar los nuevos estados)
   const profesionalesFiltrados = useMemo(() => {
     const term = q.toLowerCase();
+    
+    // Función de ayuda para obtener el nombre completo
+    const getFullName = (p: Profesional) => `${p.apellido} ${p.nombre}`;
+    // Función de ayuda para obtener el tiempo de creación (usado para ordenamiento)
+    const getCreationTime = (p: Profesional) => (p as any)?._creationTime ?? 0;
+
     let filtered = profesionales.filter((p) => {
       const especialidad = getEspecialidadNombre(p.especialidadId).toLowerCase();
       const obras = getObrasSocialesNombres(p.obrasSociales).join(" ").toLowerCase();
+      
+      // 1. Filtro de Búsqueda de Texto
       const matchesSearch =
         p.nombre.toLowerCase().includes(term) ||
         p.apellido.toLowerCase().includes(term) ||
@@ -159,36 +199,38 @@ export default function ProfesionalesPage() {
         especialidad.includes(term) ||
         obras.includes(term);
 
+      // 2. Filtro de Estado (usa filtroEstado)
       const matchesEstado =
-        estadoFilter === "todos" ||
-        (estadoFilter === "activo" && p.estado === "Activo") ||
-        (estadoFilter === "inactivo" && p.estado === "Inactivo");
+        filtroEstado === "Todos" ||
+        (filtroEstado === "Activo" && p.estado === "Activo") ||
+        (filtroEstado === "Inactivo" && p.estado === "Inactivo");
 
-      return matchesSearch && matchesEstado;
+      // 3. Filtro de Obras Sociales (usa filtroObras)
+      const matchesObra =
+        filtroObras.length === 0 || p.obrasSociales.some((id) => filtroObras.includes(id));
+
+      return matchesSearch && matchesEstado && matchesObra;
     });
 
-    // Ordenamiento
+    // Ordenamiento (usa orden)
     filtered.sort((a, b) => {
-      switch (sortBy) {
-        case "reciente":
-          return b._id.toString().localeCompare(a._id.toString());
-        case "antiguo":
-          return a._id.toString().localeCompare(b._id.toString());
-        case "a-z":
-          return `${a.apellido} ${a.nombre}`.localeCompare(`${b.apellido} ${b.nombre}`);
-        case "z-a":
-          return `${b.apellido} ${b.nombre}`.localeCompare(`${a.apellido} ${a.nombre}`);
+      switch (orden) {
+        case "alf-asc": // Alfabético A-Z
+          return getFullName(a).toLocaleLowerCase().localeCompare(getFullName(b).toLocaleLowerCase(), "es");
+        case "alf-desc": // Alfabético Z-A
+          return getFullName(b).toLocaleLowerCase().localeCompare(getFullName(a).toLocaleLowerCase(), "es");
+        case "reciente": // Más reciente (desc)
+          return getCreationTime(b) - getCreationTime(a) || b._id.toString().localeCompare(a._id.toString());
+        case "antiguo": // Más antiguo (asc)
+          return getCreationTime(a) - getCreationTime(b) || a._id.toString().localeCompare(b._id.toString());
         default:
           return 0;
       }
     });
 
     return filtered;
-  }, [q, profesionales, especialidades, obrasSociales, sortBy, estadoFilter]);
+  }, [q, profesionales, especialidades, obrasSociales, filtroObras, filtroEstado, orden]); // Dependencias Actualizadas
 
-  // Paginación
-  const [page, setPage] = useState(1);
-  const itemsPerPage = 8;
   const totalPages = Math.ceil(profesionalesFiltrados.length / itemsPerPage);
 
   const profesionalesPaginados = useMemo(() => {
@@ -201,6 +243,14 @@ export default function ProfesionalesPage() {
       setPage(totalPages);
     }
   }, [totalPages, page]);
+  
+  // Contador de filtros activos para el badge del botón
+  const filtrosActivosCount = useMemo(() =>
+      (filtroObras.length > 0 ? 1 : 0) +
+      (filtroEstado !== "Todos" ? 1 : 0) +
+      (orden !== "reciente" ? 1 : 0),
+      [filtroObras, filtroEstado, orden]
+  );
 
   return (
     <PageWrapper
@@ -230,59 +280,43 @@ export default function ProfesionalesPage() {
           </button>
         </div>
 
-        {/* Buscador y Filtros */}
-        <div className="space-y-3">
-          <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
-            <Search className="text-gray-400 w-5 h-5" />
-            <input
-              type="text"
-              placeholder="Buscar por nombre, DNI, matrícula, especialidad u obra social..."
-              value={q}
-              onChange={(e) => {
-                setQ(e.target.value);
-                setPage(1);
-              }}
-              className="w-full outline-none text-sm"
+        {/* Buscador, Filtros y Conteo (ACTUALIZADO: Filtro al lado del buscador) */}
+        <div className="flex items-center gap-3">
+            {/* Buscador de texto */}
+            <div className="relative flex-1 min-w-[300px]">
+                <div className="flex items-center gap-3 bg-white border border-gray-200 rounded-lg p-3 shadow-sm">
+                    <Search className="text-gray-400 w-5 h-5" />
+                    <input
+                        type="text"
+                        placeholder="Buscar por nombre, DNI, matrícula, especialidad u obra social..."
+                        value={q}
+                        onChange={(e) => {
+                            setQ(e.target.value);
+                            setPage(1);
+                        }}
+                        className="w-full outline-none text-sm"
+                    />
+                </div>
+            </div>
+
+            {/* COMPONENTE FILTERSPOPOVER IMPLEMENTADO al lado del buscador */}
+            <FiltersPopover
+                obrasSociales={obrasSociales}
+                selectedObras={filtroObras}
+                onToggleObra={toggleObraSocial}
+                onClearObras={clearObrasSociales}
+                estado={filtroEstado}
+                setEstado={setFiltroEstado}
+                orden={orden}
+                setOrden={setOrden}
+                // No se necesita lógica adicional en el apply ya que los estados están vinculados
+                onApply={() => { /* estados ya vinculados */ }}
+                summaryCount={filtrosActivosCount}
+                buttonLabel="Filtros"
             />
-          </div>
+            {/* FIN COMPONENTE FILTERSPOPOVER */}
 
-          <div className="flex items-center gap-3">
-            {/* Ordenar por */}
-            <div className="relative">
-              <select
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value as SortOption)}
-                className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all cursor-pointer shadow-sm"
-              >
-                <option value="reciente">Más reciente</option>
-                <option value="antiguo">Más antiguo</option>
-                <option value="a-z">A - Z</option>
-                <option value="z-a">Z - A</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-
-            {/* Estado */}
-            <div className="relative">
-              <select
-                value={estadoFilter}
-                onChange={(e) => {
-                  setEstadoFilter(e.target.value as EstadoFilter);
-                  setPage(1);
-                }}
-                className="appearance-none bg-white border border-gray-200 rounded-lg px-4 py-2 pr-10 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-all cursor-pointer shadow-sm"
-              >
-                <option value="todos">Todos los estados</option>
-                <option value="activo">Activo</option>
-                <option value="inactivo">Inactivo</option>
-              </select>
-              <ChevronDown className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 pointer-events-none" />
-            </div>
-
-            <span className="text-sm text-gray-500 ml-auto">
-              {profesionalesFiltrados.length} resultado{profesionalesFiltrados.length !== 1 ? "s" : ""}
-            </span>
-          </div>
+            {/* Se ELIMINA el contador de resultados aquí */}
         </div>
 
         {/* Tabla */}
@@ -358,7 +392,7 @@ export default function ProfesionalesPage() {
               {profesionalesFiltrados.length === 0 && (
                 <tr>
                   <td colSpan={8} className="p-6 text-center text-gray-400 italic text-sm">
-                    No hay profesionales registrados
+                    No hay profesionales registrados que coincidan con los criterios de búsqueda.
                   </td>
                 </tr>
               )}
@@ -467,12 +501,15 @@ export default function ProfesionalesPage() {
                   </div>
                 </div>
 
+                {/* Nota: Asumo que franjasHorarias puede no estar en el tipo Profesional actual, 
+                     pero si lo estuviera, este div debería usar el dato real */}
                 <div>
-                  <label className="text-sm font-medium text-gray-700 mb-2 flex items-center gap-2">
-                    <span>🕐</span> Franjas horarias
+                  <label className="text-sm font-medium text-gray-700 block mb-2">
+                    Franjas horarias
                   </label>
                   <div className="bg-gray-50 rounded-lg px-4 py-3 text-gray-900 flex items-center gap-2">
-                    <span>🕐</span> Lun—Vie 08:00 a 12:00, 16:00 a 20:00
+                    {/* Placeholder si no hay dato real de franjas horarias */}
+                    {viendo.franjasHorarias?.length ? "Horarios asignados" : "Sin horarios detallados en la tabla"}
                   </div>
                 </div>
 
