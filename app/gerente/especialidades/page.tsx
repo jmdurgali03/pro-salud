@@ -23,6 +23,8 @@ export default function EspecialidadesPage() {
   const [nueva, setNueva] = useState("");
   const [editando, setEditando] = useState<Id<"especialidades"> | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [toastTipo, setToastTipo] = useState<"success" | "error">("success");
+  const [error, setError] = useState<string | null>(null);
 
   // Filtrar especialidades por búsqueda
   const especialidadesFiltradas = useMemo(() => {
@@ -62,12 +64,35 @@ export default function EspecialidadesPage() {
     return () => clearTimeout(t);
   }, [toast]);
 
-  // Crear nueva especialidad
+  // Crear nueva especialidad (con validación y error visual)
   const handleCrear = async () => {
-    if (!nueva.trim()) return;
-    await crear({ nombre: nueva.trim() });
-    setNueva("");
-    setToast("Especialidad creada correctamente.");
+    const nombreLimpio = nueva.trim().toLowerCase();
+    if (!nombreLimpio) return;
+
+    // Validar duplicado
+    const existe = especialidades.some(
+      (e) => e.nombre.toLowerCase() === nombreLimpio
+    );
+
+    if (existe) {
+      setError("Ya existe una especialidad con ese nombre.");
+      setToast("Ya existe una especialidad con ese nombre.");
+      setToastTipo("error");
+      return;
+    }
+
+    try {
+      await crear({ nombre: nueva.trim() });
+      setNueva("");
+      setError(null);
+      setToast("Especialidad creada correctamente.");
+      setToastTipo("success");
+    } catch (err) {
+      console.error(err);
+      setError("Error al crear la especialidad.");
+      setToast("Error al crear la especialidad.");
+      setToastTipo("error");
+    }
   };
 
   // Iniciar edición
@@ -81,6 +106,7 @@ export default function EspecialidadesPage() {
     await editar({ id, nombre: nombre.trim() });
     setEditando(null);
     setToast("Especialidad actualizada correctamente.");
+    setToastTipo("success");
   };
 
   // Cancelar edición
@@ -92,6 +118,7 @@ export default function EspecialidadesPage() {
   const handleEliminar = async (id: Id<"especialidades">) => {
     await eliminar({ id });
     setToast("Especialidad eliminada correctamente.");
+    setToastTipo("success");
   };
 
   return (
@@ -129,30 +156,43 @@ export default function EspecialidadesPage() {
             </div>
 
             {/* Formulario de nueva especialidad */}
-            <div className="flex items-center gap-2">
-              <input
-                type="text"
-                value={nueva}
-                onChange={(e) => setNueva(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCrear()}
-                placeholder="Nueva especialidad..."
-                className="px-4 py-2 border border-gray-200 rounded-lg text-sm focus:ring-2 focus:ring-teal-500 outline-none w-64"
-              />
-              <button
-                onClick={handleCrear}
-                disabled={!nueva.trim()}
-                className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-lg hover:bg-teal-700 transition-all text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <Plus className="w-4 h-4" /> Agregar
-              </button>
+            <div className="flex flex-col">
+              <div className="flex items-center gap-2">
+                <input
+                  type="text"
+                  value={nueva}
+                  onChange={(e) => {
+                    setNueva(e.target.value);
+                    setError(null); // limpia el error al escribir
+                  }}
+                  onKeyDown={(e) => e.key === "Enter" && handleCrear()}
+                  placeholder="Nueva especialidad..."
+                  className={`px-4 py-2 border rounded-lg text-sm focus:ring-2 outline-none w-64 transition-all ${
+                    error
+                      ? "border-red-500 focus:ring-red-500"
+                      : "border-gray-200 focus:ring-teal-500"
+                  }`}
+                />
+                <button
+                  onClick={handleCrear}
+                  disabled={!nueva.trim()}
+                  className="flex items-center gap-2 bg-teal-600 text-white px-5 py-2 rounded-lg hover:bg-teal-700 transition-all text-sm font-medium whitespace-nowrap disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Plus className="w-4 h-4" /> Agregar
+                </button>
+              </div>
+              {error && (
+                <p className="text-red-500 text-xs mt-1 ml-1">{error}</p>
+              )}
             </div>
           </div>
 
           {/* Contador */}
           <div className="flex items-center justify-between text-sm text-gray-600">
             <span>
-              {especialidadesFiltradas.length} especialidad{especialidadesFiltradas.length !== 1 ? 'es' : ''}
-              {busqueda && ' encontrada(s)'}
+              {especialidadesFiltradas.length} especialidad
+              {especialidadesFiltradas.length !== 1 ? "es" : ""}
+              {busqueda && " encontrada(s)"}
             </span>
           </div>
         </div>
@@ -173,10 +213,11 @@ export default function EspecialidadesPage() {
             <button
               onClick={anteriorPagina}
               disabled={paginaActual === 1}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${paginaActual === 1
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
-                }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                paginaActual === 1
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
+              }`}
             >
               Anterior
             </button>
@@ -186,10 +227,11 @@ export default function EspecialidadesPage() {
             <button
               onClick={siguientePagina}
               disabled={paginaActual === totalPaginas}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${paginaActual === totalPaginas
-                ? "bg-gray-100 text-gray-400 cursor-not-allowed"
-                : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
-                }`}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                paginaActual === totalPaginas
+                  ? "bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "bg-white border border-gray-300 hover:bg-gray-50 text-gray-700"
+              }`}
             >
               Siguiente
             </button>
@@ -198,12 +240,23 @@ export default function EspecialidadesPage() {
 
         {/* Toast */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white bg-green-600 border border-green-400 animate-in fade-in slide-in-from-bottom-4 duration-500">
-            <CheckCircle2 className="w-5 h-5 text-white" />
+          <div
+            className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg border animate-in fade-in slide-in-from-bottom-4 duration-500
+              ${
+                toastTipo === "success"
+                  ? "bg-green-600 border-green-400 text-white"
+                  : "bg-red-600 border-red-400 text-white"
+              }`}
+          >
+            {toastTipo === "success" ? (
+              <CheckCircle2 className="w-5 h-5 text-white" />
+            ) : (
+              <span className="text-lg font-bold">✕</span>
+            )}
             <p className="font-medium">{toast}</p>
             <button
               onClick={() => setToast(null)}
-              className="ml-2 text-white hover:text-green-100 text-lg font-bold"
+              className="ml-2 text-white hover:text-opacity-80 text-lg font-bold"
             >
               ×
             </button>
