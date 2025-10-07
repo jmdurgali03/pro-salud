@@ -24,6 +24,20 @@ export function PacientesTable({
   searchTerm,
   isLoading = false,
 }: PacientesTableProps) {
+    
+  // Función para normalizar y mostrar el género
+  const getDisplayGender = (genero?: string | null) => {
+    if (!genero) return "—";
+    const lowerCaseGender = genero.toLowerCase().trim();
+    if (lowerCaseGender === "masculino" || lowerCaseGender.startsWith('m')) {
+      return "Masculino";
+    }
+    if (lowerCaseGender === "femenino" || lowerCaseGender.startsWith('f')) {
+      return "Femenino";
+    }
+    return "Otro"; // Para cualquier otro valor (no binario o no especificado)
+  };
+    
   return (
     <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
       <div className="overflow-x-auto">
@@ -38,6 +52,10 @@ export function PacientesTable({
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Teléfono
+              </th>
+              {/* ✅ COLUMNA AGREGADA: GÉNERO */}
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                Género
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Obras Sociales
@@ -62,6 +80,10 @@ export function PacientesTable({
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-700 align-top">
                     {paciente.telefono || "—"}
+                  </td>
+                  {/* ✅ CELDA DE DATOS AGREGADA: GÉNERO */}
+                  <td className="px-6 py-4 text-sm text-gray-700 align-top">
+                    {getDisplayGender(paciente.genero)}
                   </td>
                   <td className="px-6 py-4 align-top">
                     <div className="flex flex-wrap gap-2">
@@ -89,7 +111,8 @@ export function PacientesTable({
               ))
             ) : (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center">
+                {/* Colspan ajustado a 6 (antes 5) para incluir la nueva columna */}
+                <td colSpan={6} className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                       <Search className="text-gray-400" size={28} />
@@ -170,13 +193,16 @@ function ActionsMenu({ onView, onEdit, onDelete }: ActionsMenuProps) {
           style={{
             top: (() => {
               const rect = buttonRef.current!.getBoundingClientRect();
-              const menuHeight = 132;
+              // El menú tiene 3 botones + padding, ajusté la altura para evitar que se salga de la pantalla
+              const menuHeight = 132; 
               const spaceBelow = window.innerHeight - rect.bottom;
               if (spaceBelow < menuHeight + 10) {
+                // Abre hacia arriba si no hay espacio abajo
                 return rect.top - menuHeight - 4;
               }
-              return rect.bottom + 4;
+              return rect.bottom + 4; // Abre hacia abajo
             })(),
+            // Posiciona a la derecha del botón
             right: window.innerWidth - buttonRef.current.getBoundingClientRect().right,
           }}
         >
@@ -194,7 +220,14 @@ function ActionsMenu({ onView, onEdit, onDelete }: ActionsMenuProps) {
             <Edit2 className="w-4 h-4" />
             Editar datos
           </button>
-
+          {/* Agregando el botón de Eliminar que falta en tu ActionsMenu */}
+          <button
+            onClick={() => triggerAction(onDelete)}
+            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+          >
+            <Trash2 className="w-4 h-4" />
+            Eliminar
+          </button>
         </div>
       )}
     </div>

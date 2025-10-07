@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react"; // ✅ Añadido useRef
 import { useRouter } from "next/navigation";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
@@ -8,16 +8,18 @@ import { Id } from "@/convex/_generated/dataModel";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useDebouncedValue } from "@/hooks/use-debounce";
 import { PacientesHeader } from "@/components/pacientes/pacientes-header";
-import { PacientesSearchBar, ObraSocialOption } from "@/components/pacientes/pacientes-search";
-import { PacientesTable } from "@/components/pacientes/pacientes-table";
+import { PacientesSearchBar } from "@/components/pacientes/pacientes-search";
+import { PacientesTable } from "@/components/pacientes/pacientes-table"; // <- Aquí se usa
 import { PacientesPagination } from "@/components/pacientes/pacientes-pagination";
 import { PacienteForm, PacienteFormValues } from "@/components/pacientes/paciente-form";
 import { ModalContainer } from "@/components/pacientes/modal-container";
 import { PacienteRecord } from "@/components/pacientes/types";
-import { CheckCircle2 } from "lucide-react";
-import { PacienteView } from "@/app/gerente/pacientes/paciente-view";
+import { CheckCircle2, Search } from "lucide-react";
+import { PacientesFilterPopover, type OrdenClave, type ObraSocialOption } from "@/components/pacientes/PacientesFilterPopover";
+// ✅ Importación de PacienteView restaurada para el modo "ver"
+import { PacienteView } from "@/app/gerente/pacientes/paciente-view"; 
 
-const ITEMS_PER_PAGE = 10;
+const pageSize = 10; // Usaremos 'pageSize' en lugar de ITEMS_PER_PAGE
 
 export default function PacientesPage() {
   const [search, setSearch] = useState("");
@@ -32,16 +34,8 @@ export default function PacientesPage() {
     () => (obrasSocialesQuery ?? []) as ObraSocialOption[],
     [obrasSocialesQuery]
   );
-  const [selectedObrasSociales, setSelectedObrasSociales] = useState<Id<"obrasSociales">[]>([]);
-  const [currentPage, setCurrentPage] = useState(1);
-
-  const [toast, setToast] = useState<string | null>(null);
-  useEffect(() => {
-    if (!toast) return;
-    const t = setTimeout(() => setToast(null), 4000);
-    return () => clearTimeout(t);
-  }, [toast]);
-
+  
+  // ✅ Restauración de la referencia para manejar el estado de carga
   const prevPacientesRef = useRef<PacienteRecord[]>([]);
   useEffect(() => {
     if (Array.isArray(pacientesConvex)) {
@@ -49,9 +43,11 @@ export default function PacientesPage() {
     }
   }, [pacientesConvex]);
 
-  const isLoadingPac = pacientesConvex === undefined;
-  const isLoadingOS = obrasSocialesQuery === undefined;
-
+  // === Filtros ===
+  const [selectedObrasSociales, setSelectedObrasSociales] = useState<Id<"obrasSociales">[]>([]);
+  const [orden, setOrden] = useState<OrdenClave>("reciente");
+  
+  // Mantener selección coherente con lista de OS disponible (sin cambios)
   useEffect(() => {
     setSelectedObrasSociales((current) => {
       const filtered = current.filter((id) =>
@@ -71,7 +67,12 @@ export default function PacientesPage() {
     setSelectedObrasSociales([]);
   }, []);
 
+  const isLoadingPac = pacientesConvex === undefined;
+  const isLoadingOS = obrasSocialesQuery === undefined;
+
+  // === Filtro + Ordenamiento centralizados ===
   const filteredPacientes = useMemo(() => {
+    // ✅ Usar caché si la data aún no carga
     const base = (pacientesConvex ?? prevPacientesRef.current) || [];
     const lista = Array.isArray(base) ? (base as PacienteRecord[]) : [];
     const termino = debouncedSearch.trim().toLowerCase();
@@ -91,7 +92,7 @@ export default function PacientesPage() {
         coincide(paciente.email) ||
         coincide(paciente.telefono) ||
         coincide(paciente.fechaNacimiento) ||
-        coincide(paciente.genero) ||
+        coincide(paciente.genero) || // ¡Campo de género ya incluido!
         (paciente.obrasSocialesNombres ?? []).some((nombre) => coincide(nombre))
       );
     };
@@ -102,32 +103,50 @@ export default function PacientesPage() {
       return obras.some((obraId) => selectedObrasSociales.includes(obraId));
     };
 
-    return lista.filter((paciente) => coincideConBusqueda(paciente) && coincideConObras(paciente));
-  }, [pacientesConvex, debouncedSearch, selectedObrasSociales]);
+    // Filtrado
+    let listaFiltrada = lista.filter((p) => coincideConBusqueda(p) && coincideConObras(p));
 
-  const totalPages = useMemo(() => {
-    const count = filteredPacientes.length;
-    return count === 0 ? 1 : Math.ceil(count / ITEMS_PER_PAGE);
-  }, [filteredPacientes.length]);
+    // Ordenamiento (sin cambios)
+    const byNombre = (a: PacienteRecord) =>
+      `${a.apellido ?? ""} ${a.nombre ?? ""}`.trim().toLowerCase();
+    if (orden === "alf-asc") {
+      listaFiltrada = [...listaFiltrada].sort((a, b) => byNombre(a).localeCompare(byNombre(b)));
+    } else if (orden === "alf-desc") {
+      listaFiltrada = [...listaFiltrada].sort((a, b) => byNombre(b).localeCompare(byNombre(a)));
+    } else if (orden === "antiguo" || orden === "reciente") {
+      const dir = orden === "reciente" ? -1 : 1;
+      listaFiltrada = [...listaFiltrada].sort((a, b) => {
+        const ta = (a as any)._creationTime ?? 0;
+        const tb = (b as any)._creationTime ?? 0;
+        return ta === tb ? 0 : ta < tb ? dir : -dir;
+      });
+    }
 
-  const clampedPage = Math.min(currentPage, totalPages);
+    return listaFiltrada;
+  }, [pacientesConvex, debouncedSearch, selectedObrasSociales, orden]);
+
+  // === Paginación ===
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const totalPages = Math.max(1, Math.ceil(filteredPacientes.length / pageSize));
+  const clampedPage = Math.min(Math.max(1, currentPage), totalPages);
+  
+  useEffect(() => {
+    // ✅ Restaurado: Reiniciar página al cambiar filtros/búsqueda
+    setCurrentPage(1);
+  }, [debouncedSearch, selectedObrasSociales, orden]);
+  
+  useEffect(() => {
+    if (currentPage !== clampedPage) setCurrentPage(clampedPage);
+  }, [currentPage, clampedPage]);
 
   const paginatedPacientes = useMemo(() => {
-    const start = (clampedPage - 1) * ITEMS_PER_PAGE;
-    const end = start + ITEMS_PER_PAGE;
+    const start = (clampedPage - 1) * pageSize;
+    const end = start + pageSize;
     return filteredPacientes.slice(start, end);
   }, [filteredPacientes, clampedPage]);
 
-  useEffect(() => {
-    setCurrentPage(1);
-  }, [debouncedSearch, selectedObrasSociales]);
-
-  useEffect(() => {
-    if (currentPage !== clampedPage) {
-      setCurrentPage(clampedPage);
-    }
-  }, [currentPage, clampedPage]);
-
+  // === Mutaciones ===
   const crearPaciente = useMutation(api.pacientes.crear);
   const actualizarPaciente = useMutation(api.pacientes.actualizar);
   const eliminarPaciente = useMutation(api.pacientes.eliminar);
@@ -137,14 +156,15 @@ export default function PacientesPage() {
     setSeleccionado(null);
   };
 
+  // ✅ Restauración de la lógica de sanitización del formulario
   const sanitizeForm = (form: PacienteFormValues) => ({
     ...form,
-    nombre: form.nombre.trim(),
-    apellido: form.apellido.trim(),
+    nombre: form.nombre?.trim() || "",
+    apellido: form.apellido?.trim() || "",
     email: form.email?.trim() || "",
     telefono: form.telefono?.trim() || "",
-    dni: form.dni.trim(),
-    fechaNacimiento: form.fechaNacimiento?.trim() || undefined,
+    dni: form.dni.trim(), // Limpieza del DNI
+    fechaNacimiento: form.fechaNacimiento?.trim() || undefined, // Limpieza de fecha
   });
 
   const handleCrear = async (form: PacienteFormValues) => {
@@ -178,13 +198,26 @@ export default function PacientesPage() {
   };
 
   const handleVer = (id: Id<"pacientes">) => {
-    const paciente = paginatedPacientes.find(p => p._id === id);
+    const paciente = paginatedPacientes.find((p) => p._id === id);
     if (paciente) {
       setSeleccionado(paciente);
       setModo("ver");
     }
   };
+  
+  const [toast, setToast] = useState<string | null>(null);
+  // ✅ Lógica de Toast restaurada
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
 
+  // Contador del botón de filtros (sin cambios)
+  const summaryCount = selectedObrasSociales.length + (orden !== "reciente" ? 1 : 0);
+  const onApplyFilters = () => setCurrentPage(1);
+
+  // === Render ===
   return (
     <PageWrapper
       breadcrumbs={[
@@ -195,17 +228,37 @@ export default function PacientesPage() {
       <div className="w-full">
         <div className="w-full px-6 py-8 space-y-6">
           <PacientesHeader onCreate={() => setModo("crear")} disableCreate={isLoadingOS} />
-          <PacientesSearchBar
-            value={search}
-            onChange={setSearch}
-            isLoading={isLoadingPac}
-            obrasSociales={obrasSociales}
-            selectedObrasSociales={selectedObrasSociales}
-            onToggleObraSocial={toggleObraSocial}
-            onClearObrasSociales={clearObrasSociales}
-            isLoadingObrasSociales={isLoadingOS}
-          />
-          <PacientesTable
+
+          {/* Sección de Buscador y Filtro (estilos nuevos) */}
+          <div className="flex items-center space-x-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Buscar por nombre, DNI, especialidad u obra social..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                disabled={isLoadingPac}
+                className="w-full h-14 pl-12 pr-4 text-base rounded-2xl border border-gray-200 shadow-md focus:border-indigo-500 focus:ring-indigo-500 transition duration-150"
+              />
+            </div>
+            <div className="flex-shrink-0">
+              <PacientesFilterPopover
+                obrasSociales={obrasSociales}
+                selectedObras={selectedObrasSociales}
+                onToggleObra={toggleObraSocial}
+                onClearObras={clearObrasSociales}
+                orden={orden}
+                setOrden={setOrden}
+                onApply={onApplyFilters}
+                summaryCount={summaryCount}
+                buttonClass="h-14 px-5 rounded-2xl border border-gray-200 shadow-md bg-white hover:bg-gray-50 transition duration-150"
+                buttonLabel="Filtros"
+              />
+            </div>
+          </div>
+
+          <PacientesTable // Componente a modificar
             pacientes={paginatedPacientes}
             onView={handleVer}
             onEdit={(paciente) => {
@@ -219,15 +272,17 @@ export default function PacientesPage() {
             searchTerm={debouncedSearch}
             isLoading={isLoadingPac}
           />
+
           <PacientesPagination
             currentPage={clampedPage}
-            totalPages={totalPages}
-            onPageChange={setCurrentPage}
-            pageSize={ITEMS_PER_PAGE}
+            pageSize={pageSize}
             totalItems={filteredPacientes.length}
+            onPageChange={setCurrentPage}
+            totalPages={totalPages} 
           />
         </div>
 
+        {/* ✅ Lógica de Modales restaurada */}
         {modo && (
           <ModalContainer onClose={closeModal}>
             {modo === "crear" && (
@@ -250,26 +305,30 @@ export default function PacientesPage() {
                   telefono: seleccionado.telefono ?? "",
                   fechaNacimiento: seleccionado.fechaNacimiento ?? "",
                   obrasSociales: seleccionado.obrasSociales ?? [],
-                  genero: seleccionado.genero ?? "Masculino",
+                  genero: seleccionado.genero ?? "Masculino", // ¡Campo de género ya incluido!
                 }}
                 obrasSociales={obrasSociales}
                 onSubmit={(form) => handleActualizar(seleccionado._id, form)}
                 onCancel={closeModal}
               />
             )}
-
+            
+            {/* Modal para ver paciente (restaurado) */}
             {modo === "ver" && seleccionado && (
               <PacienteView paciente={seleccionado} onCancel={closeModal} />
             )}
           </ModalContainer>
         )}
 
-        {/* ✅ Toast de confirmación */}
+        {/* ✅ Toast de confirmación restaurado */}
         {toast && (
-          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white bg-emerald-600 border border-emerald-400 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="fixed bottom-6 right-6 z-50 flex items-center gap-2 rounded-xl bg-emerald-500 px-4 py-3 text-white shadow-lg shadow-emerald-500/20">
             <CheckCircle2 className="w-5 h-5 text-white" />
             <p className="font-medium">{toast}</p>
-            <button onClick={() => setToast(null)} className="ml-2 text-white hover:text-gray-100 text-lg font-bold">
+            <button
+              onClick={() => setToast(null)}
+              className="ml-2 text-white hover:text-gray-100 text-lg font-bold"
+            >
               ×
             </button>
           </div>
