@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
+import { ProfesionalTurnosHoy } from "./_components/turnos-hoy";
 
 const actions = [
   {
@@ -112,6 +113,10 @@ export default function ProfesionalHome() {
                   </Link>
                 )
               )}
+            </div>
+
+            <div className="mt-10">
+              <ProfesionalTurnosHoy />
             </div>
           </div>
         </div>

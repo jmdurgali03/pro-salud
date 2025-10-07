@@ -96,12 +96,6 @@ export default function ProximosTurnosHoy() {
 
                                 <div className="flex items-center gap-3">
                                     <Badge
-                                        variant="outline"
-                                        className="text-xs whitespace-nowrap"
-                                    >
-                                        {turno.tipo}
-                                    </Badge>
-                                    <Badge
                                         className={
                                             turno.estado === "Confirmado"
                                                 ? "bg-green-500 text-white hover:bg-green-600"
