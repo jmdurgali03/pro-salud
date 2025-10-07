@@ -7,7 +7,6 @@ import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
 import { useUser } from "@clerk/nextjs";
 
-// Componentes
 import Section from "@/components/pacientes/Section";
 import ConsultasTable from "@/components/pacientes/ConsultasTable";
 import NuevaConsultaModal from "@/components/pacientes/NuevaConsultaModal";
@@ -19,27 +18,19 @@ import NotasMedicasTable, { Nota } from "@/components/pacientes/NotasMedicasTabl
 import HeroPaciente from "@/components/pacientes/HeroPaciente";
 import Panel from "@/components/pacientes/Panel";
 import { KPIGrid } from "@/components/pacientes/KPI";
-
-// Nuevos helpers UI
-import BigTabs from "@/components/pacientes//BigTabs";
+import BigTabs from "@/components/pacientes/BigTabs";
 import Pagination from "@/components/pacientes/Pagination";
+import { LayoutGrid, Stethoscope, NotebookText, Pill, CheckCircle2, AlertCircle } from "lucide-react";
 
-// Icons para los tabs
-import { LayoutGrid, Stethoscope, NotebookText, Pill } from "lucide-react";
-
-/* -------------------- Tipos locales -------------------- */
 type PacienteExtendido = {
   _id: Id<"pacientes">;
-  _creationTime: number;
   nombre: string;
   apellido: string;
+  dni: string;
+  genero?: "Masculino" | "Femenino";
+  fechaNacimiento?: string | number;
   email?: string;
   telefono?: string;
-  dni: string;
-  fechaNacimiento?: string | number;
-  genero?: "Masculino" | "Femenino";
-  creadoEn: number;
-  actualizadoEn: number;
   obrasSocialesNombres: string[];
 };
 
@@ -72,7 +63,6 @@ type Tratamiento = {
   cronico?: boolean;
   notas?: string;
 };
-/* ------------------------------------------------------ */
 
 const PAGE_SIZE = 10;
 type TabKey = "resumen" | "consultas" | "notas" | "tratamientos";
@@ -80,21 +70,18 @@ type TabKey = "resumen" | "consultas" | "notas" | "tratamientos";
 export default function HistorialPacientePage() {
   const { id } = useParams();
   const pacienteId = id as Id<"pacientes">;
-
-  // Clerk: usuario actual -> profesional actual
   const { user } = useUser();
+
   const profesionalActual = useQuery(api.profesionales.getByClerkUser, {
     clerkUserId: user?.id || "",
   });
 
-  // Queries
   const paciente = useQuery(api.pacientes.getById, { id: pacienteId }) as PacienteExtendido | null;
   const consultasQ = useQuery(api.consultas.listarPorPaciente, { pacienteId }) as Consulta[] | undefined;
   const diagnosticosQ = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as Diagnostico[] | undefined;
   const tratamientosQ = useQuery(api.tratamientos.listarPorPaciente, { pacienteId }) as Tratamiento[] | undefined;
   const notasQ = useQuery(api.observaciones.listarPorPaciente, { pacienteId }) as Nota[] | undefined;
 
-  // (Seguimos trayendo listas si las usan en tablas)
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
 
@@ -110,43 +97,40 @@ export default function HistorialPacientePage() {
     return m;
   }, [profesionales]);
 
-  // Mutations
   const crearConsulta = useMutation(api.consultas.crear);
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
   const crearTratamiento = useMutation(api.tratamientos.crear);
   const cambiarEstadoTrat = useMutation(api.tratamientos.cambiarEstado);
   const crearNota = useMutation(api.observaciones.crear);
 
-  // UI state
   const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
   const [openTrat, setOpenTrat] = useState(false);
   const [openNota, setOpenNota] = useState(false);
 
-  // Tabs + paginación
   const [tab, setTab] = useState<TabKey>("resumen");
   const [pageCons, setPageCons] = useState(1);
   const [pageNotas, setPageNotas] = useState(1);
   const [pageTrat, setPageTrat] = useState(1);
 
-  // Scroll al entrar
+  // 🟣 Estado para los toasts
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const resumenRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     resumenRef.current?.scrollIntoView({ block: "start" });
   }, []);
 
-  // Normalización
   const consultas = consultasQ ?? [];
   const diagnosticos = diagnosticosQ ?? [];
   const tratamientos = tratamientosQ ?? [];
   const notas = notasQ ?? [];
 
-  // Reset de página cuando cambian tamaños
-  useEffect(() => setPageCons(1), [consultas.length]);
-  useEffect(() => setPageNotas(1), [notas.length]);
-  useEffect(() => setPageTrat(1), [tratamientos.length]);
-
-  // Diagnósticos por consulta
   const dxPorConsulta = useMemo(() => {
     const m = new Map<string, Diagnostico[]>();
     for (const dx of diagnosticos) {
@@ -159,7 +143,6 @@ export default function HistorialPacientePage() {
 
   const hayConsultas = consultas.length > 0;
 
-  // Slices paginados
   const paginatedConsultas = useMemo(() => {
     const start = (pageCons - 1) * PAGE_SIZE;
     return consultas.slice(start, start + PAGE_SIZE);
@@ -175,8 +158,6 @@ export default function HistorialPacientePage() {
     return tratamientos.slice(start, start + PAGE_SIZE);
   }, [tratamientos, pageTrat]);
 
-  /* ======================== SUBMITS (forzado profesional actual) ======================== */
-
   const ensureProfesional = () => {
     if (!profesionalActual?._id) {
       throw new Error("No se encontró el profesional vinculado a este usuario.");
@@ -184,46 +165,48 @@ export default function HistorialPacientePage() {
     return profesionalActual;
   };
 
-  // CONSULTA: fuerza profesionalId
-  const submitConsulta = async (data: {
-    motivo: string;
-    profesionalId?: Id<"profesionales">; // ignorado
-    notas?: string;
-  }) => {
-    const yo = ensureProfesional();
-    await crearConsulta({
-      pacienteId,
-      motivo: data.motivo,
-      notas: data.notas,
-      profesionalId: yo._id,
-    });
-    setOpenConsulta(false);
+  // 🟢 SUBMITS con toasts
+  const submitConsulta = async (data: { motivo: string; notas?: string }) => {
+    try {
+      const yo = ensureProfesional();
+      await crearConsulta({
+        pacienteId,
+        motivo: data.motivo,
+        notas: data.notas,
+        profesionalId: yo._id,
+      });
+      setOpenConsulta(false);
+      setToast({ msg: "Consulta cargada correctamente.", type: "success" });
+    } catch {
+      setToast({ msg: "Error al cargar la consulta.", type: "error" });
+    }
   };
 
-  // DIAGNÓSTICO: fuerza profesionalId
   const submitDiagnostico = async (data: {
     consultaId: Id<"consultas">;
     descripcion: string;
-    profesionalId?: Id<"profesionales">; // ignorado
     estado: "Presuntivo" | "Definitivo";
     fecha?: number;
   }) => {
-    const yo = ensureProfesional();
-    await crearDiagnostico({
-      pacienteId,
-      consultaId: data.consultaId,
-      descripcion: data.descripcion,
-      estado: data.estado,
-      fecha: data.fecha,
-      profesionalId: yo._id,
-    });
-    setOpenDx(false);
+    try {
+      const yo = ensureProfesional();
+      await crearDiagnostico({
+        pacienteId,
+        consultaId: data.consultaId,
+        descripcion: data.descripcion,
+        estado: data.estado,
+        fecha: data.fecha ?? Date.now(),
+        profesionalId: yo._id,
+      });
+      setOpenDx(false);
+      setToast({ msg: "Diagnóstico cargado correctamente.", type: "success" });
+    } catch {
+      setToast({ msg: "Error al cargar el diagnóstico.", type: "error" });
+    }
   };
 
-  // TRATAMIENTO: el schema pide 'profesional' como string (no id)
   const submitTratamiento = async (data: {
     titulo: string;
-    profesional?: string; // ignorado
     indicaciones: string;
     fechaInicio?: number;
     fechaFin?: number | null;
@@ -231,53 +214,56 @@ export default function HistorialPacientePage() {
     cronico?: boolean;
     notas?: string;
   }) => {
-    const yo = ensureProfesional();
-    const profesionalStr = `${yo.apellido}, ${yo.nombre}`;
-    await crearTratamiento({
-      pacienteId,
-      titulo: data.titulo,
-      indicaciones: data.indicaciones,
-      fechaInicio: data.fechaInicio ?? Date.now(),
-      fechaFin: data.fechaFin ?? undefined,
-      estado: data.estado,
-      cronico: data.cronico,
-      notas: data.notas,
-      profesional: profesionalStr, // ✔ string
-    } as any);
-    setOpenTrat(false);
+    try {
+      const yo = ensureProfesional();
+      const profesionalStr = `${yo.apellido}, ${yo.nombre}`;
+      await crearTratamiento({
+        pacienteId,
+        titulo: data.titulo,
+        indicaciones: data.indicaciones,
+        fechaInicio: data.fechaInicio ?? Date.now(),
+        fechaFin: data.fechaFin ?? undefined,
+        estado: data.estado,
+        cronico: data.cronico,
+        notas: data.notas,
+        profesional: profesionalStr,
+      } as any);
+      setOpenTrat(false);
+      setToast({ msg: "Tratamiento cargado correctamente.", type: "success" });
+    } catch {
+      setToast({ msg: "Error al cargar el tratamiento.", type: "error" });
+    }
   };
 
-  // NOTA: fuerza profesionalId
   const submitNota = async (data: {
-    profesionalId?: Id<"profesionales">; // ignorado
     consultaId?: Id<"consultas">;
-    fecha?: number;
-    categoria: "Evolución" | "Indicación" | "Interconsulta" | "Epicrisis" | "Administrativa";
-    visibilidad: "Equipo" | "Privada";
+    categoria: string;
+    visibilidad: string;
     titulo?: string;
     texto: string;
   }) => {
-    const yo = ensureProfesional();
-    await crearNota({
-      pacienteId,
-      consultaId: data.consultaId,
-      fecha: data.fecha ?? Date.now(),
-      categoria: data.categoria,
-      visibilidad: data.visibilidad,
-      titulo: data.titulo,
-      texto: data.texto,
-      profesionalId: yo._id,
-    });
-    setOpenNota(false);
+    try {
+      const yo = ensureProfesional();
+      await crearNota({
+        pacienteId,
+        consultaId: data.consultaId,
+        fecha: Date.now(),
+        categoria: data.categoria as any,
+        visibilidad: data.visibilidad as any,
+        titulo: data.titulo,
+        texto: data.texto,
+        profesionalId: yo._id,
+      });
+      setOpenNota(false);
+      setToast({ msg: "Nota médica cargada correctamente.", type: "success" });
+    } catch {
+      setToast({ msg: "Error al cargar la nota médica.", type: "error" });
+    }
   };
 
-  /* ========================== RENDER ========================== */
-  // Para no romper modales existentes, si necesitan 'profesionales', les pasamos SOLO el actual.
-  const profesionalesSoloActual = profesionalActual ? [profesionalActual] : [];
-
+  // 🟣 RENDER
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HERO */}
       <HeroPaciente
         nombre={paciente?.nombre}
         apellido={paciente?.apellido}
@@ -291,10 +277,9 @@ export default function HistorialPacientePage() {
         onNuevoDiagnostico={() => setOpenDx(true)}
         onNuevaNota={() => setOpenNota(true)}
         onNuevoTratamiento={() => setOpenTrat(true)}
-        diagnosticoHabilitado={hayConsultas}
+        diagnosticoHabilitado={consultas.length > 0}
       />
 
-      {/* TABS GRANDES */}
       <div className="mx-auto max-w-6xl px-6 pt-4">
         <BigTabs
           value={tab}
@@ -313,11 +298,10 @@ export default function HistorialPacientePage() {
         />
       </div>
 
-      {/* CONTENIDO */}
       <div className="mx-auto max-w-6xl px-6 py-6">
         <main className="min-w-0 space-y-6">
-          {(tab === "resumen") && (
-            <section id="resumen" ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm">
+          {tab === "resumen" && (
+            <section ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm">
               <KPIGrid
                 consultas={consultas.length}
                 diagnosticos={diagnosticos.length}
@@ -343,10 +327,11 @@ export default function HistorialPacientePage() {
                     onClick={() => setOpenDx(true)}
                     disabled={!hayConsultas}
                     title={hayConsultas ? "Crear diagnóstico" : "Primero registrá una consulta"}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium border shadow-sm ${hayConsultas
+                    className={`rounded-lg px-4 py-2 text-sm font-medium border shadow-sm ${
+                      hayConsultas
                         ? "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
                         : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                      }`}
+                    }`}
                   >
                     Nuevo diagnóstico
                   </button>
@@ -376,7 +361,6 @@ export default function HistorialPacientePage() {
                 <button
                   onClick={() => setOpenNota(true)}
                   className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
-                  title="Registrar nota médica (evolución, indicación, etc.)"
                 >
                   Nueva nota
                 </button>
@@ -427,37 +411,34 @@ export default function HistorialPacientePage() {
         </main>
       </div>
 
-      {/* Modales */}
+      {/* 🟣 Modales */}
       <NuevaConsultaModal
         open={openConsulta}
         onClose={() => setOpenConsulta(false)}
         onSubmit={submitConsulta}
-        // Solo el profesional actual para no dar opciones
         profesionales={profesionalActual ? [profesionalActual] : []}
         espNombrePorId={espNombrePorId}
-        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
+        fixedProfesionalId={profesionalActual?._id}
       />
 
       <NuevoDiagnosticoModal
         open={openDx}
         onClose={() => setOpenDx(false)}
         onSubmit={submitDiagnostico}
-        // Solo el profesional actual
         profesionales={profesionalActual ? [profesionalActual] : []}
         consultas={consultas}
         getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
-        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
+        fixedProfesionalId={profesionalActual?._id}
       />
 
       <NuevaNotaMedicaModal
         open={openNota}
         onClose={() => setOpenNota(false)}
         onSubmit={submitNota}
-        // Solo el profesional actual
         profesionales={profesionalActual ? [profesionalActual] : []}
         consultas={consultas}
         getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
-        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
+        fixedProfesionalId={profesionalActual?._id}
       />
 
       <NuevoTratamientoModal
@@ -466,8 +447,32 @@ export default function HistorialPacientePage() {
         onSubmit={submitTratamiento}
         fixedProfesionalName={
           profesionalActual ? `${profesionalActual.apellido}, ${profesionalActual.nombre}` : undefined
-        } // ⬅️ ver paso 2 (opcional)
+        }
       />
+
+      {/* ✅ Toast abajo a la derecha */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white border animate-in fade-in slide-in-from-bottom-4 duration-500 ${
+            toast.type === "success"
+              ? "bg-emerald-600 border-emerald-400"
+              : "bg-red-600 border-red-400"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="w-5 h-5 text-white" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-white" />
+          )}
+          <p className="font-medium">{toast.msg}</p>
+          <button
+            onClick={() => setToast(null)}
+            className="ml-2 text-white hover:text-gray-100 text-lg font-bold"
+          >
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }
