@@ -84,7 +84,7 @@ export function TurnosTable({ turnos, onSelectTurno }: Props) {
   return (
     <div className="overflow-hidden border rounded-xl bg-white shadow-sm">
       <table className="w-full border-collapse text-sm">
-        <thead className="bg-emerald-50 text-gray-700">
+        <thead className="text-gray-700">
           <tr>
             <Th label="Paciente" onClick={() => toggleSort("paciente")} active={sortKey === "paciente"} dir={sortDir} />
             <Th label="Profesional" onClick={() => toggleSort("profesional")} active={sortKey === "profesional"} dir={sortDir} />
@@ -153,17 +153,15 @@ function Th({
   return (
     <th
       onClick={onClick}
-      className={`text-left px-4 py-3 font-semibold select-none ${
-        onClick ? "cursor-pointer hover:bg-emerald-100/40" : ""
-      }`}
+      className={`text-left px-4 py-3 font-semibold select-none ${onClick ? "cursor-pointer hover:bg-emerald-100/40" : ""
+        }`}
     >
       <div className="flex items-center gap-1">
         {label}
         {onClick && (
           <ArrowUpDown
-            className={`w-3.5 h-3.5 transition-transform ${
-              active ? "text-emerald-600" : "text-gray-400"
-            } ${active && dir === "desc" ? "rotate-180" : ""}`}
+            className={`w-3.5 h-3.5 transition-transform ${active ? "text-emerald-600" : "text-gray-400"
+              } ${active && dir === "desc" ? "rotate-180" : ""}`}
           />
         )}
       </div>

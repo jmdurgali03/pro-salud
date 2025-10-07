@@ -41,9 +41,6 @@ export function CalendarioHeader({
           <CalendarDays className="w-8 h-8" />
           <h1 className="text-3xl font-bold">Calendario</h1>
         </div>
-        <button className="p-2 hover:bg-white/20 rounded-lg transition">
-          <Grid3X3 className="w-5 h-5" />
-        </button>
       </div>
 
       <div className="flex items-center justify-between flex-wrap gap-2">
@@ -70,11 +67,10 @@ export function CalendarioHeader({
             <button
               key={v}
               onClick={() => onViewChange(v)}
-              className={`px-4 py-2 rounded-lg font-medium ${
-                view === v
-                  ? "bg-white text-blue-600"
-                  : "bg-white/20 hover:bg-white/30"
-              }`}
+              className={`px-4 py-2 rounded-lg font-medium ${view === v
+                ? "bg-white text-blue-600"
+                : "bg-white/20 hover:bg-white/30"
+                }`}
             >
               {v === "month" ? "Mes" : v === "week" ? "Semana" : "Día"}
             </button>

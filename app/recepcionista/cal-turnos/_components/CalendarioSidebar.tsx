@@ -18,7 +18,7 @@ export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
   );
 
   return (
-    <div className="w-full border-r border-gray-200 p-6 bg-blue-50">
+    <div className="w-full border-gray-200 p-4 bg-blue-50 rounded-lg">
       <h3 className="font-bold text-gray-700 mb-4">Próximos turnos</h3>
       {!turnos.length ? (
         <p className="text-sm text-gray-500">Sin turnos</p>

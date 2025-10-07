@@ -68,10 +68,10 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
   const horasArgs =
     profesionalId && fecha
       ? {
-          profesionalId: profesionalId as Id<"profesionales">,
-          fecha,
-          duracion,
-        }
+        profesionalId: profesionalId as Id<"profesionales">,
+        fecha,
+        duracion,
+      }
       : "skip";
 
   const horasDisponibles = useQuery(api.turnos.horasDisponibles, horasArgs) ?? [];
@@ -150,32 +150,32 @@ export default function TurnoDialog({ defaultDate, turno, trigger }: Props) {
 
   // 🕗 --- FILTRO DE HORARIOS SEGÚN FRANJAS HORARIAS ---
   // 🔹 Convertir "HH:mm" a minutos para comparar fácilmente
-const horaToMin = (h: string) => {
-  const [hh, mm] = h.split(":").map(Number);
-  return hh * 60 + mm;
-};
+  const horaToMin = (h: string) => {
+    const [hh, mm] = h.split(":").map(Number);
+    return hh * 60 + mm;
+  };
 
-// 🔹 Filtrar horarios según TODAS las franjas del profesional
-const horariosFiltrados = useMemo(() => {
-  if (!profesional || !horasDisponibles) return [];
+  // 🔹 Filtrar horarios según TODAS las franjas del profesional
+  const horariosFiltrados = useMemo(() => {
+    if (!profesional || !horasDisponibles) return [];
 
-  const franjas = profesional.franjasHorarias ?? [];
+    const franjas = profesional.franjasHorarias ?? [];
 
-  // Si el profesional no tiene franjas configuradas, mostrar todo
-  if (franjas.length === 0) return horasDisponibles;
+    // Si el profesional no tiene franjas configuradas, mostrar todo
+    if (franjas.length === 0) return horasDisponibles;
 
-  return horasDisponibles.filter((hora: string) => {
-    const min = horaToMin(hora);
-    const finTurno = min + duracion; // hora de fin del turno
+    return horasDisponibles.filter((hora: string) => {
+      const min = horaToMin(hora);
+      const finTurno = min + duracion; // hora de fin del turno
 
-    // ✅ Mantener solo los horarios que caen dentro de alguna franja completa
-    return franjas.some((f: any) => {
-      const inicioMin = horaToMin(f.inicio);
-      const finMin = horaToMin(f.fin);
-      return min >= inicioMin && finTurno <= finMin;
+      // ✅ Mantener solo los horarios que caen dentro de alguna franja completa
+      return franjas.some((f: any) => {
+        const inicioMin = horaToMin(f.inicio);
+        const finMin = horaToMin(f.fin);
+        return min >= inicioMin && finTurno <= finMin;
+      });
     });
-  });
-}, [profesional, horasDisponibles, duracion]);
+  }, [profesional, horasDisponibles, duracion]);
 
 
   // --- FIN DEL FILTRO ---
@@ -186,14 +186,14 @@ const horariosFiltrados = useMemo(() => {
         {trigger || <Button className="bg-blue-600">+ Añadir Turno</Button>}
       </DialogTrigger>
 
-      <DialogContent className="max-w-md">
+      <DialogContent className="max-w-md space-y-2">
         <DialogHeader>
           <DialogTitle>{turno ? "Editar Turno" : "Nuevo Turno"}</DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           {/* Paciente */}
-          <div>
+          <div className="space-y-2">
             <Label>Paciente</Label>
             <Select
               value={pacienteId || ""}
@@ -213,7 +213,7 @@ const horariosFiltrados = useMemo(() => {
           </div>
 
           {/* Profesional */}
-          <div>
+          <div className="space-y-2">
             <Label>Profesional</Label>
             <Select
               value={profesionalId || ""}
@@ -236,7 +236,7 @@ const horariosFiltrados = useMemo(() => {
           </div>
 
           {/* Tipo */}
-          <div>
+          <div className="space-y-2">
             <Label>Tipo de Consulta</Label>
             <Select value={tipo} onValueChange={(val) => setTipo(val)}>
               <SelectTrigger>
@@ -252,7 +252,7 @@ const horariosFiltrados = useMemo(() => {
           </div>
 
           {/* Estado */}
-          <div>
+          <div className="space-y-2">
             <Label>Estado</Label>
             <Select value={estado} onValueChange={(val) => setEstado(val as any)}>
               <SelectTrigger>
@@ -267,7 +267,7 @@ const horariosFiltrados = useMemo(() => {
           </div>
 
           {/* Fecha */}
-          <div>
+          <div className="space-y-2">
             <Label>Fecha</Label>
             <input
               type="date"
@@ -278,7 +278,7 @@ const horariosFiltrados = useMemo(() => {
           </div>
 
           {/* Duración */}
-          <div>
+          <div className="space-y-2">
             <Label>Duración del turno (minutos)</Label>
             <Input
               type="number"
@@ -295,7 +295,7 @@ const horariosFiltrados = useMemo(() => {
 
           {/* Horarios disponibles */}
           {profesionalId && fecha && (
-            <div>
+            <div className="space-y-2">
               <Label>Horarios disponibles</Label>
 
               {!horasDisponibles ? (
@@ -311,11 +311,10 @@ const horariosFiltrados = useMemo(() => {
                       key={hora}
                       type="button"
                       onClick={() => setHoraSeleccionada(hora)}
-                      className={`border rounded-md px-3 py-1 text-sm transition-all ${
-                        horaSeleccionada === hora
-                          ? "bg-emerald-600 text-white border-emerald-600"
-                          : "hover:bg-gray-100"
-                      }`}
+                      className={`border rounded-md px-3 py-1 text-sm transition-all ${horaSeleccionada === hora
+                        ? "bg-emerald-600 text-white border-emerald-600"
+                        : "hover:bg-gray-100"
+                        }`}
                     >
                       {hora}
                     </button>

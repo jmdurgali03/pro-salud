@@ -21,85 +21,85 @@ export default function TurnosPage() {
   const turnos = (useQuery(api.turnos.listarConNombres, {}) ?? []) as TurnoConJoin[];
 
   // 🔹 Filtrado
- // 👇 pegalo cerca del top del componente
-const normalize = (s: string) =>
-  s
-    .normalize("NFD")
-    .replace(/\p{Diacritic}/gu, "") // sin acentos
-    .toLowerCase()
-    .trim();
+  // 👇 pegalo cerca del top del componente
+  const normalize = (s: string) =>
+    s
+      .normalize("NFD")
+      .replace(/\p{Diacritic}/gu, "") // sin acentos
+      .toLowerCase()
+      .trim();
 
-const collator = new Intl.Collator("es", { sensitivity: "base" });
+  const collator = new Intl.Collator("es", { sensitivity: "base" });
 
-// 🔎 Filtrado
-const filtrados = useMemo(() => {
-  const q = normalize(search);
-  return (turnos ?? []).filter((t) => {
-    const hay =
-      normalize(`${t.pacienteNombre} ${t.pacienteApellido} ${t.profesionalNombre} ${t.profesionalApellido}`).includes(q);
-    const matchEstado = estado === "Todos" || t.estado === estado;
-    return hay && matchEstado;
-  });
-}, [turnos, search, estado]);
+  // 🔎 Filtrado
+  const filtrados = useMemo(() => {
+    const q = normalize(search);
+    return (turnos ?? []).filter((t) => {
+      const hay =
+        normalize(`${t.pacienteNombre} ${t.pacienteApellido} ${t.profesionalNombre} ${t.profesionalApellido}`).includes(q);
+      const matchEstado = estado === "Todos" || t.estado === estado;
+      return hay && matchEstado;
+    });
+  }, [turnos, search, estado]);
 
-// ↕ Ordenamiento (única fuente de verdad)
-const ordenados = useMemo(() => {
-  const arr = [...filtrados];
+  // ↕ Ordenamiento (única fuente de verdad)
+  const ordenados = useMemo(() => {
+    const arr = [...filtrados];
 
-  const byFechaAsc = (a: TurnoConJoin, b: TurnoConJoin) => a.start - b.start;
+    const byFechaAsc = (a: TurnoConJoin, b: TurnoConJoin) => a.start - b.start;
 
-  switch (orden) {
-    case "fecha-asc":
-      arr.sort((a, b) => a.start - b.start);
-      break;
-    case "fecha-desc":
-      arr.sort((a, b) => b.start - a.start);
-      break;
-    case "paciente-nombre":
-      arr.sort((a, b) => {
-        const A = `${a.pacienteNombre} ${a.pacienteApellido}`;
-        const B = `${b.pacienteNombre} ${b.pacienteApellido}`;
-        const cmp = collator.compare(A, B);
-        return cmp !== 0 ? cmp : byFechaAsc(a, b);
-      });
-      break;
-    case "paciente-apellido":
-      arr.sort((a, b) => {
-        const A = `${a.pacienteApellido} ${a.pacienteNombre}`;
-        const B = `${b.pacienteApellido} ${b.pacienteNombre}`;
-        const cmp = collator.compare(A, B);
-        return cmp !== 0 ? cmp : byFechaAsc(a, b);
-      });
-      break;
-    case "profesional":
-      arr.sort((a, b) => {
-        const A = `${a.profesionalApellido} ${a.profesionalNombre}`;
-        const B = `${b.profesionalApellido} ${b.profesionalNombre}`;
-        const cmp = collator.compare(A, B);
-        return cmp !== 0 ? cmp : byFechaAsc(a, b);
-      });
-      break;
-    case "estado":
-      {
-        const peso: Record<TurnoConJoin["estado"], number> = {
-          Confirmado: 0,
-          Pendiente: 1,
-          Cancelado: 2,
-          // si usás Finalizado en esta vista:
-          // @ts-ignore
-          Finalizado: 3,
-        };
+    switch (orden) {
+      case "fecha-asc":
+        arr.sort((a, b) => a.start - b.start);
+        break;
+      case "fecha-desc":
+        arr.sort((a, b) => b.start - a.start);
+        break;
+      case "paciente-nombre":
         arr.sort((a, b) => {
-          const cmp = (peso[a.estado] ?? 9) - (peso[b.estado] ?? 9);
+          const A = `${a.pacienteNombre} ${a.pacienteApellido}`;
+          const B = `${b.pacienteNombre} ${b.pacienteApellido}`;
+          const cmp = collator.compare(A, B);
           return cmp !== 0 ? cmp : byFechaAsc(a, b);
         });
-      }
-      break;
-    default:
-      break;
-  }
-  return arr;
-}, [filtrados, orden]);
+        break;
+      case "paciente-apellido":
+        arr.sort((a, b) => {
+          const A = `${a.pacienteApellido} ${a.pacienteNombre}`;
+          const B = `${b.pacienteApellido} ${b.pacienteNombre}`;
+          const cmp = collator.compare(A, B);
+          return cmp !== 0 ? cmp : byFechaAsc(a, b);
+        });
+        break;
+      case "profesional":
+        arr.sort((a, b) => {
+          const A = `${a.profesionalApellido} ${a.profesionalNombre}`;
+          const B = `${b.profesionalApellido} ${b.profesionalNombre}`;
+          const cmp = collator.compare(A, B);
+          return cmp !== 0 ? cmp : byFechaAsc(a, b);
+        });
+        break;
+      case "estado":
+        {
+          const peso: Record<TurnoConJoin["estado"], number> = {
+            Confirmado: 0,
+            Pendiente: 1,
+            Cancelado: 2,
+            // si usás Finalizado en esta vista:
+            // @ts-ignore
+            Finalizado: 3,
+          };
+          arr.sort((a, b) => {
+            const cmp = (peso[a.estado] ?? 9) - (peso[b.estado] ?? 9);
+            return cmp !== 0 ? cmp : byFechaAsc(a, b);
+          });
+        }
+        break;
+      default:
+        break;
+    }
+    return arr;
+  }, [filtrados, orden]);
 
 
   return (

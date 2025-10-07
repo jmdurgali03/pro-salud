@@ -4,14 +4,8 @@ import { useMemo, useState } from "react";
 import { useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
-import { AppSidebar } from "@/components/sidebar";
 import {
-  Home,
   Calendar as CalendarIcon,
-  Users,
-  NotepadTextDashed,
-  BriefcaseMedical,
-  Calendar,
   PlusCircle,
 } from "lucide-react";
 
@@ -195,7 +189,7 @@ export default function CalendarioRecepcionistaPage() {
             {/* ---- Contenido principal (sidebar + calendario) */}
             <div className="grid grid-cols-[260px_1fr] gap-6 px-6 pb-8 relative">
               {/* Sidebar fijo con sombra sutil */}
-              <aside className="sticky top-24 h-fit bg-gray-50 rounded-xl border border-gray-100 shadow-sm p-3">
+              <aside className="sticky top-24 h-fit rounded-xl border border-gray-100 shadow-sm p-3 mt-10">
                 <CalendarioSidebar
                   turnos={turnosFiltrados}
                   onSelectTurno={setSelectedTurno}
@@ -206,7 +200,7 @@ export default function CalendarioRecepcionistaPage() {
               <section className="overflow-hidden rounded-xl bg-white">
                 {view === "month" ? (
                   <CalendarioGrid
-  diasSemana={["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]}
+                    diasSemana={["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]}
 
                     weeks={weeks}
                     getEventsForDay={getEventsForDay}

@@ -2,12 +2,12 @@
 
 import { SidebarProvider } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/sidebar";
-import { Home, BriefcaseMedical, Users, Calendar, NotepadTextDashed , CalendarX2} from "lucide-react";
+import { Home, BriefcaseMedical, Users, Calendar, CalendarSearch } from "lucide-react";
 
 const links = [
   { href: "/recepcionista", label: "Inicio", icon: Home },
   { href: "/recepcionista/cal-turnos", label: "Calendario", icon: Calendar },
-  {href: "/recepcionista/turnos", label: "Turnos", icon: CalendarX2}, 
+  { href: "/recepcionista/turnos", label: "Turnos", icon: CalendarSearch },
   { href: "/recepcionista/pacientes", label: "Pacientes", icon: Users },
   { href: "/recepcionista/profesional", label: "Profesionales", icon: BriefcaseMedical },
 ];

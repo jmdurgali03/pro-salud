@@ -72,10 +72,10 @@ export function TurnoModal({
     turno.estado === "Pendiente"
       ? "from-yellow-500 to-yellow-600"
       : turno.estado === "Confirmado"
-      ? "from-emerald-600 to-emerald-700"
-      : turno.estado === "Cancelado"
-      ? "from-red-600 to-red-700"
-      : "from-gray-500 to-gray-600";
+        ? "from-emerald-600 to-emerald-700"
+        : turno.estado === "Cancelado"
+          ? "from-red-600 to-red-700"
+          : "from-gray-500 to-gray-600";
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm p-4">
@@ -135,11 +135,10 @@ export function TurnoModal({
             <button
               onClick={handleActualizar}
               disabled={guardando}
-              className={`mt-4 w-full flex items-center justify-center gap-2 text-white rounded-md py-2 transition ${
-                guardando
-                  ? "bg-gray-400 cursor-not-allowed"
-                  : "bg-emerald-600 hover:bg-emerald-700"
-              }`}
+              className={`mt-4 w-full flex items-center justify-center gap-2 text-white rounded-md py-2 transition ${guardando
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-emerald-600 hover:bg-emerald-700"
+                }`}
             >
               <CheckCircle2 className="w-4 h-4" />
               {guardando ? "Guardando..." : "Guardar cambios"}
@@ -148,11 +147,10 @@ export function TurnoModal({
 
           {mensaje && (
             <div
-              className={`mt-3 text-center text-sm rounded-md py-2 ${
-                tipoMensaje === "ok"
-                  ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                  : "bg-red-50 text-red-700 border border-red-200"
-              }`}
+              className={`mt-3 text-center text-sm rounded-md py-2 ${tipoMensaje === "ok"
+                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                : "bg-red-50 text-red-700 border border-red-200"
+                }`}
             >
               {mensaje}
             </div>

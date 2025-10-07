@@ -2,16 +2,25 @@
 
 import Link from "next/link";
 import { Card, CardContent } from "@/components/ui/card";
-import { Calendar, BriefcaseMedical, ArrowRight, Home, Users, NotepadTextDashed } from "lucide-react";
+import { Calendar, BriefcaseMedical, ArrowRight, Users, CalendarSearch } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import ProximosTurnosHoy from "@/components/pacientes/prox-turnos";
 
 const actions = [
     {
-        title: "Gestión de Turnos",
-        description: "Agenda y administra turnos médicos",
+        title: "Calendario de Turnos",
+        description: "Agenda completa de turnos",
         icon: Calendar,
         href: "/recepcionista/cal-turnos",
+        gradient: "from-amber-500 to-orange-500",
+        bgLight: "bg-amber-50",
+        shadowColor: "shadow-amber-500/20",
+    },
+    {
+        title: "Gestión de Turnos",
+        description: "Agenda y administra turnos médicos",
+        icon: CalendarSearch,
+        href: "/recepcionista/turnos",
         gradient: "from-blue-500 to-cyan-500",
         bgLight: "bg-blue-50",
         shadowColor: "shadow-blue-500/20",
@@ -24,15 +33,6 @@ const actions = [
         gradient: "from-green-500 to-emerald-500",
         bgLight: "bg-green-50",
         shadowColor: "shadow-green-500/20",
-    },
-    {
-        title: "Historias Clínicas",
-        description: "Acceso a registros médicos",
-        icon: NotepadTextDashed,
-        href: "/recepcionista/historias",
-        gradient: "from-orange-500 to-red-500",
-        bgLight: "bg-orange-50",
-        shadowColor: "shadow-orange-500/20",
     },
     {
         title: "Profesionales",
