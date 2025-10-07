@@ -2,6 +2,7 @@ import { Id } from "@/convex/_generated/dataModel";
 
 export type TurnoConJoin = {
   _id: Id<"turnos">;
+  pacienteId: Id<"pacientes">;
   start: number;
   end: number;
   pacienteNombre: string;
