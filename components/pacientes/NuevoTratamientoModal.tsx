@@ -11,17 +11,49 @@ import Modal, {
 
 type Estado = "Activo" | "Suspendido" | "Finalizado";
 
-function todayDateInput(): string {
+/* ===================== Helpers de fecha (dd/mm/aaaa) ===================== */
+
+function todayDMY(): string {
   const d = new Date();
   const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
+
+function maskDMY(v: string): string {
+  // Solo dígitos, y agregamos / automáticamente: dd/mm/aaaa
+  const digits = v.replace(/\D/g, "").slice(0, 8);
+  const d = digits.slice(0, 2);
+  const m = digits.slice(2, 4);
+  const y = digits.slice(4, 8);
+  if (digits.length <= 2) return d;
+  if (digits.length <= 4) return `${d}/${m}`;
+  return `${d}/${m}/${y}`;
+}
+
+function isValidDMY(v: string): boolean {
+  if (!/^\d{2}\/\d{2}\/\d{4}$/.test(v)) return false;
+  const [dd, mm, yyyy] = v.split("/").map(Number);
+  const d = new Date(Date.UTC(yyyy, (mm ?? 1) - 1, dd ?? 1));
+  return (
+    d.getUTCFullYear() === yyyy &&
+    d.getUTCMonth() === (mm ?? 1) - 1 &&
+    d.getUTCDate() === dd
+  );
+}
+
+function toMsFromDMY(v?: string): number | undefined {
+  if (!v || !isValidDMY(v)) return undefined;
+  const [dd, mm, yyyy] = v.split("/").map(Number);
+  return Date.UTC(yyyy, (mm ?? 1) - 1, dd ?? 1);
+}
+
+/* ======================================================================== */
 
 export default function NuevoTratamientoModal({
   open,
   onClose,
   onSubmit,
-  fixedProfesionalName, // 👈 nuevo (opcional)
+  fixedProfesionalName,
 }: {
   open: boolean;
   onClose: () => void;
@@ -35,17 +67,20 @@ export default function NuevoTratamientoModal({
     cronico?: boolean;
     notas?: string;
   }) => Promise<void> | void;
-  fixedProfesionalName?: string; // 👈 nuevo (opcional)
+  fixedProfesionalName?: string;
 }) {
   const [titulo, setTitulo] = useState("");
   const [profesional, setProfesional] = useState(fixedProfesionalName ?? "");
-  const [fechaInicio, setFechaInicio] = useState<string>(todayDateInput());
+  const [fechaInicio, setFechaInicio] = useState<string>(todayDMY());
   const [fechaFin, setFechaFin] = useState<string>("");
-  const [finActivo, setFinActivo] = useState<boolean>(false);
   const [estado, setEstado] = useState<Estado>("Activo");
   const [cronico, setCronico] = useState(false);
   const [indicaciones, setIndicaciones] = useState("");
   const [notas, setNotas] = useState("");
+
+  // errores
+  const [iniError, setIniError] = useState("");
+  const [finError, setFinError] = useState("");
 
   useEffect(() => {
     if (open) {
@@ -54,19 +89,60 @@ export default function NuevoTratamientoModal({
       setIndicaciones("");
       setNotas("");
       setCronico(false);
+      setFechaInicio(todayDMY());
       setFechaFin("");
-      setFinActivo(false);
-      setFechaInicio(todayDateInput());
       setEstado("Activo");
+      setIniError("");
+      setFinError("");
     }
   }, [open, fixedProfesionalName]);
 
-  const canSave = titulo.trim().length > 1 && indicaciones.trim().length > 1;
+  // Validaciones reactivas
+  useEffect(() => {
+    setIniError(isValidDMY(fechaInicio) ? "" : "Fecha inválida (dd/mm/aaaa).");
+  }, [fechaInicio]);
+
+  useEffect(() => {
+    if (cronico || !fechaFin) {
+      setFinError("");
+      return;
+    }
+    if (!isValidDMY(fechaFin)) {
+      setFinError("Fecha inválida (dd/mm/aaaa).");
+      return;
+    }
+    const ini = toMsFromDMY(fechaInicio);
+    const fin = toMsFromDMY(fechaFin);
+    setFinError(fin! < ini! ? "La fecha de fin no puede ser anterior a la de inicio." : "");
+  }, [fechaFin, fechaInicio, cronico]);
+
+  const canSave =
+    titulo.trim().length > 1 &&
+    indicaciones.trim().length > 1 &&
+    !iniError &&
+    !finError;
 
   const save = async () => {
     if (!canSave) return;
-    const inicioMs = fechaInicio ? new Date(fechaInicio + "T00:00").getTime() : undefined;
-    const finMs = fechaFin ? new Date(fechaFin + "T00:00").getTime() : undefined;
+
+    const inicioMs = toMsFromDMY(fechaInicio);
+    const finMs = cronico ? undefined : toMsFromDMY(fechaFin);
+
+    if (!isValidDMY(fechaInicio)) {
+      setIniError("Fecha inválida (dd/mm/aaaa).");
+      alert("Revisá la fecha de inicio (dd/mm/aaaa).");
+      return;
+    }
+    if (!cronico && fechaFin && !isValidDMY(fechaFin)) {
+      setFinError("Fecha inválida (dd/mm/aaaa).");
+      alert("Revisá la fecha de fin (dd/mm/aaaa).");
+      return;
+    }
+    if (!cronico && finMs && inicioMs && finMs < inicioMs) {
+      setFinError("La fecha de fin no puede ser anterior a la de inicio.");
+      alert("Revisá las fechas: la fecha de fin no puede ser anterior a la de inicio.");
+      return;
+    }
 
     await onSubmit({
       titulo: titulo.trim(),
@@ -78,13 +154,17 @@ export default function NuevoTratamientoModal({
       cronico: cronico || undefined,
       notas: notas.trim() || undefined,
     });
+
+    // limpiar
     setTitulo("");
     setProfesional(fixedProfesionalName ?? "");
     setIndicaciones("");
     setNotas("");
     setCronico(false);
+    setFechaInicio(todayDMY());
     setFechaFin("");
-    setFinActivo(false);
+    setIniError("");
+    setFinError("");
   };
 
   return (
@@ -120,37 +200,42 @@ export default function NuevoTratamientoModal({
             placeholder="Nombre del profesional"
             value={fixedProfesionalName ?? profesional}
             onChange={(e) => setProfesional(e.target.value)}
-            disabled={!!fixedProfesionalName} // 👈 bloqueado si viene fijo
+            disabled={!!fixedProfesionalName}
             readOnly={!!fixedProfesionalName}
           />
         </div>
 
+        {/* Fecha de inicio - dd/mm/aaaa */}
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de inicio</label>
           <input
-            lang="es-AR"
-            type="date"
-            className={inputBase}
+            type="text"
+            inputMode="numeric"
+            placeholder="dd/mm/aaaa"
+            className={`${inputBase} ${iniError ? "ring-2 ring-red-300 border-red-300 focus:ring-red-400" : ""}`}
             value={fechaInicio}
-            onChange={(e) => setFechaInicio(e.target.value)}
+            onChange={(e) => setFechaInicio(maskDMY(e.target.value))}
+            onBlur={(e) => setFechaInicio(maskDMY(e.target.value))}
           />
+          {iniError && <p className="mt-1 text-xs text-red-600">{iniError}</p>}
         </div>
 
+        {/* Fecha de fin - dd/mm/aaaa */}
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Fecha de fin</label>
           <input
-            lang="es-AR"
-            type={finActivo ? "date" : "text"}
-            placeholder="dd/mm/aaaa"
+            type="text"
             inputMode="numeric"
-            className={inputBase}
+            placeholder="dd/mm/aaaa"
+            disabled={cronico}
+            className={`${inputBase} ${finError ? "ring-2 ring-red-300 border-red-300 focus:ring-red-400" : ""} ${
+              cronico ? "bg-gray-50 cursor-not-allowed" : ""
+            }`}
             value={fechaFin}
-            onFocus={() => setFinActivo(true)}
-            onBlur={(e) => {
-              if (!e.currentTarget.value) setFinActivo(false);
-            }}
-            onChange={(e) => setFechaFin(e.target.value)}
+            onChange={(e) => setFechaFin(maskDMY(e.target.value))}
+            onBlur={(e) => setFechaFin(maskDMY(e.target.value))}
           />
+          {finError && <p className="mt-1 text-xs text-red-600">{finError}</p>}
         </div>
 
         <div>
@@ -172,7 +257,14 @@ export default function NuevoTratamientoModal({
             type="checkbox"
             className="h-4 w-4 accent-emerald-600"
             checked={cronico}
-            onChange={(e) => setCronico(e.target.checked)}
+            onChange={(e) => {
+              const v = e.target.checked;
+              setCronico(v);
+              if (v) {
+                setFechaFin("");
+                setFinError("");
+              }
+            }}
           />
           <label htmlFor="cronico" className="text-sm text-gray-700">
             Tratamiento crónico (sin fecha de fin)
