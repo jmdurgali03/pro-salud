@@ -10,7 +10,14 @@ type PacienteViewProps = {
 export function PacienteView({ paciente, onCancel }: PacienteViewProps) {
     const formatearFecha = (fecha?: string) => {
         if (!fecha) return "No especificado";
-        return fecha;
+        const date = new Date(fecha);
+        if (isNaN(date.getTime())) return "No especificado";
+
+        const dia = date.getDate().toString().padStart(2, "0");
+        const mes = (date.getMonth() + 1).toString().padStart(2, "0");
+        const año = date.getFullYear();
+
+        return `${dia}/${mes}/${año}`;
     };
 
     const InfoField = ({ label, value }: { label: string; value: string | undefined }) => (
