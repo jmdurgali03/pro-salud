@@ -43,13 +43,13 @@ export default function CalendarioPage() {
     clerkUserId: user?.id ?? "",
   });
 
-
   // 🔹 Traer turnos SOLO de ese profesional (ejecución segura)
   const turnos =
     useQuery(
       api.turnos.listarConNombres,
       profesional?._id ? { profesionalId: profesional._id } : "skip"
     ) ?? [];
+
   // ---- Calcular días y semanas para el calendario
   const days = useMemo(() => getDaysInMonth(currentDate), [currentDate]);
   const weeks = useMemo(() => {
@@ -124,8 +124,7 @@ export default function CalendarioPage() {
 
               {view === "month" ? (
                 <CalendarioGrid
-  diasSemana={["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]}
-
+                  diasSemana={["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"]}
                   weeks={weeks}
                   getEventsForDay={getEventsForDay}
                   onSelectTurno={setSelectedTurno}
@@ -145,7 +144,11 @@ export default function CalendarioPage() {
         </div>
 
         {selectedTurno && (
-          <TurnoModal turno={selectedTurno} onClose={() => setSelectedTurno(null)} />
+          <TurnoModal
+            turno={selectedTurno}
+            onClose={() => setSelectedTurno(null)}
+            pacienteId={selectedTurno.pacienteId}
+          />
         )}
       </PageWrapper>
     </>

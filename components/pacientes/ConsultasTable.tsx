@@ -48,7 +48,7 @@ export default function ConsultasTable({
               <th className="px-4 py-3 font-medium">Fecha</th>
               <th className="px-4 py-3 font-medium">Motivo</th>
               <th className="px-4 py-3 font-medium">Médico</th>
-              <th className="px-4 py-3 font-medium">Notas</th>
+              <th className="px-4 py-3 font-medium">Detalle</th>
               <th className="px-4 py-3 font-medium">Diagnósticos</th>
             </tr>
           </thead>
@@ -115,30 +115,23 @@ function FragmentRow({
         <td className="px-4 py-3 align-top whitespace-nowrap">{formatDate(consulta.fecha)}</td>
         <td className="px-4 py-3 align-top">
           <div className="flex items-center gap-2">
-            <button
-              onClick={onToggleDetail}
-              className={clsx(
-                "inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium",
-                isOpen
-                  ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                  : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-              )}
-              title={isOpen ? "Ocultar detalle" : "Ver detalle"}
-            >
-              {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Detalle
-            </button>
             <span className="font-medium text-gray-900">{consulta.motivo}</span>
           </div>
         </td>
         <td className="px-4 py-3 align-top text-gray-700">{medico}</td>
         <td className="px-4 py-3 align-top">
-          {hasNotes ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-sky-50 px-2.5 py-1 text-xs font-medium text-sky-700 ring-1 ring-inset ring-sky-200">
-              <Info className="h-3.5 w-3.5" /> {consulta.notas!.length > 40 ? "Ver detalle" : consulta.notas}
-            </span>
-          ) : (
-            <span className="text-gray-400">—</span>
-          )}
+          <button
+            onClick={onToggleDetail}
+            className={clsx(
+              "inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium",
+              isOpen
+                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
+                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+            )}
+            title={isOpen ? "Ocultar detalle" : "Ver detalle"}
+          >
+            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Detalle
+          </button>
         </td>
         <td className="px-4 py-3 align-top">
           <button
