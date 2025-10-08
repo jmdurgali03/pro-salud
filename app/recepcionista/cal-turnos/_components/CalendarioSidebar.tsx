@@ -37,22 +37,22 @@ type Props = {
 
 export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
   const proximos = useMemo(
-    () =>{ 
+    () => {
       const ahora = Date.now();
 
-  return (
-    [...turnos]
-      // 🔹 Filtrar turnos futuros o actuales
-      .filter((t) => t.end > ahora)
-      // 🔹 Ordenar por fecha de inicio
-      .sort((a, b) => a.start - b.start)
-      // 🔹 Mostrar solo los próximos 6
-      .slice(0, 6)
-  );
-}, [turnos]); 
+      return (
+        [...turnos]
+          // 🔹 Filtrar turnos futuros o actuales
+          .filter((t) => t.end > ahora)
+          // 🔹 Ordenar por fecha de inicio
+          .sort((a, b) => a.start - b.start)
+          // 🔹 Mostrar solo los próximos 6
+          .slice(0, 6)
+      );
+    }, [turnos]);
 
   return (
-    <div className="w-full border-gray-200 p-4 bg-blue-50 rounded-lg">
+    <div className="w-full border-gray-200 p-4 rounded-lg">
       <h3 className="font-bold text-gray-700 mb-4">Próximos turnos</h3>
 
       {!turnos.length ? (
@@ -92,15 +92,14 @@ export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
                 </div>
 
                 <span
-                  className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${
-                    event.estado === "Confirmado"
+                  className={`inline-block mt-1 px-2 py-0.5 text-xs font-semibold rounded-full ${event.estado === "Confirmado"
                       ? "bg-green-100 text-green-800"
                       : event.estado === "Pendiente"
-                      ? "bg-yellow-100 text-yellow-800"
-                      : event.estado === "Cancelado"
-                      ? "bg-red-100 text-red-800"
-                      : "bg-blue-100 text-blue-800"
-                  }`}
+                        ? "bg-yellow-100 text-yellow-800"
+                        : event.estado === "Cancelado"
+                          ? "bg-red-100 text-red-800"
+                          : "bg-blue-100 text-blue-800"
+                    }`}
                 >
                   {event.estado}
                 </span>
