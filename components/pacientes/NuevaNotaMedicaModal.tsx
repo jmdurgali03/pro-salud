@@ -16,12 +16,31 @@ type Categoria =
   | "Epicrisis"
   | "Administrativa";
 
-function nowDateTimeLocal(): string {
+/* ======== helpers fecha/hora en formato humano ======== */
+const pad = (n: number) => String(n).padStart(2, "0");
+
+function todayDdMmYyyy(): string {
   const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(
-    d.getHours()
-  )}:${pad(d.getMinutes())}`;
+  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
+}
+function nowHhMm(): string {
+  const d = new Date();
+  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
+}
+function parseDdMmYyyyToMs(fechaDDMMYYYY: string, hhmm: string): number | undefined {
+  const m = fechaDDMMYYYY.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return undefined;
+  const [, dd, mm, yyyy] = m;
+  const [hh = "00", mi = "00"] = (hhmm || "").split(":");
+  const d = new Date(
+    Number(yyyy),
+    Number(mm) - 1,
+    Number(dd),
+    Number(hh),
+    Number(mi)
+  );
+  if (isNaN(d.getTime())) return undefined;
+  return d.getTime();
 }
 
 export default function NuevaNotaMedicaModal({
@@ -31,7 +50,7 @@ export default function NuevaNotaMedicaModal({
   profesionales,
   consultas,
   getProfesionalNombre,
-  fixedProfesionalId, // 👈 nuevo (opcional)
+  fixedProfesionalId, // opcional
 }: {
   open: boolean;
   onClose: () => void;
@@ -47,10 +66,14 @@ export default function NuevaNotaMedicaModal({
   profesionales: any[];
   consultas: { _id: string; fecha: number; motivo: string; profesionalId: string }[];
   getProfesionalNombre: (id: any) => string;
-  fixedProfesionalId?: string; // 👈 nuevo (opcional)
+  fixedProfesionalId?: string;
 }) {
   const [profesionalId, setProfesionalId] = useState<string>(fixedProfesionalId ?? "");
-  const [fecha, setFecha] = useState<string>(nowDateTimeLocal());
+
+  // AHORA separados para mantener dd/mm/aaaa
+  const [fechaDia, setFechaDia] = useState<string>(todayDdMmYyyy()); // dd/mm/aaaa
+  const [hora, setHora] = useState<string>(nowHhMm()); // HH:mm
+
   const [categoria, setCategoria] = useState<Categoria>("Evolución");
   const [consultaId, setConsultaId] = useState<string>("");
   const [visibilidad, setVisibilidad] = useState<"Equipo" | "Privada">("Equipo");
@@ -60,7 +83,8 @@ export default function NuevaNotaMedicaModal({
   useEffect(() => {
     if (open) {
       setProfesionalId(fixedProfesionalId ?? "");
-      setFecha(nowDateTimeLocal());
+      setFechaDia(todayDdMmYyyy());
+      setHora(nowHhMm());
       setCategoria("Evolución");
       setConsultaId("");
       setVisibilidad("Equipo");
@@ -69,7 +93,10 @@ export default function NuevaNotaMedicaModal({
     }
   }, [open, fixedProfesionalId]);
 
-  const canSave = (fixedProfesionalId ?? profesionalId) && texto.trim().length > 2;
+  const canSave =
+    Boolean(fixedProfesionalId ?? profesionalId) &&
+    texto.trim().length > 2 &&
+    Boolean(parseDdMmYyyyToMs(fechaDia, hora));
 
   const profOptionsAll = useMemo(
     () =>
@@ -97,7 +124,7 @@ export default function NuevaNotaMedicaModal({
 
   const save = async () => {
     if (!canSave) return;
-    const ms = fecha ? new Date(fecha).getTime() : undefined;
+    const ms = parseDdMmYyyyToMs(fechaDia, hora);
     await onSubmit({
       profesionalId: (fixedProfesionalId ?? profesionalId)!,
       consultaId: consultaId || undefined,
@@ -129,13 +156,14 @@ export default function NuevaNotaMedicaModal({
       }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        {/* Profesional */}
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
           <select
             className={selectBase}
             value={(fixedProfesionalId ?? profesionalId) as string}
             onChange={(e) => setProfesionalId(e.target.value)}
-            disabled={!!fixedProfesionalId} // 👈 bloqueado si viene fijo
+            disabled={!!fixedProfesionalId}
           >
             {!fixedProfesionalId && <option value="">Seleccioná un profesional…</option>}
             {profOptions.map((o) => (
@@ -146,20 +174,32 @@ export default function NuevaNotaMedicaModal({
           </select>
         </div>
 
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Fecha y hora 
-          </label>
-          <input
-            lang="es-AR"
-            type="datetime-local"
-            step={60}
-            className={inputBase}
-            value={fecha}
-            onChange={(e) => setFecha(e.target.value)}
-          />
+        {/* Fecha (dd/mm/aaaa) */}
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Fecha</label>
+            <input
+              type="text"
+              inputMode="numeric"
+              placeholder="dd/mm/aaaa"
+              className={inputBase}
+              value={fechaDia}
+              onChange={(e) => setFechaDia(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-gray-700">Hora</label>
+            <input
+              type="time"
+              step={60}
+              className={inputBase}
+              value={hora}
+              onChange={(e) => setHora(e.target.value)}
+            />
+          </div>
         </div>
 
+        {/* Categoría */}
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Categoría</label>
           <select
@@ -167,16 +207,15 @@ export default function NuevaNotaMedicaModal({
             value={categoria}
             onChange={(e) => setCategoria(e.target.value as Categoria)}
           >
-            {["Evolución", "Indicación", "Interconsulta", "Epicrisis", "Administrativa"].map(
-              (c) => (
-                <option key={c} value={c}>
-                  {c}
-                </option>
-              )
-            )}
+            {["Evolución", "Indicación", "Interconsulta", "Epicrisis", "Administrativa"].map((c) => (
+              <option key={c} value={c}>
+                {c}
+              </option>
+            ))}
           </select>
         </div>
 
+        {/* Vincular a consulta */}
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
             Vincular a consulta <span className="text-gray-400">(opcional)</span>
@@ -195,6 +234,7 @@ export default function NuevaNotaMedicaModal({
           </select>
         </div>
 
+        {/* Título */}
         <div className="sm:col-span-2">
           <label className="mb-1 block text-sm font-medium text-gray-700">Título</label>
           <input
@@ -205,6 +245,7 @@ export default function NuevaNotaMedicaModal({
           />
         </div>
 
+        {/* Detalle */}
         <div className="sm:col-span-2">
           <label className="mb-1 block text-sm font-medium text-gray-700">Detalle</label>
           <textarea

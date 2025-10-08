@@ -14,7 +14,7 @@ export type Nota = {
     | "Epicrisis"
     | "Administrativa";
   titulo?: string;
-  texto?: string; // si tenés detalle, se muestra en el modal
+  texto?: string;
   profesionalId: string;
 };
 
@@ -25,9 +25,8 @@ export default function NotasMedicasTable({
 }: {
   data: Nota[];
   getProfesionalNombre: (id: any) => string;
-  onView?: (id: string) => void; // opcional
+  onView?: (id: string) => void;
 }) {
-  // ======= helpers de fecha =======
   const fmt = (ms?: number) =>
     ms
       ? new Intl.DateTimeFormat("es-AR", {
@@ -62,7 +61,6 @@ export default function NotasMedicasTable({
     }
   };
 
-  // ======= estado para modal interno =======
   const [open, setOpen] = useState(false);
   const [sel, setSel] = useState<Nota | null>(null);
 
@@ -86,7 +84,8 @@ export default function NotasMedicasTable({
                 <th className="px-4 py-3 font-medium">Categoría</th>
                 <th className="px-4 py-3 font-medium">Título</th>
                 <th className="px-4 py-3 font-medium">Profesional</th>
-                <th className="px-4 py-3 font-medium">Acciones</th>
+                {/* ⬇️ ancho fijo + centrado para que no sobre espacio */}
+                <th className="px-4 py-3 font-medium text-center w-28">Acciones</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
@@ -111,12 +110,14 @@ export default function NotasMedicasTable({
                     <td className="px-4 py-3 text-gray-700">
                       {getProfesionalNombre(n.profesionalId)}
                     </td>
-                    <td className="px-4 py-3">
+                    {/* ⬇️ celda centrada para alinear el botón */}
+                    <td className="px-4 py-3 text-center align-middle">
                       {puedeVer ? (
                         <button
                           type="button"
                           onClick={() => verNota(n)}
-                          className="inline-flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50"
+                          className="inline-flex items-center gap-2 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                          title="Ver detalle"
                         >
                           <Eye className="h-4 w-4" />
                           Ver

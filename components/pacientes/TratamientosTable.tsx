@@ -1,4 +1,3 @@
-// app/recepcionista/pacientes/_components/TratamientosTable.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -56,7 +55,8 @@ export default function TratamientosTable({
               <th className="px-4 py-3 font-medium">Estado</th>
               <th className="px-4 py-3 font-medium">Inicio</th>
               <th className="px-4 py-3 font-medium">Fin</th>
-              <th className="px-4 py-3 font-medium"></th>
+              {/* Acciones centradas y ancho consistente */}
+              <th className="px-4 py-3 font-medium text-center w-28">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
@@ -75,7 +75,7 @@ export default function TratamientosTable({
                 </td>
                 <td className="px-4 py-3 whitespace-nowrap">{fmt(t.fechaInicio)}</td>
                 <td className="px-4 py-3 whitespace-nowrap">{fmt(t.fechaFin)}</td>
-                <td className="px-4 py-3 text-right">
+                <td className="px-4 py-3 text-center align-middle">
                   <button
                     onClick={() => handleView(t)}
                     className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
@@ -106,7 +106,6 @@ export default function TratamientosTable({
           title="Detalle de tratamiento"
           size="xl"
           footer={<CancelButton onClick={() => setOpen(false)} />}
-
         >
           <div className="space-y-4">
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

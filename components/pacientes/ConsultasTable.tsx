@@ -1,9 +1,8 @@
-// app/recepcionista/pacientes/_components/ConsultasTable.tsx
 "use client";
 
-import { useState } from "react";
-import { ChevronDown, ChevronRight, FlaskConical, Info } from "lucide-react";
-import clsx from "clsx";
+import { useMemo, useState } from "react";
+import { Eye, FlaskConical } from "lucide-react";
+import Modal, { CancelButton } from "./Modal";
 
 type IdLike = string | { toString(): string };
 
@@ -33,11 +32,21 @@ export default function ConsultasTable({
   dxByConsulta: Map<string, Diagnostico[]>;
   getProfesionalNombre: (id: any) => string;
 }) {
-  const [openRow, setOpenRow] = useState<string | null>(null);
-  const [openDxRow, setOpenDxRow] = useState<string | null>(null);
+  const [open, setOpen] = useState(false);
+  const [sel, setSel] = useState<{
+    consulta: Consulta;
+    dx: Diagnostico[];
+  } | null>(null);
 
-  const formatDate = (ms: number) =>
+  const fmt = (ms: number) =>
     new Intl.DateTimeFormat("es-AR", { dateStyle: "short" }).format(ms);
+
+  const view = (c: Consulta) => {
+    const key = (c._id as any).toString();
+    const dx = dxByConsulta.get(key) ?? [];
+    setSel({ consulta: c, dx });
+    setOpen(true);
+  };
 
   return (
     <div className="w-full overflow-hidden rounded-2xl border border-gray-200 bg-white">
@@ -48,34 +57,42 @@ export default function ConsultasTable({
               <th className="px-4 py-3 font-medium">Fecha</th>
               <th className="px-4 py-3 font-medium">Motivo</th>
               <th className="px-4 py-3 font-medium">Médico</th>
-              <th className="px-4 py-3 font-medium">Detalle</th>
-              <th className="px-4 py-3 font-medium">Diagnósticos</th>
+              <th className="px-4 py-3 font-medium text-center w-28">Acciones</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {data.map((c) => {
-              const key = (c._id as any).toString();
-              const dx = dxByConsulta.get((c._id as any).toString()) ?? [];
-              const isOpen = openRow === key;
-              const dxOpen = openDxRow === key;
-
+              const dxCount = (dxByConsulta.get((c._id as any).toString()) ?? [])
+                .length;
               return (
-                <FragmentRow
-                  key={key}
-                  onToggleDetail={() => setOpenRow(isOpen ? null : key)}
-                  onToggleDx={() => setOpenDxRow(dxOpen ? null : key)}
-                  isOpen={isOpen}
-                  dxOpen={dxOpen}
-                  consulta={c}
-                  dx={dx}
-                  getProfesionalNombre={getProfesionalNombre}
-                  formatDate={formatDate}
-                />
+                <tr
+                  key={(c._id as any).toString()}
+                  className="odd:bg-white even:bg-gray-50/40 hover:bg-emerald-50/40 transition-colors"
+                >
+                  <td className="px-4 py-3 whitespace-nowrap">{fmt(c.fecha)}</td>
+                  <td className="px-4 py-3 text-gray-900">{c.motivo}</td>
+                  <td className="px-4 py-3 text-gray-700">
+                    {getProfesionalNombre(c.profesionalId)}
+                  </td>
+                  <td className="px-4 py-3 text-center align-middle">
+                    <button
+                      onClick={() => view(c)}
+                      className="inline-flex items-center gap-2 rounded-lg border border-gray-200 px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
+                      title="Ver detalle"
+                    >
+                      <Eye className="h-4 w-4" />
+                      Ver
+                      <span className="ml-1 rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-semibold text-white">
+                        {dxCount}
+                      </span>
+                    </button>
+                  </td>
+                </tr>
               );
             })}
             {data.length === 0 && (
               <tr>
-                <td colSpan={5} className="px-4 py-10 text-center text-gray-500">
+                <td colSpan={4} className="px-4 py-10 text-center text-gray-500">
                   No hay consultas registradas.
                 </td>
               </tr>
@@ -83,121 +100,73 @@ export default function ConsultasTable({
           </tbody>
         </table>
       </div>
-    </div>
-  );
-}
 
-function FragmentRow({
-  consulta,
-  dx,
-  isOpen,
-  dxOpen,
-  onToggleDetail,
-  onToggleDx,
-  getProfesionalNombre,
-  formatDate,
-}: {
-  consulta: Consulta;
-  dx: Diagnostico[];
-  isOpen: boolean;
-  dxOpen: boolean;
-  onToggleDetail: () => void;
-  onToggleDx: () => void;
-  getProfesionalNombre: (id: any) => string;
-  formatDate: (ms: number) => string;
-}) {
-  const medico = getProfesionalNombre(consulta.profesionalId);
-  const hasNotes = Boolean(consulta.notas?.trim());
-
-  return (
-    <>
-      <tr className="odd:bg-white even:bg-gray-50/40 hover:bg-emerald-50/40 transition-colors">
-        <td className="px-4 py-3 align-top whitespace-nowrap">{formatDate(consulta.fecha)}</td>
-        <td className="px-4 py-3 align-top">
-          <div className="flex items-center gap-2">
-            <span className="font-medium text-gray-900">{consulta.motivo}</span>
-          </div>
-        </td>
-        <td className="px-4 py-3 align-top text-gray-700">{medico}</td>
-        <td className="px-4 py-3 align-top">
-          <button
-            onClick={onToggleDetail}
-            className={clsx(
-              "inline-flex items-center rounded-md border px-2 py-1 text-xs font-medium",
-              isOpen
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-            )}
-            title={isOpen ? "Ocultar detalle" : "Ver detalle"}
-          >
-            {isOpen ? <ChevronDown className="h-4 w-4" /> : <ChevronRight className="h-4 w-4" />} Detalle
-          </button>
-        </td>
-        <td className="px-4 py-3 align-top">
-          <button
-            onClick={onToggleDx}
-            className={clsx(
-              "inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-medium",
-              dxOpen
-                ? "border-emerald-300 bg-emerald-50 text-emerald-700"
-                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
-            )}
-            title={dxOpen ? "Ocultar diagnósticos" : "Ver diagnósticos"}
-          >
-            <FlaskConical className="h-4 w-4" /> Diagnósticos
-            <span
-              className={clsx(
-                "ml-1 rounded-full px-2 py-0.5 text-[10px] font-semibold",
-                dx.length > 0 ? "bg-emerald-600 text-white" : "bg-gray-200 text-gray-700"
-              )}
-            >
-              {dx.length}
-            </span>
-          </button>
-        </td>
-      </tr>
-
-      {isOpen && (
-        <tr className="bg-white">
-          <td colSpan={5} className="px-4 pb-4">
-            <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50/60 p-4">
-              <div className="text-xs text-gray-500">
-                {formatDate(consulta.fecha)} · {medico}
+      {/* Modal de detalle */}
+      {sel && (
+        <Modal
+          open={open}
+          onClose={() => setOpen(false)}
+          title="Detalle de consulta"
+          size="xl"
+          footer={<CancelButton onClick={() => setOpen(false)} />}
+        >
+          <div className="space-y-4">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <div className="text-xs text-gray-500">Fecha</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {fmt(sel.consulta.fecha)}
+                </div>
               </div>
-              <div className="mt-2 text-sm text-gray-800 whitespace-pre-wrap">
-                {consulta.notas || "Sin notas registradas."}
+              <div>
+                <div className="text-xs text-gray-500">Médico</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {getProfesionalNombre(sel.consulta.profesionalId)}
+                </div>
+              </div>
+              <div className="sm:col-span-2">
+                <div className="text-xs text-gray-500">Motivo</div>
+                <div className="text-sm font-medium text-gray-900">
+                  {sel.consulta.motivo}
+                </div>
               </div>
             </div>
-          </td>
-        </tr>
-      )}
 
-      {dxOpen && (
-        <tr className="bg-white">
-          <td colSpan={5} className="px-4 pb-4">
-            <div className="mt-2 rounded-xl border border-gray-200 bg-white p-4">
-              {dx.length === 0 ? (
-                <div className="text-sm text-gray-500">No hay diagnósticos para esta consulta.</div>
+            <div>
+              <div className="text-xs text-gray-500 mb-1">Notas</div>
+              <div className="whitespace-pre-wrap rounded-lg border border-gray-200 bg-gray-50 p-3 text-sm text-gray-800">
+                {sel.consulta.notas?.trim() || "—"}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-xs text-gray-500 mb-2">Diagnósticos</div>
+              {sel.dx.length === 0 ? (
+                <div className="text-sm text-gray-500">Sin diagnósticos.</div>
               ) : (
                 <ul className="space-y-2">
-                  {dx.map((d) => (
+                  {sel.dx.map((d) => (
                     <li
                       key={(d._id as any).toString()}
                       className="flex items-start justify-between gap-4 rounded-lg bg-gray-50 p-3 ring-1 ring-gray-200"
                     >
-                      <div>
-                        <div className="text-sm font-medium text-gray-900">{d.descripcion}</div>
-                        <div className="text-xs text-gray-500 mt-0.5">
-                          {new Intl.DateTimeFormat("es-AR", { dateStyle: "short" }).format(d.fecha)}
+                      <div className="flex items-start gap-2">
+                        <FlaskConical className="mt-0.5 h-4 w-4 text-emerald-600" />
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {d.descripcion}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            {fmt(d.fecha)}
+                          </div>
                         </div>
                       </div>
                       <span
-                        className={clsx(
-                          "inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset",
+                        className={
                           d.estado === "Definitivo"
-                            ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
-                            : "bg-amber-50 text-amber-700 ring-amber-200"
-                        )}
+                            ? "inline-flex items-center rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 ring-1 ring-inset ring-emerald-200"
+                            : "inline-flex items-center rounded-full bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-inset ring-amber-200"
+                        }
                       >
                         {d.estado}
                       </span>
@@ -206,9 +175,9 @@ function FragmentRow({
                 </ul>
               )}
             </div>
-          </td>
-        </tr>
+          </div>
+        </Modal>
       )}
-    </>
+    </div>
   );
 }
