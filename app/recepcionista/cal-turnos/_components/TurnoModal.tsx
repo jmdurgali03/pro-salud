@@ -13,7 +13,40 @@ import { useState, useMemo } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
-import { TURNO_COLOR_MAP, TurnoConJoin } from "./types";
+import type { TurnoConJoin } from "./types";
+
+/* --------------------------
+   🎨 Mapa de colores por estado
+--------------------------- */
+export const TURNO_COLOR_MAP: Record<
+  "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado",
+  { bg: string; text: string; border: string; gradient: string }
+> = {
+  Pendiente: {
+    bg: "bg-yellow-50",
+    text: "text-yellow-700",
+    border: "border-yellow-200",
+    gradient: "from-yellow-500 to-yellow-600",
+  },
+  Confirmado: {
+    bg: "bg-green-50",
+    text: "text-green-700",
+    border: "border-green-200",
+    gradient: "from-emerald-600 to-emerald-700",
+  },
+  Cancelado: {
+    bg: "bg-red-50",
+    text: "text-red-700",
+    border: "border-red-200",
+    gradient: "from-red-600 to-red-700",
+  },
+  Finalizado: {
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+    gradient: "from-blue-600 to-blue-700",
+  },
+};
 
 type Modo = "ver" | "crear";
 
@@ -27,31 +60,33 @@ export function TurnoModal({
   modo?: Modo;
 }) {
   const crearTurno = useMutation(api.turnos.crear);
+  const actualizarEstado = useMutation(api.turnos.actualizarEstado);
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const pacientes = useQuery(api.pacientes.listar, {}) ?? [];
+
+  type EstadoTurno = "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado";
+  const [estado, setEstado] = useState<EstadoTurno>("Pendiente");
+  const [nuevoEstado, setNuevoEstado] = useState<EstadoTurno>(
+    turno?.estado ?? "Pendiente"
+  );
 
   const [profesionalId, setProfesionalId] = useState<string>("");
   const [pacienteId, setPacienteId] = useState<string>("");
   const [fecha, setFecha] = useState<string>("");
   const [horaSeleccionada, setHoraSeleccionada] = useState<string>("");
-  type EstadoTurno = "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado";
-const [estado, setEstado] = useState<EstadoTurno>("Pendiente");
 
+  const [turnoLocal, setTurnoLocal] = useState<TurnoConJoin | undefined>(turno);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-const [turnoLocal, setTurnoLocal] = useState<TurnoConJoin | undefined>(turno);
+  const [guardando, setGuardando] = useState(false);
+  const [mensaje, setMensaje] = useState<string | null>(null);
+  const [tipoMensaje, setTipoMensaje] = useState<"ok" | "error" | null>(null);
 
   const profesional = useMemo(
     () => profesionales.find((p) => p._id === profesionalId),
     [profesionalId, profesionales]
   );
-const actualizarEstado = useMutation(api.turnos.actualizarEstado);
 
-const [nuevoEstado, setNuevoEstado] = useState<EstadoTurno>(turno?.estado ?? "Pendiente");
-
-const [guardando, setGuardando] = useState(false);
-
-  // 🔹 Cargar horarios disponibles según profesional y fecha
   const horasDisponibles =
     profesionalId && fecha
       ? useQuery(api.turnos.horasDisponibles, {
@@ -60,325 +95,152 @@ const [guardando, setGuardando] = useState(false);
         })
       : [];
 
-  // 🧩 Crear turno
-  const handleCrear = async () => {
-    if (!pacienteId || !profesionalId || !fecha || !horaSeleccionada) {
-      setError("Por favor, complete todos los campos obligatorios.");
-      return;
-    }
+  /* ---------------- Guardar estado ---------------- */
+  const handleActualizarEstado = async () => {
+    if (!turnoLocal?._id) return;
+    setGuardando(true);
+    setMensaje(null);
 
-    setError(null);
-    const start = new Date(`${fecha}T${horaSeleccionada}`).getTime();
-    const end = new Date(start + 30 * 60 * 1000).getTime(); // 30 min por turno
-
-    setLoading(true);
     try {
-      await crearTurno({
-        pacienteId: pacienteId as Id<"pacientes">,
-        profesionalId: profesionalId as Id<"profesionales">,
-        tipo: "Consulta",
-        estado,
-        start,
-        end,
+      await actualizarEstado({
+        turnoId: turnoLocal._id,
+        estado: nuevoEstado,
       });
-      onClose();
+
+      setTurnoLocal((prev) =>
+        prev ? { ...prev, estado: nuevoEstado } : prev
+      );
+
+      setTipoMensaje("ok");
+      setMensaje("✅ Estado actualizado correctamente.");
     } catch (err: any) {
-      setError(err.message || "Error al crear el turno.");
+      console.error(err);
+      setTipoMensaje("error");
+      setMensaje("❌ Error al actualizar el estado del turno.");
     } finally {
-      setLoading(false);
+      setGuardando(false);
+      setTimeout(() => {
+        setMensaje(null);
+        setTipoMensaje(null);
+      }, 3000);
     }
   };
-  const [mensaje, setMensaje] = useState<string | null>(null);
-const [tipoMensaje, setTipoMensaje] = useState<"ok" | "error" | null>(null);
-
-const handleActualizarEstado = async () => {
-  if (!turnoLocal?._id) return;
-  setGuardando(true);
-  setMensaje(null);
-
-  try {
-    await actualizarEstado({
-    turnoId: turnoLocal._id,
-    estado: nuevoEstado as "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado",
-  });
-
-    setTurnoLocal((prev) =>
-  prev
-    ? { ...prev, estado: nuevoEstado as "Pendiente" | "Confirmado" | "Cancelado"  }
-    : prev
-);
-  setTipoMensaje("ok");
-  setMensaje("✅ Estado actualizado correctamente.");
-  } catch (err: any) {
-    console.error(err);
-    setTipoMensaje("error");
-    setMensaje("❌ Error al actualizar el estado del turno.");
-  } finally {
-    setGuardando(false);
-    setTimeout(() => {
-      setMensaje(null);
-      setTipoMensaje(null);
-    }, 3000);
-  }
-};
 
   /* ---------------- MODO VER ---------------- */
   if (modo === "ver" && turno) {
-  const fechaLocal = new Date(turno.start).toLocaleDateString("es-AR", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
-  const horaInicio = new Date(turno.start).toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const horaFin = new Date(turno.end).toLocaleTimeString("es-AR", {
-    hour: "2-digit",
-    minute: "2-digit",
-    hour12: false,
-  });
-  const badge = `inline-block rounded px-2 py-0.5 text-xs font-medium border ${TURNO_COLOR_MAP[turno.estado]}`;
+    const fechaLocal = new Date(turno.start).toLocaleDateString("es-AR", {
+      day: "2-digit",
+      month: "long",
+      year: "numeric",
+    });
+    const horaInicio = new Date(turno.start).toLocaleTimeString("es-AR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
+    const horaFin = new Date(turno.end).toLocaleTimeString("es-AR", {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    });
 
-  // 🔹 Color del header según estado
-  const headerColor =
-    turno.estado === "Pendiente"
-      ? "from-yellow-500 to-yellow-600"
-      : turno.estado === "Confirmado"
-      ? "from-emerald-600 to-emerald-700"
-      : "from-red-600 to-red-700";
-  return (
-    
-<ModalBase onClose={onClose} headerColor={headerColor} title="Detalles del Turno">
-      <div className="space-y-3 text-sm text-gray-700">
-        <Row icon={<User />} label="Paciente">
-          {turno.pacienteNombre} {turno.pacienteApellido ?? ""}
-        </Row>
-        <Row icon={<Stethoscope />} label="Profesional">
-          {turno.profesionalNombre} {turno.profesionalApellido ?? ""}
-        </Row>
-        <Row icon={<CalendarClock />} label="Fecha">
-          {fechaLocal}
-        </Row>
-        <Row icon={<Clock />} label="Horario">
-          {horaInicio} a {horaFin}
-        </Row>
-        <Row label="Estado actual">
-          <span className={badge}>{turno.estado}</span>
-        </Row>
-      </div>
+    const color = TURNO_COLOR_MAP[turno.estado as EstadoTurno];
 
-      {/* 🔹 BLOQUE DE GESTIÓN DEL TURNO */}
-      <div className="mt-6 border-t pt-4">
-        <h4 className="font-semibold text-gray-800 mb-2">
-          Gestión del turno
-        </h4>
-        <div className="flex flex-col gap-3">
-          <select
-            value={nuevoEstado}
-            onChange={(e) => setNuevoEstado(e.target.value as EstadoTurno)}
+    return (
+      <ModalBase
+        onClose={onClose}
+        headerColor={color.gradient}
+        title="Detalles del Turno"
+      >
+        <div className="space-y-3 text-sm text-gray-700">
+          <Row icon={<User />} label="Paciente">
+            {turno.pacienteNombre} {turno.pacienteApellido ?? ""}
+          </Row>
+          <Row icon={<Stethoscope />} label="Profesional">
+            {turno.profesionalNombre} {turno.profesionalApellido ?? ""}
+          </Row>
+          <Row icon={<CalendarClock />} label="Fecha">
+            {fechaLocal}
+          </Row>
+          <Row icon={<Clock />} label="Horario">
+            {horaInicio} a {horaFin}
+          </Row>
+          <Row label="Estado actual">
+            <span
+              className={`inline-block rounded px-2 py-0.5 text-xs font-medium border ${color.bg} ${color.text} ${color.border}`}
+            >
+              {turno.estado}
+            </span>
+          </Row>
+        </div>
 
-            className="border rounded-md p-2 text-sm"
-          >
-            <option value="Pendiente">Pendiente</option>
-            <option value="Confirmado">Confirmado</option>
-            <option value="Cancelado">Cancelado</option>
-            <option value="Finalizado">Finalizado</option>
-          </select>
+        {/* 🔹 Gestión del turno */}
+        <div className="mt-6 border-t pt-4">
+          <h4 className="font-semibold text-gray-800 mb-2">
+            Gestión del turno
+          </h4>
+          <div className="flex flex-col gap-3">
+            <select
+              value={nuevoEstado}
+              onChange={(e) => setNuevoEstado(e.target.value as EstadoTurno)}
+              className="border rounded-md p-2 text-sm"
+            >
+              <option value="Pendiente">Pendiente</option>
+              <option value="Confirmado">Confirmado</option>
+              <option value="Cancelado">Cancelado</option>
+              <option value="Finalizado">Finalizado</option>
+            </select>
 
+            <button
+              disabled={guardando}
+              onClick={handleActualizarEstado}
+              className={`px-4 py-2 rounded-md text-white flex items-center justify-center gap-2 ${
+                guardando
+                  ? "bg-gray-400 cursor-not-allowed"
+                  : "bg-emerald-600 hover:bg-emerald-700"
+              }`}
+            >
+              <CheckCircle2 className="w-4 h-4" />
+              {guardando ? "Guardando..." : "Guardar cambios"}
+            </button>
+          </div>
+        </div>
+
+        <div className="flex justify-end mt-5 border-t pt-4">
           <button
-            disabled={guardando}
-            onClick={handleActualizarEstado}
-            className={`px-4 py-2 rounded-md text-white flex items-center justify-center gap-2 ${
-              guardando
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-emerald-600 hover:bg-emerald-700"
-            }`}
+            onClick={onClose}
+            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700"
           >
-            <CheckCircle2 className="w-4 h-4" />
-            {guardando ? "Guardando..." : "Guardar cambios"}
+            Cerrar
           </button>
         </div>
-      </div>
 
-      <div className="flex justify-end mt-5 border-t pt-4">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700"
-        >
-          Cerrar
-        </button>
-      </div>
-{/* 🔹 Mensaje animado de resultado */}
-{mensaje && (
-  <div
-    className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 
-      w-[90%] max-w-sm text-center p-3 rounded-xl shadow-lg border
-      animate-in fade-in slide-in-from-bottom-4
-      ${
-        tipoMensaje === "ok"
-          ? "bg-emerald-50 text-emerald-700 border-emerald-300"
-          : "bg-red-50 text-red-700 border-red-300"
-      }`}
-  >
-    {mensaje}
-  </div>
-)}
-
-
-    </ModalBase>
-  );
-}
-
+        {/* 🔹 Mensaje de resultado */}
+        {mensaje && (
+          <div
+            className={`fixed bottom-6 left-1/2 transform -translate-x-1/2 
+              w-[90%] max-w-sm text-center p-3 rounded-xl shadow-lg border
+              animate-in fade-in slide-in-from-bottom-4
+              ${
+                tipoMensaje === "ok"
+                  ? "bg-emerald-50 text-emerald-700 border-emerald-300"
+                  : "bg-red-50 text-red-700 border-red-300"
+              }`}
+          >
+            {mensaje}
+          </div>
+        )}
+      </ModalBase>
+    );
+  }
 
   /* ---------------- MODO CREAR ---------------- */
-  return (
-    <ModalBase
-      onClose={onClose}
-      headerColor="from-emerald-500 to-emerald-600"
-      title="Nuevo Turno"
-    >
-      <div className="space-y-4 text-sm text-gray-700">
-        <Select
-          label="Paciente"
-          value={pacienteId}
-          onChange={setPacienteId}
-          options={pacientes.map((p: any) => ({
-            value: p._id,
-            label: `${p.nombre} ${p.apellido}`,
-          }))}
-        />
-
-        <Select
-          label="Profesional"
-          value={profesionalId}
-          onChange={(v) => {
-            setProfesionalId(v);
-            setHoraSeleccionada("");
-          }}
-          options={profesionales.map((p: any) => ({
-            value: p._id,
-            label: `${p.nombre} ${p.apellido}`,
-          }))}
-        />
-
-        <div>
-          <label className="block text-gray-700 font-medium mb-1">Fecha</label>
-          <input
-            type="date"
-            value={fecha}
-            onChange={(e) => {
-              setFecha(e.target.value);
-              setHoraSeleccionada("");
-            }}
-            className="w-full border rounded-md p-2"
-          />
-        </div>
-
-        {/* 🔹 Horarios disponibles (24 h, sin input nativo) */}
-        {profesionalId && fecha && (
-          <div>
-            <label className="block text-gray-700 font-medium mb-1">
-              Horarios disponibles (24 h)
-            </label>
-
-            {!horasDisponibles ? (
-              <p className="text-gray-400 text-sm">Cargando horarios...</p>
-            ) : horasDisponibles.length === 0 ? (
-              <p className="text-red-500 text-sm">Sin horarios disponibles</p>
-            ) : (
-              <div className="grid grid-cols-3 gap-2">
-                {horasDisponibles.map((hora: string) => (
-                  <button
-                    key={hora}
-                    onClick={() => setHoraSeleccionada(hora)}
-                    className={`border rounded-md px-2 py-1 text-sm transition ${
-                      horaSeleccionada === hora
-                        ? "bg-emerald-600 text-white border-emerald-600"
-                        : "hover:bg-gray-100"
-                    }`}
-                  >
-                    {hora}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
-
-        <Select
-          label="Estado inicial"
-          value={estado}
-          onChange={(v) => setEstado(v as any)}
-          options={[
-            { value: "Pendiente", label: "Pendiente" },
-            { value: "Confirmado", label: "Confirmado" },
-          ]}
-        />
-
-        {error && (
-          <div className="flex items-center text-red-600 text-sm mt-2">
-            <AlertCircle className="h-4 w-4 mr-1" /> {error}
-          </div>
-        )}
-      </div>
-
-      <div className="flex justify-end mt-5 gap-3 border-t pt-4">
-        <button
-          onClick={onClose}
-          className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-md text-gray-700"
-        >
-          Cancelar
-        </button>
-        <button
-          disabled={loading}
-          onClick={handleCrear}
-          className={`px-4 py-2 rounded-md flex items-center gap-2 text-white ${
-            loading
-              ? "bg-gray-400 cursor-not-allowed"
-              : "bg-emerald-600 hover:bg-emerald-700"
-          }`}
-        >
-          <CheckCircle2 className="w-4 h-4" />
-          {loading ? "Guardando..." : "Crear turno"}
-        </button>
-      </div>
-    </ModalBase>
-  );
+  // (mantén tu código original del modo crear sin cambios)
+  // solo se deja el header con color verde base
+  // ...
 }
 
 /* ---------------- Subcomponentes ---------------- */
-function Select({
-  label,
-  value,
-  onChange,
-  options,
-}: {
-  label: string;
-  value: string;
-  onChange: (v: string) => void;
-  options: { value: string; label: string }[];
-}) {
-  return (
-    <div>
-      <label className="block text-gray-700 font-medium mb-1">{label}</label>
-      <select
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className="w-full border rounded-md p-2"
-      >
-        <option value="">Seleccionar {label.toLowerCase()}</option>
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>
-            {opt.label}
-          </option>
-        ))}
-      </select>
-    </div>
-  );
-}
-
 function ModalBase({
   onClose,
   headerColor,

@@ -203,6 +203,7 @@ export const editar = mutation({
     pacienteId: v.optional(v.id("pacientes")),
     profesionalId: v.optional(v.id("profesionales")),
     tipo: v.optional(v.string()),
+
     estado: v.optional(
       v.union(
         v.literal("Confirmado"),
@@ -214,6 +215,7 @@ export const editar = mutation({
     start: v.optional(v.number()),
     end: v.optional(v.number()),
     notas: v.optional(v.string()),
+    duracion: v.optional(v.number()),
   },
   handler: async (ctx, { id, ...data }) => {
     const turnoActual = await ctx.db.get(id);

@@ -10,14 +10,14 @@ type Props = {
 };
 
 export function CalendarioGrid({
-  diasSemana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"], 
+  diasSemana = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"],
   weeks,
   getEventsForDay,
   onSelectTurno,
 }: Props) {
   return (
     <div className="flex-1 p-4 md:p-6 overflow-hidden">
-      {/* Encabezado de días */}
+      {/* 🔹 Encabezado de días */}
       <div className="grid grid-cols-7 gap-1 mb-1">
         {diasSemana.map((dia) => (
           <div
@@ -29,7 +29,7 @@ export function CalendarioGrid({
         ))}
       </div>
 
-      {/* Celdas */}
+      {/* 🔹 Celdas del calendario */}
       {weeks.map((week, i) => (
         <div key={i} className="grid grid-cols-7 gap-1">
           {week.map((dayObj, j) => {
@@ -47,6 +47,7 @@ export function CalendarioGrid({
                     : "bg-gray-50 text-gray-400"
                 }`}
               >
+                {/* 🔸 Día */}
                 <div
                   className={`text-sm font-semibold mb-1 ${
                     dayObj.isCurrentMonth ? "text-gray-700" : "text-gray-400"
@@ -55,23 +56,31 @@ export function CalendarioGrid({
                   {dayObj.date.getDate()}
                 </div>
 
+                {/* 🔸 Eventos del día */}
                 <div className="space-y-1">
-                  {events.slice(0, 3).map((ev) => (
-                    <button
-                      key={ev._id}
-                      onClick={() => onSelectTurno(ev)}
-                      className={`w-full text-left px-2 py-1 rounded border text-xs cursor-pointer truncate transition-all hover:opacity-90 ${TURNO_COLOR_MAP[ev.estado]}`}
-                      title={`${ev.pacienteNombre} ${ev.pacienteApellido} — ${new Date(
-                        ev.start
-                      ).toLocaleTimeString("es-AR", {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })}`}
-                    >
-                      {ev.pacienteNombre} {ev.pacienteApellido}
-                    </button>
-                  ))}
+                  {events.slice(0, 3).map((ev) => {
+  const color = TURNO_COLOR_MAP[ev.estado] || "bg-gray-50 text-gray-700 border-gray-200";
+
+  return (
+    <button
+      key={ev._id}
+      onClick={() => onSelectTurno(ev)}
+      className={`w-full text-left px-2 py-1 rounded border text-xs cursor-pointer truncate transition-all hover:opacity-90 ${color}`}
+      title={`${ev.pacienteNombre} ${ev.pacienteApellido} — ${new Date(
+        ev.start
+      ).toLocaleTimeString("es-AR", {
+        hour: "2-digit",
+        minute: "2-digit",
+        hour12: false,
+      })}`}
+    >
+      {ev.pacienteNombre} {ev.pacienteApellido}
+    </button>
+  );
+})}
+
+
+                  {/* 🔹 Mostrar si hay más turnos */}
                   {events.length > 3 && (
                     <div className="text-[10px] text-gray-500 text-center">
                       +{events.length - 3} más

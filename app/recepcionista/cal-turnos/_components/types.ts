@@ -17,7 +17,8 @@ export type TurnoConJoin = {
   start: number;
   end: number;
   tipo: string;
-  estado: "Confirmado" | "Pendiente" | "Cancelado";
+  duracion: number;
+  estado: "Confirmado" | "Pendiente" | "Cancelado" | "Finalizado";
 
   // 🔹 Paciente
   pacienteId: Id<"pacientes">;
@@ -39,6 +40,8 @@ export const TURNO_COLOR_MAP: Record<string, string> = {
   Confirmado: "bg-green-100 border-green-400 text-green-700",
   Pendiente: "bg-yellow-100 border-yellow-400 text-yellow-700",
   Cancelado: "bg-red-100 border-red-400 text-red-700",
+  Finalizado: "bg-blue-100 border-blue-400 text-blue-700",
+
 };
 
 /* -------------------------------------------------------------------------- */
