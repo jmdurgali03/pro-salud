@@ -17,7 +17,8 @@ export function CalendarioGrid({
 }: Props) {
   return (
     <div className="flex-1 p-6">
-      <div className="grid grid-cols-8 gap-1">
+      {/* ✅ 7 columnas, no 8 */}
+      <div className="grid grid-cols-7 gap-1">
         {diasSemana.map((dia) => (
           <div
             key={dia}
@@ -29,7 +30,8 @@ export function CalendarioGrid({
       </div>
 
       {weeks.map((week, i) => (
-        <div key={i} className="grid grid-cols-8 gap-1">
+        // ✅ También 7 columnas aquí
+        <div key={i} className="grid grid-cols-7 gap-1">
           {week.map((dayObj, j) => {
             const events = getEventsForDay(dayObj.day, dayObj.isCurrentMonth);
             return (
@@ -54,9 +56,8 @@ export function CalendarioGrid({
                       onClick={() => onSelectTurno(ev)}
                       className={`w-full text-left px-2 py-1 rounded border text-xs cursor-pointer truncate ${TURNO_COLOR_MAP[ev.estado]}`}
                       title={`${ev.pacienteNombre} ${ev.pacienteApellido} — ${new Date(ev.start).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })}`}
-
                     >
-                      {ev.pacienteNombre } {ev.pacienteApellido}
+                      {ev.pacienteNombre} {ev.pacienteApellido}
                     </button>
                   ))}
                   {events.length > 3 && (

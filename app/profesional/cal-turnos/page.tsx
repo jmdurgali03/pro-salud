@@ -100,13 +100,16 @@ export default function CalendarioPage() {
   return (
     <>
       <PageWrapper
+        
         breadcrumbs={[
           { label: "Inicio", href: "/profesional" },
           { label: "Calendario", href: "/profesional/cal-turnos" },
         ]}
       >
-        <div className="min-h-screen p-6">
-          <div className="bg-white rounded-2xl shadow-xl overflow-hidden max-w-7xl mx-auto">
+        <div className="w-full max-w-8xl mx-auto pt-2 pb-6 px-8">
+
+
+          <div className="bg-white rounded-2xl shadow-xl overflow-hidden mx-auto ">
             <CalendarioHeader
               currentDate={currentDate}
               view={view}
