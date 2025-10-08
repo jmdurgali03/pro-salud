@@ -8,6 +8,32 @@ type Props = {
   onSelectTurno: (t: TurnoConJoin) => void;
 };
 
+export const TURNO_COLOR_MAP: Record<
+  TurnoConJoin["estado"],
+  { bg: string; text: string; border: string }
+> = {
+  Confirmado: {
+    bg: "bg-green-50",
+    text: "text-green-700",
+    border: "border-green-200",
+  },
+  Pendiente: {
+    bg: "bg-yellow-50",
+    text: "text-yellow-700",
+    border: "border-yellow-200",
+  },
+  Cancelado: {
+    bg: "bg-red-50",
+    text: "text-red-700",
+    border: "border-red-200",
+  },
+  Finalizado: {
+    bg: "bg-blue-50",
+    text: "text-blue-700",
+    border: "border-blue-200",
+  },
+};
+
 export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
   const proximos = useMemo(
     () =>
@@ -24,29 +50,34 @@ export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
         <p className="text-sm text-gray-500">Sin turnos</p>
       ) : (
         <div className="space-y-2">
-          {proximos.map((event) => (
-            <button
-              key={event._id}
-              onClick={() => onSelectTurno(event)}
-              className="w-full text-left bg-white text-blue-700 p-2 rounded-lg hover:bg-blue-100 transition text-sm font-medium border border-blue-100"
-            >
-              <div className="truncate">{event.pacienteNombre} {event.pacienteApellido}</div>
-              <div className="text-xs text-gray-500 truncate">
-                {new Date(event.start).toLocaleDateString("es-AR")} •{" "}
-                {new Date(event.start).toLocaleTimeString("es-AR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                })}{" "}
-                -{" "}
-                {new Date(event.end).toLocaleTimeString("es-AR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  hour12: false,
-                })}
-              </div>
-            </button>
-          ))}
+          {proximos.map((event) => {
+            const color = TURNO_COLOR_MAP[event.estado];
+            return (
+              <button
+                key={event._id}
+                onClick={() => onSelectTurno(event)}
+                className={`w-full text-left p-2 rounded-lg transition text-sm font-medium border ${color.bg} ${color.text} ${color.border} hover:brightness-95`}
+              >
+                <div className="truncate">
+                  {event.pacienteNombre} {event.pacienteApellido}
+                </div>
+                <div className="text-xs text-gray-500 truncate">
+                  {new Date(event.start).toLocaleDateString("es-AR")} •{" "}
+                  {new Date(event.start).toLocaleTimeString("es-AR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}{" "}
+                  -{" "}
+                  {new Date(event.end).toLocaleTimeString("es-AR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    hour12: false,
+                  })}
+                </div>
+              </button>
+            );
+          })}
         </div>
       )}
     </div>
