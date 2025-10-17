@@ -136,7 +136,7 @@ export default function CalendarioRecepcionistaPage() {
           { label: "Calendario", href: "/recepcionista/cal-turnos" },
         ]}
       >
-        <div className="min-h-screen bg-gradient-to-br from-sky-50 via-white to-emerald-50 p-4 sm:p-6">
+        <div className="min-h-screen p-4 sm:p-6">
           <div className="bg-white rounded-2xl shadow-xl overflow-hidden mx-auto w-[98%] max-w-[1920px]">
 
             {/* ---- Encabezado del calendario */}
