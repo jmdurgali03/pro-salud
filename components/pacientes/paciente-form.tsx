@@ -10,12 +10,12 @@ export type PacienteFormValues = {
   telefono: string;
   dni: string;
   fechaNacimiento: string;
-  genero: "Masculino" | "Femenino";
+  genero: "Masculino" | "Femenino" | "Otro";
   obrasSociales: Id<"obrasSociales">[];
 };
 
 type PacienteFormState = Omit<PacienteFormValues, "genero"> & {
-  genero: "" | "Masculino" | "Femenino";
+  genero: "" | "Masculino" | "Femenino" | "Otro";
 };
 
 type PacienteFormProps = {
@@ -98,16 +98,18 @@ export function PacienteForm({
     if (!validate()) return;
     const payload: PacienteFormValues = {
       ...form,
-      genero: form.genero === "Femenino" ? "Femenino" : "Masculino",
+      genero: form.genero === "Femenino"
+        ? "Femenino"
+        : form.genero === "Otro"
+        ? "Otro"
+        : "Masculino",
     };
     onSubmit(payload);
   };
 
   return (
     <div className="max-w-2xl w-full mx-auto flex flex-col max-h-[85vh]">
-      {/* Contenido scrollable */}
       <div className="overflow-y-auto px-2 sm:px-4 space-y-6 pb-6">
-        {/* Header */}
         <div className="mt-2 mb-2">
           <h2 className="text-2xl font-bold text-gray-900">{title}</h2>
           <p className="text-sm text-gray-500 mt-1">
@@ -177,11 +179,11 @@ export function PacienteForm({
             )}
           </div>
 
-          {/* Género y Teléfono */}
+          {/* Género */}
           <div>
             <label className="text-sm font-semibold text-gray-700 block mb-2">Género</label>
-            <div className="flex items-center gap-3">
-              {["Masculino", "Femenino"].map((g) => (
+            <div className="flex items-center gap-1">
+              {["Masculino", "Femenino", "Otro"].map((g) => (
                 <label
                   key={g}
                   className={`flex items-center gap-2 px-3 py-2 rounded-xl border transition-all duration-200 ${
@@ -206,14 +208,15 @@ export function PacienteForm({
             )}
           </div>
 
+          {/* Teléfono */}
           <div>
-            <label className="text-sm font-semibold text-gray-700 block mb-2">Teléfono</label>
+            <label className="text-sm font-semibold text-gray-700 block mb-2 ml-3">Teléfono</label>
             <input
               value={form.telefono}
               onChange={(e) => handleChange("telefono", e.target.value)}
               maxLength={10}
               placeholder="Ej: 3871234567"
-              className={`w-full border rounded-xl p-3 text-gray-900 ${
+              className={`w-67 border rounded-xl p-3 text-gray-900 ml-3 ${
                 errors.telefono
                   ? "border-red-300 ring-2 ring-red-200"
                   : "border-gray-200 focus:ring-2 focus:ring-green-200"
@@ -243,12 +246,11 @@ export function PacienteForm({
             )}
           </div>
 
-          {/* Obras sociales con dropdown visible y scroll interno */}
+          {/* Obras sociales */}
           <div className="relative sm:col-span-2">
             <label className="text-sm font-semibold text-gray-700 block mb-2">
               Obras Sociales <span className="text-red-500">*</span>
             </label>
-
             <button
               type="button"
               onClick={() => setDropdownOpen((v) => !v)}
@@ -258,7 +260,6 @@ export function PacienteForm({
                 ? `${form.obrasSociales.length} seleccionada(s)`
                 : "Seleccionar obras sociales (o 'Particular')..."}
             </button>
-
             {dropdownOpen && (
               <div className="absolute z-50 mt-1 w-full bg-white border rounded-xl shadow-lg max-h-52 overflow-y-auto">
                 {obrasSociales.map((obra) => (
@@ -277,17 +278,14 @@ export function PacienteForm({
                 ))}
               </div>
             )}
-
             {errors.obrasSociales && (
-              <p className="text-xs text-red-600 mt-1 ml-1">
-                {errors.obrasSociales}
-              </p>
+              <p className="text-xs text-red-600 mt-1 ml-1">{errors.obrasSociales}</p>
             )}
           </div>
         </div>
       </div>
 
-      {/* Footer fijo */}
+      {/* Footer */}
       <div className="flex justify-end gap-3 pt-4 border-t bg-white sticky bottom-0 px-4">
         <button
           type="button"

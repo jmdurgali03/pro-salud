@@ -1,7 +1,9 @@
-// convex/pacientes.ts
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
+// =====================
+// 🔹 Listar pacientes
+// =====================
 export const listar = query({
   args: { search: v.optional(v.string()) },
   handler: async (ctx, args) => {
@@ -48,7 +50,9 @@ export const listar = query({
   },
 });
 
-// Crear paciente
+// =====================
+// 🔹 Crear paciente
+// =====================
 export const crear = mutation({
   args: {
     nombre: v.string(),
@@ -57,19 +61,23 @@ export const crear = mutation({
     telefono: v.optional(v.string()),
     dni: v.string(),
     fechaNacimiento: v.optional(v.string()),
-    genero: v.union(v.literal("Masculino"), v.literal("Femenino")),
+    genero: v.union(
+      v.literal("Masculino"),
+      v.literal("Femenino"),
+      v.literal("Otro")
+    ),
     obrasSociales: v.array(v.id("obrasSociales")),
   },
   handler: async (ctx, args) => {
     const ahora = Date.now();
     const { obrasSociales, ...pacienteData } = args;
 
-    // Validar que se haya seleccionado al menos una obra social
     if (obrasSociales.length === 0) {
-      throw new Error("Debe seleccionar al menos una obra social (incluyendo 'Particular' si no tiene cobertura)");
+      throw new Error(
+        "Debe seleccionar al menos una obra social (incluyendo 'Particular' si no tiene cobertura)"
+      );
     }
 
-    // Verificar si ya existe un paciente con ese DNI
     const existente = await ctx.db
       .query("pacientes")
       .withIndex("por_dni", (q) => q.eq("dni", pacienteData.dni))
@@ -85,7 +93,6 @@ export const crear = mutation({
       actualizadoEn: ahora,
     });
 
-    // Insertar relaciones con obras sociales
     for (const osId of obrasSociales) {
       await ctx.db.insert("pacientes_obrasSociales", {
         pacienteId,
@@ -97,7 +104,9 @@ export const crear = mutation({
   },
 });
 
-// Actualizar paciente
+// =====================
+// 🔹 Actualizar paciente
+// =====================
 export const actualizar = mutation({
   args: {
     id: v.id("pacientes"),
@@ -107,18 +116,22 @@ export const actualizar = mutation({
     telefono: v.optional(v.string()),
     dni: v.string(),
     fechaNacimiento: v.optional(v.string()),
-    genero: v.union(v.literal("Masculino"), v.literal("Femenino")),
+    genero: v.union(
+      v.literal("Masculino"),
+      v.literal("Femenino"),
+      v.literal("Otro")
+    ),
     obrasSociales: v.array(v.id("obrasSociales")),
   },
   handler: async (ctx, args) => {
     const { id, obrasSociales, ...resto } = args;
 
-    // Validar que se haya seleccionado al menos una obra social
     if (obrasSociales.length === 0) {
-      throw new Error("Debe seleccionar al menos una obra social (incluyendo 'Particular' si no tiene cobertura)");
+      throw new Error(
+        "Debe seleccionar al menos una obra social (incluyendo 'Particular' si no tiene cobertura)"
+      );
     }
 
-    // Verificar si ya existe otro paciente con ese DNI
     const duplicado = await ctx.db
       .query("pacientes")
       .withIndex("por_dni", (q) => q.eq("dni", resto.dni))
@@ -133,7 +146,6 @@ export const actualizar = mutation({
       actualizadoEn: Date.now(),
     });
 
-    // Resetear relaciones
     const actuales = await ctx.db
       .query("pacientes_obrasSociales")
       .withIndex("por_paciente", (q) => q.eq("pacienteId", id))
@@ -143,7 +155,6 @@ export const actualizar = mutation({
       await ctx.db.delete(rel._id);
     }
 
-    // Insertar nuevas relaciones
     for (const osId of obrasSociales) {
       await ctx.db.insert("pacientes_obrasSociales", {
         pacienteId: id,
@@ -153,14 +164,15 @@ export const actualizar = mutation({
   },
 });
 
-// Eliminar paciente
+// =====================
+// 🔹 Eliminar paciente
+// =====================
 export const eliminar = mutation({
   args: { id: v.id("pacientes") },
   handler: async (ctx, args) => {
     const paciente = await ctx.db.get(args.id);
     if (!paciente) throw new Error("Paciente no encontrado");
 
-    // borrar relaciones
     const rels = await ctx.db
       .query("pacientes_obrasSociales")
       .withIndex("por_paciente", (q) => q.eq("pacienteId", args.id))
@@ -174,7 +186,9 @@ export const eliminar = mutation({
   },
 });
 
-// Obtener paciente por ID con sus obras sociales
+// =====================
+// 🔹 Obtener paciente por ID con sus obras sociales
+// =====================
 export const getByIdConObras = query({
   args: { id: v.id("pacientes") },
   handler: async (ctx, { id }) => {
@@ -197,48 +211,49 @@ export const getByIdConObras = query({
   },
 });
 
+// =====================
+// 🔹 Obtener paciente por ID (IDs + nombres de obras sociales)
+// =====================
 export const getById = query({
   args: { id: v.id("pacientes") },
   handler: async (ctx, args) => {
     const paciente = await ctx.db.get(args.id);
     if (!paciente) return null;
 
-    // Buscar relaciones paciente ↔ obras sociales
     const relaciones = await ctx.db
       .query("pacientes_obrasSociales")
       .withIndex("por_paciente", (q) => q.eq("pacienteId", args.id))
       .collect();
 
     const obrasIds = relaciones.map((r) => r.obraSocialId);
-
     const obras = await Promise.all(obrasIds.map((id) => ctx.db.get(id)));
 
     return {
       ...paciente,
-      obrasSociales: obrasIds, // los IDs
+      obrasSociales: obrasIds,
       obrasSocialesNombres: obras
         .filter((o) => o !== null)
-        .map((o) => o!.nombre), // los nombres
+        .map((o) => o!.nombre),
     };
   },
 });
+
+// =====================
+// 🔹 Listar pacientes por doctor
+// =====================
 export const listarPorDoctor = query({
   args: { doctorId: v.id("profesionales") },
   handler: async (ctx, { doctorId }) => {
-    // 🔹 Buscar todos los turnos de este doctor
     const turnos = await ctx.db
       .query("turnos")
       .withIndex("byProfesional", (q) => q.eq("profesionalId", doctorId))
       .collect();
 
     const pacienteIds = [...new Set(turnos.map((t) => t.pacienteId))];
-
-    // 🔹 Traer los pacientes de esos IDs
     const pacientes = await Promise.all(
       pacienteIds.map((pid) => ctx.db.get(pid))
     );
 
-    // 🔹 Buscar última consulta por cada paciente
     return pacientes
       .filter((p) => !!p)
       .map((p) => {

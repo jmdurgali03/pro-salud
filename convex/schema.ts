@@ -97,20 +97,30 @@ profesionales: defineTable({
   // -------------------------
   // Pacientes
   // -------------------------
-  pacientes: defineTable({
-    nombre: v.string(),
-    apellido: v.string(),
-    email: v.optional(v.string()),
-    telefono: v.optional(v.string()),
-    dni: v.string(),
-    fechaNacimiento: v.optional(v.string()),
-    genero: v.optional(v.union(v.literal("Masculino"), v.literal("Femenino"))),
-    creadoEn: v.number(),
-    actualizadoEn: v.number(),
-  })
-    .index("por_dni", ["dni"])
-    .index("por_nombre", ["nombre"])
-    .index("por_apellido", ["apellido"]),
+  // -------------------------
+// Pacientes
+// -------------------------
+pacientes: defineTable({
+  nombre: v.string(),
+  apellido: v.string(),
+  email: v.optional(v.string()),
+  telefono: v.optional(v.string()),
+  dni: v.string(),
+  fechaNacimiento: v.optional(v.string()),
+
+  // 🔹 Ahora el género acepta los tres valores y es obligatorio
+  genero: v.union(
+    v.literal("Masculino"),
+    v.literal("Femenino"),
+    v.literal("Otro")
+  ),
+
+  creadoEn: v.number(),
+  actualizadoEn: v.number(),
+})
+  .index("por_dni", ["dni"])
+  .index("por_nombre", ["nombre"])
+  .index("por_apellido", ["apellido"]),
 
   // -------------------------
   // Relación Paciente ↔ Obra Social (N:M)

@@ -159,15 +159,17 @@ export default function PacientesPage() {
     setSeleccionado(null);
   };
 
-  const sanitizeForm = (form: PacienteFormValues) => ({
-    ...form,
-    nombre: form.nombre?.trim() || "",
-    apellido: form.apellido?.trim() || "",
-    email: form.email?.trim() || "",
-    telefono: form.telefono?.trim() || "",
-    dni: form.dni.trim(),
-    fechaNacimiento: form.fechaNacimiento?.trim() || undefined,
-  });
+  const sanitizeForm = (form: PacienteFormValues): PacienteFormValues => ({
+  nombre: form.nombre?.trim() || "",
+  apellido: form.apellido?.trim() || "",
+  email: form.email?.trim() || "",
+  telefono: form.telefono?.trim() || "",
+  dni: form.dni?.trim() || "",
+  fechaNacimiento: form.fechaNacimiento?.trim() || "",
+  genero: form.genero || "Masculino",
+  obrasSociales: Array.isArray(form.obrasSociales) ? form.obrasSociales : [],
+});
+
 
   const handleCrear = async (form: PacienteFormValues) => {
     try {
