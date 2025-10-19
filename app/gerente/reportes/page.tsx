@@ -14,8 +14,8 @@ import {
   Stethoscope,
 } from "lucide-react";
 import {
-  BarChart,
-  Bar,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
@@ -24,8 +24,6 @@ import {
   PieChart,
   Pie,
   Cell,
-  LineChart,
-  Line,
 } from "recharts";
 
 export default function GerenteDashboardPage() {
@@ -37,7 +35,7 @@ export default function GerenteDashboardPage() {
   const [modoPacientes, setModoPacientes] = useState<"dia" | "mes" | "año">("dia");
   const [mostrarAtendidos, setMostrarAtendidos] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(true);
-  const [mostrarPacientes, setMostrarPacientes] = useState(true);
+  const [especialidadSeleccionada, setEspecialidadSeleccionada] = useState<string>("");
 
   // 📊 Datos Convex
   const pacientes = useQuery(api.pacientes.listar, { search: "" }) ?? [];
@@ -87,35 +85,7 @@ export default function GerenteDashboardPage() {
     };
   }, [turnos, mesSeleccionado]);
 
-  /* ---------------------- 📊 Turnos por especialidad ---------------------- */
-  const turnosPorEspecialidad = useMemo(() => {
-    if (!especialidades.length) return [];
-    const conteo = new Map<string, number>();
-    for (const e of especialidades) conteo.set(e.nombre, 0);
-    for (const t of turnos) {
-      const nombre = (t as any).especialidadNombre;
-      if (nombre && conteo.has(nombre))
-        conteo.set(nombre, (conteo.get(nombre) ?? 0) + 1);
-    }
-    return Array.from(conteo.entries()).map(([nombre, turnos]) => ({ nombre, turnos }));
-  }, [turnos, especialidades]);
-
-  /* ---------------------- 👩‍⚕️ Pacientes por género ---------------------- */
-  const pacientesPorGenero = useMemo(() => {
-    const totalMasculino = pacientes.filter((p: any) => p.genero === "Masculino").length;
-    const totalFemenino = pacientes.filter((p: any) => p.genero === "Femenino").length;
-    const totalOtro = pacientes.filter((p: any) => !["Masculino", "Femenino"].includes(p.genero)).length;
-
-    return [
-      { name: "Masculino", value: totalMasculino },
-      { name: "Femenino", value: totalFemenino },
-      { name: "Otro", value: totalOtro },
-    ];
-  }, [pacientes]);
-
-  const totalPacientes = pacientesPorGenero.reduce((acc, item) => acc + item.value, 0);
-
-  /* ---------------------- 📈 Turnos por fecha (ahora muestra todos los años) ---------------------- */
+  /* ---------------------- 📈 Evolución de Turnos ---------------------- */
   const turnosAgrupados = useMemo(() => {
     const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
     const datos: { fecha: string; atendidos: number; cancelados: number }[] = [];
@@ -168,61 +138,103 @@ export default function GerenteDashboardPage() {
     return datos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
   }, [turnos, mesSeleccionado, modoTurnos]);
 
-  /* ---------------------- 👥 Pacientes nuevos (años completos) ---------------------- */
-  const pacientesAgrupados = useMemo(() => {
-  const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
+  /* ---------------------- 📈 Turnos por Especialidad ---------------------- */
+  const turnosPorEspecialidadLinea = useMemo(() => {
+    const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
+    const datos: { fecha: string; cantidad: number }[] = [];
+    const agregar = (key: string, n = 0) => {
+      const existente = datos.find((d) => d.fecha === key);
+      if (existente) existente.cantidad += n;
+      else datos.push({ fecha: key, cantidad: n });
+    };
 
-  // Elegí el año base que quieras (si tu sistema empezó después de 2018, cambialo)
-  const BASE_YEAR = 2018;
-  const CURRENT_YEAR = new Date().getFullYear();
+    if (!especialidadSeleccionada) return [];
 
-  // Para armar los puntos
-  const datos: Array<{ fecha: number | string; nuevos: number }> = [];
-  const agregar = (key: number | string, n = 0) => {
-    const idx = datos.findIndex((d) => d.fecha === key);
-    if (idx >= 0) datos[idx].nuevos += n;
-    else datos.push({ fecha: key, nuevos: n });
-  };
+    const turnosFiltrados = turnos.filter(
+      (t) => (t as any).especialidadNombre === especialidadSeleccionada
+    );
 
-  if (modoPacientes === "dia") {
-    const fin = new Date(añoSel, mesSel, 0).getDate();
-    for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${añoSel}`, 0);
-    for (const p of pacientes) {
-      const f = new Date((p as any)._creationTime);
-      if (f.getFullYear() === añoSel && f.getMonth() + 1 === mesSel) {
-        agregar(`${f.getDate()}/${mesSel}/${añoSel}`, 1);
+    if (modoTurnos === "dia") {
+      const fin = new Date(añoSel, mesSel, 0).getDate();
+      for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${añoSel}`);
+      for (const t of turnosFiltrados) {
+        const f = new Date(t.start);
+        if (f.getFullYear() === añoSel && f.getMonth() + 1 === mesSel)
+          agregar(`${f.getDate()}/${mesSel}/${añoSel}`, 1);
       }
     }
-    return datos.sort(
-      (a, b) =>
-        new Date(String(a.fecha)).getTime() - new Date(String(b.fecha)).getTime()
-    );
-  }
 
-  if (modoPacientes === "mes") {
-    for (let m = 1; m <= 12; m++) agregar(`${m}/${añoSel}`, 0);
-    for (const p of pacientes) {
-      const f = new Date((p as any)._creationTime);
-      if (f.getFullYear() === añoSel) agregar(`${f.getMonth() + 1}/${añoSel}`, 1);
+    if (modoTurnos === "mes") {
+      for (let m = 1; m <= 12; m++) agregar(`${m}/${añoSel}`);
+      for (const t of turnosFiltrados) {
+        const f = new Date(t.start);
+        if (f.getFullYear() === añoSel) agregar(`${f.getMonth() + 1}/${añoSel}`, 1);
+      }
     }
-    return datos.sort(
-      (a, b) =>
-        new Date(String(a.fecha)).getTime() - new Date(String(b.fecha)).getTime()
-    );
-  }
 
-  // === modoPacientes === "año" ===
-  // Usamos eje X numérico (años) para evitar parseos raros de fechas string
-  for (let y = BASE_YEAR; y <= CURRENT_YEAR; y++) agregar(y, 0);
-  for (const p of pacientes) {
-    const y = new Date((p as any)._creationTime).getFullYear();
-    if (y >= BASE_YEAR && y <= CURRENT_YEAR) agregar(y, 1);
-  }
-  // Orden numérico simple
-  return datos.sort(
-    (a, b) => (a.fecha as number) - (b.fecha as number)
-  );
-}, [pacientes, mesSeleccionado, modoPacientes]);
+    if (modoTurnos === "año") {
+      const todosaños = Array.from({ length: new Date().getFullYear() - 2018 + 1 }, (_, i) => 2018 + i);
+      for (const y of todosaños) agregar(`${y}`);
+      for (const t of turnosFiltrados) {
+        const y = new Date(t.start).getFullYear();
+        agregar(`${y}`, 1);
+      }
+    }
+
+    return datos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
+  }, [turnos, mesSeleccionado, modoTurnos, especialidadSeleccionada]);
+
+  /* ---------------------- 👥 Pacientes por género ---------------------- */
+  const pacientesPorGenero = useMemo(() => {
+    const totalMasculino = pacientes.filter((p: any) => p.genero === "Masculino").length;
+    const totalFemenino = pacientes.filter((p: any) => p.genero === "Femenino").length;
+    const totalOtro = pacientes.filter((p: any) => !["Masculino", "Femenino"].includes(p.genero)).length;
+    return [
+      { name: "Masculino", value: totalMasculino },
+      { name: "Femenino", value: totalFemenino },
+      { name: "Otro", value: totalOtro },
+    ];
+  }, [pacientes]);
+
+  const totalPacientes = pacientesPorGenero.reduce((acc, item) => acc + item.value, 0);
+
+  /* ---------------------- 👥 Pacientes nuevos ---------------------- */
+  const pacientesAgrupados = useMemo(() => {
+    const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
+    const BASE_YEAR = 2018;
+    const CURRENT_YEAR = new Date().getFullYear();
+    const datos: { fecha: number | string; nuevos: number }[] = [];
+    const agregar = (key: number | string, n = 0) => {
+      const idx = datos.findIndex((d) => d.fecha === key);
+      if (idx >= 0) datos[idx].nuevos += n;
+      else datos.push({ fecha: key, nuevos: n });
+    };
+
+    if (modoPacientes === "dia") {
+      const fin = new Date(añoSel, mesSel, 0).getDate();
+      for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${añoSel}`, 0);
+      for (const p of pacientes) {
+        const f = new Date((p as any)._creationTime);
+        if (f.getFullYear() === añoSel && f.getMonth() + 1 === mesSel)
+          agregar(`${f.getDate()}/${mesSel}/${añoSel}`, 1);
+      }
+    } else if (modoPacientes === "mes") {
+      for (let m = 1; m <= 12; m++) agregar(`${m}/${añoSel}`, 0);
+      for (const p of pacientes) {
+        const f = new Date((p as any)._creationTime);
+        if (f.getFullYear() === añoSel) agregar(`${f.getMonth() + 1}/${añoSel}`, 1);
+      }
+    } else {
+      for (let y = BASE_YEAR; y <= CURRENT_YEAR; y++) agregar(y, 0);
+      for (const p of pacientes) {
+        const y = new Date((p as any)._creationTime).getFullYear();
+        if (y >= BASE_YEAR && y <= CURRENT_YEAR) agregar(y, 1);
+      }
+    }
+
+    return datos.sort((a, b) => (a.fecha as number) - (b.fecha as number));
+  }, [pacientes, mesSeleccionado, modoPacientes]);
+
   /* ---------------------- UI ---------------------- */
   return (
     <PageWrapper
@@ -249,31 +261,119 @@ export default function GerenteDashboardPage() {
           <KPI icon={<Activity className="w-6 h-6 text-rose-500" />} title="Obras Sociales" value={obrasSociales.length} />
         </div>
 
-        {/* 📊 Turnos por Especialidad */}
+        {/* 📈 Evolución de Turnos */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-            <Stethoscope className="w-5 h-5 text-blue-600" /> Turnos por Especialidad
-          </h2>
-          {turnosPorEspecialidad.length > 0 ? (
-            <ResponsiveContainer width="100%" height={350}>
-              <BarChart data={turnosPorEspecialidad}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                <XAxis dataKey="nombre" />
+          <div className="flex justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <CalendarDays className="w-5 h-5 text-indigo-600" /> Evolución de Turnos ({modoTurnos})
+            </h2>
+            <div className="flex gap-3 items-center">
+              <select
+                value={modoTurnos}
+                onChange={(e) => setModoTurnos(e.target.value as any)}
+                className="border rounded-lg px-3 py-1.5 text-sm"
+              >
+                <option value="dia">Por día</option>
+                <option value="mes">Por mes</option>
+                <option value="año">Por año</option>
+              </select>
+              <input
+                type="month"
+                value={mesSeleccionado}
+                onChange={(e) => setMesSeleccionado(e.target.value)}
+                className="border rounded-lg px-3 py-1.5 text-sm"
+              />
+            </div>
+          </div>
+
+          <ResponsiveContainer width="100%" height={300}>
+            <LineChart data={turnosAgrupados}>
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
+              <YAxis allowDecimals={false} />
+              <Tooltip />
+              {mostrarAtendidos && (
+                <Line
+                  type="monotone"
+                  dataKey="atendidos"
+                  stroke="#22C55E"
+                  strokeWidth={2.5}
+                  dot={false}
+                  name="Atendidos"
+                />
+              )}
+              {mostrarCancelados && (
+                <Line
+                  type="monotone"
+                  dataKey="cancelados"
+                  stroke="#EF4444"
+                  strokeWidth={2}
+                  dot={false}
+                  strokeDasharray="6 6"
+                  name="Cancelados"
+                />
+              )}
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        
+        {/* 📊 Indicadores */}
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <ul className="space-y-3 text-sm text-gray-700">
+            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados</li>
+            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados</li>
+            <li>📅 Promedio diario: <b>{indicadores.promedioDia}</b></li>
+            <li>💬 Destacadas: <b>{indicadores.topEspecialidades.join(" y ") || "Sin datos"}</b></li>
+          </ul>
+        </div>
+          
+        {/* 📈 Turnos por Especialidad */}
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div className="flex justify-between mb-4">
+            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+              <Stethoscope className="w-5 h-5 text-blue-600" /> Turnos por Especialidad ({modoTurnos})
+            </h2>
+            <div className="flex gap-3 items-center">
+              <select
+                value={especialidadSeleccionada}
+                onChange={(e) => setEspecialidadSeleccionada(e.target.value)}
+                className="border rounded-lg px-3 py-1.5 text-sm"
+              >
+                <option value="">Seleccionar especialidad</option>
+                {especialidades.map((e) => (
+                  <option key={e._id} value={e.nombre}>
+                    {e.nombre}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {especialidadSeleccionada ? (
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={turnosPorEspecialidadLinea}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="turnos" radius={[6, 6, 0, 0]}>
-                  {turnosPorEspecialidad.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Bar>
-              </BarChart>
+                <Line
+                  type="monotone"
+                  dataKey="cantidad"
+                  stroke="#0EA5E9"
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                  name={`Turnos - ${especialidadSeleccionada}`}
+                />
+              </LineChart>
             </ResponsiveContainer>
           ) : (
-            <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
+            <p className="text-gray-500 text-center text-sm">
+              Selecciona una especialidad para visualizar los turnos.
+            </p>
           )}
         </div>
 
-        {/* 📊 Distribuciones */}
+                {/* 📊 Distribuciones */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Obras Sociales */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
@@ -347,16 +447,17 @@ export default function GerenteDashboardPage() {
           </div>
         </div>
 
-        {/* 📈 Evolución de Turnos */}
+
+        {/* 👥 Nuevos pacientes */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-indigo-600" /> Evolución de turnos ({modoTurnos})
+              <Users className="w-5 h-5 text-blue-600" /> Nuevos pacientes ({modoPacientes})
             </h2>
             <div className="flex gap-3 items-center">
               <select
-                value={modoTurnos}
-                onChange={(e) => setModoTurnos(e.target.value as any)}
+                value={modoPacientes}
+                onChange={(e) => setModoPacientes(e.target.value as any)}
                 className="border rounded-lg px-3 py-1.5 text-sm"
               >
                 <option value="dia">Por día</option>
@@ -373,149 +474,44 @@ export default function GerenteDashboardPage() {
           </div>
 
           <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={turnosAgrupados}>
+            <LineChart data={pacientesAgrupados}>
               <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
+              <XAxis
+                dataKey="fecha"
+                type={modoPacientes === "año" ? "number" : "category"}
+                domain={modoPacientes === "año" ? ["dataMin", "dataMax"] : undefined}
+                allowDecimals={false}
+                tick={{ fontSize: 11 }}
+                tickFormatter={(v) =>
+                  modoPacientes === "año" ? String(v) : (v as string)
+                }
+              />
               <YAxis allowDecimals={false} />
               <Tooltip />
-              {mostrarAtendidos && (
-                <Line
-                  type="monotone"
-                  dataKey="atendidos"
-                  stroke="#22C55E"
-                  strokeWidth={2.5}
-                  dot={false}
-                  name="Atendidos"
-                />
-              )}
-              {mostrarCancelados && (
-                <Line
-                  type="monotone"
-                  dataKey="cancelados"
-                  stroke="#EF4444"
-                  strokeWidth={2}
-                  dot={false}
-                  strokeDasharray="6 6"
-                  name="Cancelados"
-                />
-              )}
+              <Line
+                type="monotone"
+                dataKey="nuevos"
+                stroke="#3B82F6"
+                strokeWidth={2.5}
+                dot={{ r: 3 }}
+                name="Nuevos pacientes"
+                isAnimationActive
+              />
             </LineChart>
           </ResponsiveContainer>
 
-          <div className="flex justify-center gap-6 mt-4 text-sm">
-            <button
-              onClick={() => setMostrarAtendidos(!mostrarAtendidos)}
-              className="flex items-center gap-2"
-            >
-              <span
-                className="w-4 h-4 rounded-sm border"
-                style={{
-                  backgroundColor: mostrarAtendidos ? "#22C55E" : "transparent",
-                  borderColor: "#22C55E",
-                }}
-              />
-              <span className={mostrarAtendidos ? "text-gray-800" : "text-gray-400"}>
-                Atendidos
-              </span>
-            </button>
-
-            <button
-              onClick={() => setMostrarCancelados(!mostrarCancelados)}
-              className="flex items-center gap-2"
-            >
-              <span
-                className="w-4 h-4 rounded-sm border"
-                style={{
-                  backgroundColor: mostrarCancelados ? "#EF4444" : "transparent",
-                  borderColor: "#EF4444",
-                }}
-              />
-              <span className={mostrarCancelados ? "text-gray-800" : "text-gray-400"}>
-                Cancelados
-              </span>
-            </button>
+          {/* Indicador fijo debajo del gráfico */}
+          <div className="flex justify-center mt-4 text-sm text-gray-700 items-center gap-2">
+            <span
+              className="w-4 h-4 rounded-sm border"
+              style={{
+                backgroundColor: "#3B82F6",
+                borderColor: "#3B82F6",
+              }}
+            />
+            <span className="font-medium">Nuevos pacientes</span>
           </div>
         </div>
-
-        {/* 📊 Indicadores */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <ul className="space-y-3 text-sm text-gray-700">
-            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados</li>
-            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados</li>
-            <li>📅 Promedio diario: <b>{indicadores.promedioDia}</b></li>
-            <li>💬 Destacadas: <b>{indicadores.topEspecialidades.join(" y ") || "Sin datos"}</b></li>
-          </ul>
-        </div>
-
-        {/* 👥 Nuevos pacientes */}
-<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-  <div className="flex justify-between mb-4">
-    <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-      <Users className="w-5 h-5 text-blue-600" />
-      Nuevos pacientes ({modoPacientes})
-    </h2>
-    <div className="flex gap-3 items-center">
-      <select
-        value={modoPacientes}
-        onChange={(e) => setModoPacientes(e.target.value as any)}
-        className="border rounded-lg px-3 py-1.5 text-sm"
-      >
-        <option value="dia">Por día</option>
-        <option value="mes">Por mes</option>
-        <option value="año">Por año</option>
-      </select>
-      <input
-        type="month"
-        value={mesSeleccionado}
-        onChange={(e) => setMesSeleccionado(e.target.value)}
-        className="border rounded-lg px-3 py-1.5 text-sm"
-      />
-    </div>
-  </div>
-
-  <ResponsiveContainer width="100%" height={300}>
-  <LineChart data={pacientesAgrupados}>
-    <CartesianGrid strokeDasharray="3 3" />
-    <XAxis
-      dataKey="fecha"
-      // tipo numérico si es por año; categórico para día/mes
-      type={modoPacientes === "año" ? "number" : "category"}
-      domain={modoPacientes === "año" ? ["dataMin", "dataMax"] : undefined}
-      allowDecimals={false}
-      tick={{ fontSize: 11 }}
-      tickFormatter={(v) =>
-        modoPacientes === "año" ? String(v) : (v as string)
-      }
-    />
-    <YAxis allowDecimals={false} />
-    <Tooltip />
-    <Line
-      type="monotone"
-      dataKey="nuevos"
-      stroke="#3B82F6"
-      strokeWidth={2.5}
-      dot={{ r: 3 }}
-      name="Nuevos pacientes"
-      isAnimationActive
-    />
-  </LineChart>
-</ResponsiveContainer>
-
-
-
-  {/* Indicador fijo debajo del gráfico */}
-  <div className="flex justify-center mt-4 text-sm text-gray-700 items-center gap-2">
-    <span
-      className="w-4 h-4 rounded-sm border"
-      style={{
-        backgroundColor: "#3B82F6",
-        borderColor: "#3B82F6",
-      }}
-    />
-    <span className="font-medium">Nuevos pacientes</span>
-  </div>
-</div>
-
       </div>
     </PageWrapper>
   );
