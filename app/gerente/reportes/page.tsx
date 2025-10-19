@@ -33,8 +33,8 @@ export default function GerenteDashboardPage() {
     const ahora = new Date();
     return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}`;
   });
-  const [modoTurnos, setModoTurnos] = useState<"dia" | "mes" | "anio">("dia");
-  const [modoPacientes, setModoPacientes] = useState<"dia" | "mes" | "anio">("dia");
+  const [modoTurnos, setModoTurnos] = useState<"dia" | "mes" | "año">("dia");
+  const [modoPacientes, setModoPacientes] = useState<"dia" | "mes" | "año">("dia");
   const [mostrarAtendidos, setMostrarAtendidos] = useState(true);
   const [mostrarCancelados, setMostrarCancelados] = useState(true);
   const [mostrarPacientes, setMostrarPacientes] = useState(true);
@@ -52,10 +52,10 @@ export default function GerenteDashboardPage() {
 
   /* ---------------------- 📈 Indicadores ---------------------- */
   const indicadores = useMemo(() => {
-    const [anio, mes] = mesSeleccionado.split("-").map(Number);
+    const [año, mes] = mesSeleccionado.split("-").map(Number);
     const turnosMes = turnos.filter((t) => {
       const fecha = new Date(t.start);
-      return fecha.getFullYear() === anio && fecha.getMonth() + 1 === mes;
+      return fecha.getFullYear() === año && fecha.getMonth() + 1 === mes;
     });
 
     const total = turnosMes.length;
@@ -105,7 +105,6 @@ export default function GerenteDashboardPage() {
     const totalMasculino = pacientes.filter((p: any) => p.genero === "Masculino").length;
     const totalFemenino = pacientes.filter((p: any) => p.genero === "Femenino").length;
     const totalOtro = pacientes.filter((p: any) => !["Masculino", "Femenino"].includes(p.genero)).length;
-    const total = totalMasculino + totalFemenino + totalOtro;
 
     return [
       { name: "Masculino", value: totalMasculino },
@@ -116,9 +115,9 @@ export default function GerenteDashboardPage() {
 
   const totalPacientes = pacientesPorGenero.reduce((acc, item) => acc + item.value, 0);
 
-  /* ---------------------- 📈 Turnos por fecha ---------------------- */
+  /* ---------------------- 📈 Turnos por fecha (ahora muestra todos los años) ---------------------- */
   const turnosAgrupados = useMemo(() => {
-    const [anioSel, mesSel] = mesSeleccionado.split("-").map(Number);
+    const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
     const datos: { fecha: string; atendidos: number; cancelados: number }[] = [];
     const agregar = (key: string, a = 0, c = 0) => {
       const existente = datos.find((d) => d.fecha === key);
@@ -131,12 +130,12 @@ export default function GerenteDashboardPage() {
     };
 
     if (modoTurnos === "dia") {
-      const fin = new Date(anioSel, mesSel, 0).getDate();
-      for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${anioSel}`);
+      const fin = new Date(añoSel, mesSel, 0).getDate();
+      for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${añoSel}`);
       for (const t of turnos) {
         const f = new Date(t.start);
-        if (f.getFullYear() === anioSel && f.getMonth() + 1 === mesSel) {
-          const key = `${f.getDate()}/${mesSel}/${anioSel}`;
+        if (f.getFullYear() === añoSel && f.getMonth() + 1 === mesSel) {
+          const key = `${f.getDate()}/${mesSel}/${añoSel}`;
           if (esEstado(t, "Confirmado", "Atendido")) agregar(key, 1, 0);
           if (esEstado(t, "Cancelado")) agregar(key, 0, 1);
         }
@@ -144,20 +143,20 @@ export default function GerenteDashboardPage() {
     }
 
     if (modoTurnos === "mes") {
-      for (let m = 1; m <= 12; m++) agregar(`${m}/${anioSel}`);
+      for (let m = 1; m <= 12; m++) agregar(`${m}/${añoSel}`);
       for (const t of turnos) {
         const f = new Date(t.start);
-        if (f.getFullYear() === anioSel) {
-          const key = `${f.getMonth() + 1}/${anioSel}`;
+        if (f.getFullYear() === añoSel) {
+          const key = `${f.getMonth() + 1}/${añoSel}`;
           if (esEstado(t, "Confirmado", "Atendido")) agregar(key, 1, 0);
           if (esEstado(t, "Cancelado")) agregar(key, 0, 1);
         }
       }
     }
 
-    if (modoTurnos === "anio") {
-      const anios = Array.from(new Set(turnos.map((t) => new Date(t.start).getFullYear())));
-      for (const y of anios) agregar(`${y}`);
+    if (modoTurnos === "año") {
+      const todosaños = Array.from({ length: new Date().getFullYear() - 2018 + 1 }, (_, i) => 2018 + i);
+      for (const y of todosaños) agregar(`${y}`);
       for (const t of turnos) {
         const y = new Date(t.start).getFullYear();
         const key = `${y}`;
@@ -169,9 +168,9 @@ export default function GerenteDashboardPage() {
     return datos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
   }, [turnos, mesSeleccionado, modoTurnos]);
 
-  /* ---------------------- 👥 Pacientes nuevos ---------------------- */
+  /* ---------------------- 👥 Pacientes nuevos (años completos) ---------------------- */
   const pacientesAgrupados = useMemo(() => {
-    const [anioSel, mesSel] = mesSeleccionado.split("-").map(Number);
+    const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
     const datos: { fecha: string; nuevos: number }[] = [];
     const agregar = (key: string, n = 0) => {
       const existente = datos.find((d) => d.fecha === key);
@@ -180,26 +179,26 @@ export default function GerenteDashboardPage() {
     };
 
     if (modoPacientes === "dia") {
-      const fin = new Date(anioSel, mesSel, 0).getDate();
-      for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${anioSel}`);
+      const fin = new Date(añoSel, mesSel, 0).getDate();
+      for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${añoSel}`);
       for (const p of pacientes) {
         const f = new Date((p as any)._creationTime);
-        if (f.getFullYear() === anioSel && f.getMonth() + 1 === mesSel)
-          agregar(`${f.getDate()}/${mesSel}/${anioSel}`, 1);
+        if (f.getFullYear() === añoSel && f.getMonth() + 1 === mesSel)
+          agregar(`${f.getDate()}/${mesSel}/${añoSel}`, 1);
       }
     }
 
     if (modoPacientes === "mes") {
-      for (let m = 1; m <= 12; m++) agregar(`${m}/${anioSel}`);
+      for (let m = 1; m <= 12; m++) agregar(`${m}/${añoSel}`);
       for (const p of pacientes) {
         const f = new Date((p as any)._creationTime);
-        if (f.getFullYear() === anioSel) agregar(`${f.getMonth() + 1}/${anioSel}`, 1);
+        if (f.getFullYear() === añoSel) agregar(`${f.getMonth() + 1}/${añoSel}`, 1);
       }
     }
 
-    if (modoPacientes === "anio") {
-      const anios = Array.from(new Set(pacientes.map((p) => new Date((p as any)._creationTime).getFullYear())));
-      for (const y of anios) agregar(`${y}`);
+    if (modoPacientes === "año") {
+      const todosaños = Array.from({ length: new Date().getFullYear() - 2018 + 1 }, (_, i) => 2018 + i);
+      for (const y of todosaños) agregar(`${y}`);
       for (const p of pacientes) {
         const y = new Date((p as any)._creationTime).getFullYear();
         agregar(`${y}`, 1);
@@ -259,7 +258,7 @@ export default function GerenteDashboardPage() {
           )}
         </div>
 
-        {/* 📊 Distribuciones generales */}
+        {/* 📊 Distribuciones */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Obras Sociales */}
           <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
@@ -281,7 +280,6 @@ export default function GerenteDashboardPage() {
                       `${entry.name}: ${(entry.percent * 100).toFixed(1)}%`
                     }
                     labelLine={false}
-                    isAnimationActive
                   >
                     {obrasPorUso.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
@@ -338,8 +336,7 @@ export default function GerenteDashboardPage() {
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-indigo-600" />
-              Evolución de turnos ({modoTurnos})
+              <CalendarDays className="w-5 h-5 text-indigo-600" /> Evolución de turnos ({modoTurnos})
             </h2>
             <div className="flex gap-3 items-center">
               <select
@@ -349,7 +346,7 @@ export default function GerenteDashboardPage() {
               >
                 <option value="dia">Por día</option>
                 <option value="mes">Por mes</option>
-                <option value="anio">Por año</option>
+                <option value="año">Por año</option>
               </select>
               <input
                 type="month"
@@ -388,7 +385,7 @@ export default function GerenteDashboardPage() {
                 />
               )}
             </LineChart>
-            </ResponsiveContainer>
+          </ResponsiveContainer>
 
           <div className="flex justify-center gap-6 mt-4 text-sm">
             <button
@@ -402,11 +399,7 @@ export default function GerenteDashboardPage() {
                   borderColor: "#22C55E",
                 }}
               />
-              <span
-                className={
-                  mostrarAtendidos ? "text-gray-800" : "text-gray-400"
-                }
-              >
+              <span className={mostrarAtendidos ? "text-gray-800" : "text-gray-400"}>
                 Atendidos
               </span>
             </button>
@@ -418,41 +411,24 @@ export default function GerenteDashboardPage() {
               <span
                 className="w-4 h-4 rounded-sm border"
                 style={{
-                  backgroundColor: mostrarCancelados
-                    ? "#EF4444"
-                    : "transparent",
+                  backgroundColor: mostrarCancelados ? "#EF4444" : "transparent",
                   borderColor: "#EF4444",
                 }}
               />
-              <span
-                className={
-                  mostrarCancelados ? "text-gray-800" : "text-gray-400"
-                }
-              >
+              <span className={mostrarCancelados ? "text-gray-800" : "text-gray-400"}>
                 Cancelados
               </span>
             </button>
           </div>
         </div>
 
-        {/* 📊 Indicadores resumen */}
+        {/* 📊 Indicadores */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <ul className="space-y-3 text-sm text-gray-700">
-            <li>
-              ✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados
-            </li>
-            <li>
-              🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados
-            </li>
-            <li>
-              📅 Promedio diario: <b>{indicadores.promedioDia}</b>
-            </li>
-            <li>
-              💬 Destacadas:{" "}
-              <b>
-                {indicadores.topEspecialidades.join(" y ") || "Sin datos"}
-              </b>
-            </li>
+            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados</li>
+            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados</li>
+            <li>📅 Promedio diario: <b>{indicadores.promedioDia}</b></li>
+            <li>💬 Destacadas: <b>{indicadores.topEspecialidades.join(" y ") || "Sin datos"}</b></li>
           </ul>
         </div>
 
@@ -460,8 +436,7 @@ export default function GerenteDashboardPage() {
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" />
-              Nuevos pacientes ({modoPacientes})
+              <Users className="w-5 h-5 text-blue-600" /> Nuevos pacientes ({modoPacientes})
             </h2>
             <div className="flex gap-3 items-center">
               <select
@@ -471,7 +446,7 @@ export default function GerenteDashboardPage() {
               >
                 <option value="dia">Por día</option>
                 <option value="mes">Por mes</option>
-                <option value="anio">Por año</option>
+                <option value="año">Por año</option>
               </select>
               <input
                 type="month"
@@ -494,7 +469,7 @@ export default function GerenteDashboardPage() {
                   dataKey="nuevos"
                   stroke="#3B82F6"
                   strokeWidth={2.5}
-                  dot={false}
+                  dot={{ r: 3 }}
                   name="Nuevos pacientes"
                 />
               )}
@@ -509,17 +484,11 @@ export default function GerenteDashboardPage() {
               <span
                 className="w-4 h-4 rounded-sm border"
                 style={{
-                  backgroundColor: mostrarPacientes
-                    ? "#3B82F6"
-                    : "transparent",
+                  backgroundColor: mostrarPacientes ? "#3B82F6" : "transparent",
                   borderColor: "#3B82F6",
                 }}
               />
-              <span
-                className={
-                  mostrarPacientes ? "text-gray-800" : "text-gray-400"
-                }
-              >
+              <span className={mostrarPacientes ? "text-gray-800" : "text-gray-400"}>
                 Nuevos pacientes
               </span>
             </button>
