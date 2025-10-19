@@ -29,7 +29,6 @@ import {
 } from "recharts";
 
 export default function GerenteDashboardPage() {
-  // 📆 Filtros
   const [mesSeleccionado, setMesSeleccionado] = useState(() => {
     const ahora = new Date();
     return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}`;
@@ -48,7 +47,7 @@ export default function GerenteDashboardPage() {
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? [];
 
-  const COLORS = ["#3B82F6", "#22C55E", "#EAB308", "#EC4899", "#14B8A6", "#8B5CF6"];
+  const COLORS = ["#3B82F6", "#22C55E", "#EAB308", "#EC4899", "#A855F7", "#14B8A6"];
   const esEstado = (t: any, ...estados: string[]) => estados.includes(t.estado as string);
 
   /* ---------------------- 📈 Indicadores ---------------------- */
@@ -101,7 +100,23 @@ export default function GerenteDashboardPage() {
     return Array.from(conteo.entries()).map(([nombre, turnos]) => ({ nombre, turnos }));
   }, [turnos, especialidades]);
 
-  /* ---------------------- 📉 Turnos por fecha ---------------------- */
+  /* ---------------------- 👩‍⚕️ Pacientes por género ---------------------- */
+  const pacientesPorGenero = useMemo(() => {
+    const totalMasculino = pacientes.filter((p: any) => p.genero === "Masculino").length;
+    const totalFemenino = pacientes.filter((p: any) => p.genero === "Femenino").length;
+    const totalOtro = pacientes.filter((p: any) => !["Masculino", "Femenino"].includes(p.genero)).length;
+    const total = totalMasculino + totalFemenino + totalOtro;
+
+    return [
+      { name: "Masculino", value: totalMasculino },
+      { name: "Femenino", value: totalFemenino },
+      { name: "Otro", value: totalOtro },
+    ];
+  }, [pacientes]);
+
+  const totalPacientes = pacientesPorGenero.reduce((acc, item) => acc + item.value, 0);
+
+  /* ---------------------- 📈 Turnos por fecha ---------------------- */
   const turnosAgrupados = useMemo(() => {
     const [anioSel, mesSel] = mesSeleccionado.split("-").map(Number);
     const datos: { fecha: string; atendidos: number; cancelados: number }[] = [];
@@ -142,9 +157,7 @@ export default function GerenteDashboardPage() {
 
     if (modoTurnos === "anio") {
       const anios = Array.from(new Set(turnos.map((t) => new Date(t.start).getFullYear())));
-      const min = Math.min(...anios, anioSel - 1);
-      const max = Math.max(...anios, anioSel);
-      for (let y = min; y <= max; y++) agregar(`${y}`);
+      for (const y of anios) agregar(`${y}`);
       for (const t of turnos) {
         const y = new Date(t.start).getFullYear();
         const key = `${y}`;
@@ -170,7 +183,7 @@ export default function GerenteDashboardPage() {
       const fin = new Date(anioSel, mesSel, 0).getDate();
       for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${anioSel}`);
       for (const p of pacientes) {
-        const f = new Date((p as any).fechaRegistro || (p as any)._creationTime);
+        const f = new Date((p as any)._creationTime);
         if (f.getFullYear() === anioSel && f.getMonth() + 1 === mesSel)
           agregar(`${f.getDate()}/${mesSel}/${anioSel}`, 1);
       }
@@ -179,16 +192,14 @@ export default function GerenteDashboardPage() {
     if (modoPacientes === "mes") {
       for (let m = 1; m <= 12; m++) agregar(`${m}/${anioSel}`);
       for (const p of pacientes) {
-        const f = new Date((p as any).fechaRegistro || (p as any)._creationTime);
+        const f = new Date((p as any)._creationTime);
         if (f.getFullYear() === anioSel) agregar(`${f.getMonth() + 1}/${anioSel}`, 1);
       }
     }
 
     if (modoPacientes === "anio") {
       const anios = Array.from(new Set(pacientes.map((p) => new Date((p as any)._creationTime).getFullYear())));
-      const min = Math.min(...anios, anioSel - 1);
-      const max = Math.max(...anios, anioSel);
-      for (let y = min; y <= max; y++) agregar(`${y}`);
+      for (const y of anios) agregar(`${y}`);
       for (const p of pacientes) {
         const y = new Date((p as any)._creationTime).getFullYear();
         agregar(`${y}`, 1);
@@ -224,34 +235,34 @@ export default function GerenteDashboardPage() {
           <KPI icon={<Activity className="w-6 h-6 text-rose-500" />} title="Obras Sociales" value={obrasSociales.length} />
         </div>
 
-        {/* Gráficos Generales */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Turnos por Especialidad */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Stethoscope className="w-5 h-5 text-blue-600" /> Turnos por Especialidad
-            </h2>
-            {turnosPorEspecialidad.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <BarChart data={turnosPorEspecialidad}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
-                  <XAxis dataKey="nombre" />
-                  <YAxis allowDecimals={false} />
-                  <Tooltip />
-                  <Bar dataKey="turnos" radius={[4, 4, 0, 0]}>
-                    {turnosPorEspecialidad.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
-            )}
-          </div>
+        {/* 📊 Turnos por Especialidad */}
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+            <Stethoscope className="w-5 h-5 text-blue-600" /> Turnos por Especialidad
+          </h2>
+          {turnosPorEspecialidad.length > 0 ? (
+            <ResponsiveContainer width="100%" height={350}>
+              <BarChart data={turnosPorEspecialidad}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                <XAxis dataKey="nombre" />
+                <YAxis allowDecimals={false} />
+                <Tooltip />
+                <Bar dataKey="turnos" radius={[6, 6, 0, 0]}>
+                  {turnosPorEspecialidad.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          ) : (
+            <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
+          )}
+        </div>
 
+        {/* 📊 Distribuciones generales */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Obras Sociales */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
             <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
               <HeartPulse className="w-5 h-5 text-rose-600" /> Distribución por Obras Sociales
             </h2>
@@ -264,10 +275,15 @@ export default function GerenteDashboardPage() {
                     nameKey="nombre"
                     cx="50%"
                     cy="50%"
-                    outerRadius={100}
-                    label
+                    innerRadius={70}
+                    outerRadius={110}
+                    label={(entry: any) =>
+                      `${entry.name}: ${(entry.percent * 100).toFixed(1)}%`
+                    }
+                    labelLine={false}
+                    isAnimationActive
                   >
-                    {obrasPorUso.map((entry, i) => (
+                    {obrasPorUso.map((_, i) => (
                       <Cell key={i} fill={COLORS[i % COLORS.length]} />
                     ))}
                   </Pie>
@@ -278,9 +294,47 @@ export default function GerenteDashboardPage() {
               <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
             )}
           </div>
+
+          {/* Género */}
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Users className="w-5 h-5 text-indigo-600" /> Distribución por Género
+            </h2>
+            <ResponsiveContainer width="100%" height={300}>
+              <PieChart>
+                <Pie
+                  data={pacientesPorGenero}
+                  dataKey="value"
+                  nameKey="name"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={70}
+                  outerRadius={110}
+                  label={(entry: any) =>
+                    `${entry.name}: ${(entry.percent * 100).toFixed(1)}%`
+                  }
+                  labelLine={false}
+                >
+                  {pacientesPorGenero.map((_, i) => (
+                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <text
+                  x="50%"
+                  y="50%"
+                  textAnchor="middle"
+                  dominantBaseline="middle"
+                  className="text-2xl font-semibold fill-gray-700"
+                >
+                  {totalPacientes}
+                </text>
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
         </div>
 
-        {/* Línea temporal de turnos */}
+        {/* 📈 Evolución de Turnos */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -288,7 +342,11 @@ export default function GerenteDashboardPage() {
               Evolución de turnos ({modoTurnos})
             </h2>
             <div className="flex gap-3 items-center">
-              <select value={modoTurnos} onChange={(e) => setModoTurnos(e.target.value as any)} className="border rounded-lg px-3 py-1.5 text-sm">
+              <select
+                value={modoTurnos}
+                onChange={(e) => setModoTurnos(e.target.value as any)}
+                className="border rounded-lg px-3 py-1.5 text-sm"
+              >
                 <option value="dia">Por día</option>
                 <option value="mes">Por mes</option>
                 <option value="anio">Por año</option>
@@ -309,7 +367,14 @@ export default function GerenteDashboardPage() {
               <YAxis allowDecimals={false} />
               <Tooltip />
               {mostrarAtendidos && (
-                <Line type="monotone" dataKey="atendidos" stroke="#22C55E" strokeWidth={2.5} dot={false} name="Atendidos" />
+                <Line
+                  type="monotone"
+                  dataKey="atendidos"
+                  stroke="#22C55E"
+                  strokeWidth={2.5}
+                  dot={false}
+                  name="Atendidos"
+                />
               )}
               {mostrarCancelados && (
                 <Line
@@ -323,31 +388,75 @@ export default function GerenteDashboardPage() {
                 />
               )}
             </LineChart>
-          </ResponsiveContainer>
+            </ResponsiveContainer>
 
           <div className="flex justify-center gap-6 mt-4 text-sm">
-            <button onClick={() => setMostrarAtendidos(!mostrarAtendidos)} className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-sm border" style={{ backgroundColor: mostrarAtendidos ? "#22C55E" : "transparent", borderColor: "#22C55E" }} />
-              <span className={mostrarAtendidos ? "text-gray-800" : "text-gray-400"}>Atendidos</span>
+            <button
+              onClick={() => setMostrarAtendidos(!mostrarAtendidos)}
+              className="flex items-center gap-2"
+            >
+              <span
+                className="w-4 h-4 rounded-sm border"
+                style={{
+                  backgroundColor: mostrarAtendidos ? "#22C55E" : "transparent",
+                  borderColor: "#22C55E",
+                }}
+              />
+              <span
+                className={
+                  mostrarAtendidos ? "text-gray-800" : "text-gray-400"
+                }
+              >
+                Atendidos
+              </span>
             </button>
-            <button onClick={() => setMostrarCancelados(!mostrarCancelados)} className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-sm border" style={{ backgroundColor: mostrarCancelados ? "#EF4444" : "transparent", borderColor: "#EF4444" }} />
-              <span className={mostrarCancelados ? "text-gray-800" : "text-gray-400"}>Cancelados</span>
+
+            <button
+              onClick={() => setMostrarCancelados(!mostrarCancelados)}
+              className="flex items-center gap-2"
+            >
+              <span
+                className="w-4 h-4 rounded-sm border"
+                style={{
+                  backgroundColor: mostrarCancelados
+                    ? "#EF4444"
+                    : "transparent",
+                  borderColor: "#EF4444",
+                }}
+              />
+              <span
+                className={
+                  mostrarCancelados ? "text-gray-800" : "text-gray-400"
+                }
+              >
+                Cancelados
+              </span>
             </button>
           </div>
         </div>
 
-        {/* Indicadores */}
+        {/* 📊 Indicadores resumen */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <ul className="space-y-3 text-sm text-gray-700">
-            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados</li>
-            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados</li>
-            <li>📅 Promedio diario: <b>{indicadores.promedioDia}</b></li>
-            <li>💬 Destacadas: <b>{indicadores.topEspecialidades.join(" y ") || "Sin datos"}</b></li>
+            <li>
+              ✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados
+            </li>
+            <li>
+              🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados
+            </li>
+            <li>
+              📅 Promedio diario: <b>{indicadores.promedioDia}</b>
+            </li>
+            <li>
+              💬 Destacadas:{" "}
+              <b>
+                {indicadores.topEspecialidades.join(" y ") || "Sin datos"}
+              </b>
+            </li>
           </ul>
         </div>
 
-        {/* Nuevos pacientes */}
+        {/* 👥 Nuevos pacientes */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -355,7 +464,11 @@ export default function GerenteDashboardPage() {
               Nuevos pacientes ({modoPacientes})
             </h2>
             <div className="flex gap-3 items-center">
-              <select value={modoPacientes} onChange={(e) => setModoPacientes(e.target.value as any)} className="border rounded-lg px-3 py-1.5 text-sm">
+              <select
+                value={modoPacientes}
+                onChange={(e) => setModoPacientes(e.target.value as any)}
+                className="border rounded-lg px-3 py-1.5 text-sm"
+              >
                 <option value="dia">Por día</option>
                 <option value="mes">Por mes</option>
                 <option value="anio">Por año</option>
@@ -376,15 +489,39 @@ export default function GerenteDashboardPage() {
               <YAxis allowDecimals={false} />
               <Tooltip />
               {mostrarPacientes && (
-                <Line type="monotone" dataKey="nuevos" stroke="#3B82F6" strokeWidth={2} dot={false} name="Nuevos pacientes" />
+                <Line
+                  type="monotone"
+                  dataKey="nuevos"
+                  stroke="#3B82F6"
+                  strokeWidth={2.5}
+                  dot={false}
+                  name="Nuevos pacientes"
+                />
               )}
             </LineChart>
           </ResponsiveContainer>
 
           <div className="flex justify-center gap-6 mt-4 text-sm">
-            <button onClick={() => setMostrarPacientes(!mostrarPacientes)} className="flex items-center gap-2">
-              <span className="w-4 h-4 rounded-sm border" style={{ backgroundColor: mostrarPacientes ? "#3B82F6" : "transparent", borderColor: "#3B82F6" }} />
-              <span className={mostrarPacientes ? "text-gray-800" : "text-gray-400"}>Nuevos pacientes</span>
+            <button
+              onClick={() => setMostrarPacientes(!mostrarPacientes)}
+              className="flex items-center gap-2"
+            >
+              <span
+                className="w-4 h-4 rounded-sm border"
+                style={{
+                  backgroundColor: mostrarPacientes
+                    ? "#3B82F6"
+                    : "transparent",
+                  borderColor: "#3B82F6",
+                }}
+              />
+              <span
+                className={
+                  mostrarPacientes ? "text-gray-800" : "text-gray-400"
+                }
+              >
+                Nuevos pacientes
+              </span>
             </button>
           </div>
         </div>
@@ -394,7 +531,15 @@ export default function GerenteDashboardPage() {
 }
 
 /* ---------- KPI ---------- */
-function KPI({ icon, title, value }: { icon: React.ReactNode; title: string; value: number | string }) {
+function KPI({
+  icon,
+  title,
+  value,
+}: {
+  icon: React.ReactNode;
+  title: string;
+  value: number | string;
+}) {
   return (
     <div className="flex items-center gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
       <div className="p-3 bg-gray-50 rounded-lg">{icon}</div>
