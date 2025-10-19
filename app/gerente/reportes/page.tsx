@@ -10,18 +10,26 @@ import {
   CalendarDays,
   Activity,
   TrendingUp,
+  HeartPulse,
+  Stethoscope,
 } from "lucide-react";
 import {
-  LineChart,
-  Line,
-  CartesianGrid,
+  BarChart,
+  Bar,
   XAxis,
   YAxis,
+  CartesianGrid,
   Tooltip,
   ResponsiveContainer,
+  PieChart,
+  Pie,
+  Cell,
+  LineChart,
+  Line,
 } from "recharts";
 
 export default function GerenteDashboardPage() {
+  // 📆 Filtros
   const [mesSeleccionado, setMesSeleccionado] = useState(() => {
     const ahora = new Date();
     return `${ahora.getFullYear()}-${String(ahora.getMonth() + 1).padStart(2, "0")}`;
@@ -32,15 +40,18 @@ export default function GerenteDashboardPage() {
   const [mostrarCancelados, setMostrarCancelados] = useState(true);
   const [mostrarPacientes, setMostrarPacientes] = useState(true);
 
-  // 📊 Consultas
+  // 📊 Datos Convex
   const pacientes = useQuery(api.pacientes.listar, { search: "" }) ?? [];
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const obrasSociales = useQuery(api.obrasSociales.listar) ?? [];
   const turnos = useQuery(api.turnos.listar) ?? [];
+  const especialidades = useQuery(api.especialidades.listar) ?? [];
+  const obrasPorUso = useQuery(api.obrasSociales.contarPacientesPorObraSocial) ?? [];
 
+  const COLORS = ["#3B82F6", "#22C55E", "#EAB308", "#EC4899", "#14B8A6", "#8B5CF6"];
   const esEstado = (t: any, ...estados: string[]) => estados.includes(t.estado as string);
 
-  /* ----------------------------- 📈 Indicadores ------------------------------ */
+  /* ---------------------- 📈 Indicadores ---------------------- */
   const indicadores = useMemo(() => {
     const [anio, mes] = mesSeleccionado.split("-").map(Number);
     const turnosMes = turnos.filter((t) => {
@@ -58,10 +69,39 @@ export default function GerenteDashboardPage() {
     const diasUnicos = new Set(turnosMes.map((t) => new Date(t.start).toDateString()));
     const promedioDia = diasUnicos.size ? Math.ceil(total / diasUnicos.size) : 0;
 
-    return { porcentajeConfirmados, porcentajeCancelados, promedioDia };
+    const conteoEspecialidades: Record<string, number> = {};
+    for (const t of turnosMes) {
+      const nombre = (t as any).especialidadNombre;
+      if (!nombre) continue;
+      conteoEspecialidades[nombre] = (conteoEspecialidades[nombre] || 0) + 1;
+    }
+    const topEspecialidades = Object.entries(conteoEspecialidades)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 2)
+      .map(([nombre]) => nombre);
+
+    return {
+      porcentajeConfirmados,
+      porcentajeCancelados,
+      promedioDia,
+      topEspecialidades,
+    };
   }, [turnos, mesSeleccionado]);
 
-  /* ----------------------------- 📉 Turnos ------------------------------ */
+  /* ---------------------- 📊 Turnos por especialidad ---------------------- */
+  const turnosPorEspecialidad = useMemo(() => {
+    if (!especialidades.length) return [];
+    const conteo = new Map<string, number>();
+    for (const e of especialidades) conteo.set(e.nombre, 0);
+    for (const t of turnos) {
+      const nombre = (t as any).especialidadNombre;
+      if (nombre && conteo.has(nombre))
+        conteo.set(nombre, (conteo.get(nombre) ?? 0) + 1);
+    }
+    return Array.from(conteo.entries()).map(([nombre, turnos]) => ({ nombre, turnos }));
+  }, [turnos, especialidades]);
+
+  /* ---------------------- 📉 Turnos por fecha ---------------------- */
   const turnosAgrupados = useMemo(() => {
     const [anioSel, mesSel] = mesSeleccionado.split("-").map(Number);
     const datos: { fecha: string; atendidos: number; cancelados: number }[] = [];
@@ -116,7 +156,7 @@ export default function GerenteDashboardPage() {
     return datos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
   }, [turnos, mesSeleccionado, modoTurnos]);
 
-  /* ----------------------------- 👥 Pacientes ------------------------------ */
+  /* ---------------------- 👥 Pacientes nuevos ---------------------- */
   const pacientesAgrupados = useMemo(() => {
     const [anioSel, mesSel] = mesSeleccionado.split("-").map(Number);
     const datos: { fecha: string; nuevos: number }[] = [];
@@ -158,13 +198,18 @@ export default function GerenteDashboardPage() {
     return datos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
   }, [pacientes, mesSeleccionado, modoPacientes]);
 
-  /* ----------------------------- UI ------------------------------ */
+  /* ---------------------- UI ---------------------- */
   return (
-    <PageWrapper breadcrumbs={[{ label: "Inicio", href: "/gerente" }, { label: "Reportes", href: "/gerente/reportes" }]}>
+    <PageWrapper
+      breadcrumbs={[
+        { label: "Inicio", href: "/gerente" },
+        { label: "Reportes", href: "/gerente/reportes" },
+      ]}
+    >
       <div className="w-full px-10 py-10 space-y-8">
         {/* Header */}
         <div className="flex items-center gap-3">
-          <div className="w-1.5 h-8 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full" />
+          <div className="w-1.5 h-8 bg-gradient-to-b from-indigo-500 to-purple-500 rounded-full"></div>
           <h1 className="text-3xl font-bold text-gray-900 flex items-center gap-2">
             <TrendingUp className="w-6 h-6 text-indigo-500" />
             Panel de Control del Gerente
@@ -179,7 +224,63 @@ export default function GerenteDashboardPage() {
           <KPI icon={<Activity className="w-6 h-6 text-rose-500" />} title="Obras Sociales" value={obrasSociales.length} />
         </div>
 
-        {/* 📅 Turnos */}
+        {/* Gráficos Generales */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Turnos por Especialidad */}
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <Stethoscope className="w-5 h-5 text-blue-600" /> Turnos por Especialidad
+            </h2>
+            {turnosPorEspecialidad.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={turnosPorEspecialidad}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#eee" />
+                  <XAxis dataKey="nombre" />
+                  <YAxis allowDecimals={false} />
+                  <Tooltip />
+                  <Bar dataKey="turnos" radius={[4, 4, 0, 0]}>
+                    {turnosPorEspecialidad.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
+            )}
+          </div>
+
+          {/* Obras Sociales */}
+          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+              <HeartPulse className="w-5 h-5 text-rose-600" /> Distribución por Obras Sociales
+            </h2>
+            {obrasPorUso.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <PieChart>
+                  <Pie
+                    data={obrasPorUso}
+                    dataKey="valor"
+                    nameKey="nombre"
+                    cx="50%"
+                    cy="50%"
+                    outerRadius={100}
+                    label
+                  >
+                    {obrasPorUso.map((entry, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
+            )}
+          </div>
+        </div>
+
+        {/* Línea temporal de turnos */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -208,14 +309,7 @@ export default function GerenteDashboardPage() {
               <YAxis allowDecimals={false} />
               <Tooltip />
               {mostrarAtendidos && (
-                <Line
-                  type="monotone"
-                  dataKey="atendidos"
-                  stroke="#22C55E"
-                  strokeWidth={2.5}
-                  dot={false}
-                  name="Atendidos"
-                />
+                <Line type="monotone" dataKey="atendidos" stroke="#22C55E" strokeWidth={2.5} dot={false} name="Atendidos" />
               )}
               {mostrarCancelados && (
                 <Line
@@ -224,7 +318,7 @@ export default function GerenteDashboardPage() {
                   stroke="#EF4444"
                   strokeWidth={2}
                   dot={false}
-                  strokeDasharray="6 6" // línea punteada
+                  strokeDasharray="6 6"
                   name="Cancelados"
                 />
               )}
@@ -243,7 +337,17 @@ export default function GerenteDashboardPage() {
           </div>
         </div>
 
-        {/* 👥 Pacientes */}
+        {/* Indicadores */}
+        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+          <ul className="space-y-3 text-sm text-gray-700">
+            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados</li>
+            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados</li>
+            <li>📅 Promedio diario: <b>{indicadores.promedioDia}</b></li>
+            <li>💬 Destacadas: <b>{indicadores.topEspecialidades.join(" y ") || "Sin datos"}</b></li>
+          </ul>
+        </div>
+
+        {/* Nuevos pacientes */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
           <div className="flex justify-between mb-4">
             <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
@@ -272,14 +376,7 @@ export default function GerenteDashboardPage() {
               <YAxis allowDecimals={false} />
               <Tooltip />
               {mostrarPacientes && (
-                <Line
-                  type="monotone"
-                  dataKey="nuevos"
-                  stroke="#3B82F6"
-                  strokeWidth={2}
-                  dot={false}
-                  name="Nuevos pacientes"
-                />
+                <Line type="monotone" dataKey="nuevos" stroke="#3B82F6" strokeWidth={2} dot={false} name="Nuevos pacientes" />
               )}
             </LineChart>
           </ResponsiveContainer>
@@ -297,15 +394,7 @@ export default function GerenteDashboardPage() {
 }
 
 /* ---------- KPI ---------- */
-function KPI({
-  icon,
-  title,
-  value,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  value: number | string;
-}) {
+function KPI({ icon, title, value }: { icon: React.ReactNode; title: string; value: number | string }) {
   return (
     <div className="flex items-center gap-4 bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-shadow">
       <div className="p-3 bg-gray-50 rounded-lg">{icon}</div>
