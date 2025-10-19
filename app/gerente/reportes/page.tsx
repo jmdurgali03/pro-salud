@@ -170,44 +170,59 @@ export default function GerenteDashboardPage() {
 
   /* ---------------------- 👥 Pacientes nuevos (años completos) ---------------------- */
   const pacientesAgrupados = useMemo(() => {
-    const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
-    const datos: { fecha: string; nuevos: number }[] = [];
-    const agregar = (key: string, n = 0) => {
-      const existente = datos.find((d) => d.fecha === key);
-      if (existente) existente.nuevos += n;
-      else datos.push({ fecha: key, nuevos: n });
-    };
+  const [añoSel, mesSel] = mesSeleccionado.split("-").map(Number);
 
-    if (modoPacientes === "dia") {
-      const fin = new Date(añoSel, mesSel, 0).getDate();
-      for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${añoSel}`);
-      for (const p of pacientes) {
-        const f = new Date((p as any)._creationTime);
-        if (f.getFullYear() === añoSel && f.getMonth() + 1 === mesSel)
-          agregar(`${f.getDate()}/${mesSel}/${añoSel}`, 1);
+  // Elegí el año base que quieras (si tu sistema empezó después de 2018, cambialo)
+  const BASE_YEAR = 2018;
+  const CURRENT_YEAR = new Date().getFullYear();
+
+  // Para armar los puntos
+  const datos: Array<{ fecha: number | string; nuevos: number }> = [];
+  const agregar = (key: number | string, n = 0) => {
+    const idx = datos.findIndex((d) => d.fecha === key);
+    if (idx >= 0) datos[idx].nuevos += n;
+    else datos.push({ fecha: key, nuevos: n });
+  };
+
+  if (modoPacientes === "dia") {
+    const fin = new Date(añoSel, mesSel, 0).getDate();
+    for (let d = 1; d <= fin; d++) agregar(`${d}/${mesSel}/${añoSel}`, 0);
+    for (const p of pacientes) {
+      const f = new Date((p as any)._creationTime);
+      if (f.getFullYear() === añoSel && f.getMonth() + 1 === mesSel) {
+        agregar(`${f.getDate()}/${mesSel}/${añoSel}`, 1);
       }
     }
+    return datos.sort(
+      (a, b) =>
+        new Date(String(a.fecha)).getTime() - new Date(String(b.fecha)).getTime()
+    );
+  }
 
-    if (modoPacientes === "mes") {
-      for (let m = 1; m <= 12; m++) agregar(`${m}/${añoSel}`);
-      for (const p of pacientes) {
-        const f = new Date((p as any)._creationTime);
-        if (f.getFullYear() === añoSel) agregar(`${f.getMonth() + 1}/${añoSel}`, 1);
-      }
+  if (modoPacientes === "mes") {
+    for (let m = 1; m <= 12; m++) agregar(`${m}/${añoSel}`, 0);
+    for (const p of pacientes) {
+      const f = new Date((p as any)._creationTime);
+      if (f.getFullYear() === añoSel) agregar(`${f.getMonth() + 1}/${añoSel}`, 1);
     }
+    return datos.sort(
+      (a, b) =>
+        new Date(String(a.fecha)).getTime() - new Date(String(b.fecha)).getTime()
+    );
+  }
 
-    if (modoPacientes === "año") {
-      const todosaños = Array.from({ length: new Date().getFullYear() - 2018 + 1 }, (_, i) => 2018 + i);
-      for (const y of todosaños) agregar(`${y}`);
-      for (const p of pacientes) {
-        const y = new Date((p as any)._creationTime).getFullYear();
-        agregar(`${y}`, 1);
-      }
-    }
-
-    return datos.sort((a, b) => new Date(a.fecha).getTime() - new Date(b.fecha).getTime());
-  }, [pacientes, mesSeleccionado, modoPacientes]);
-
+  // === modoPacientes === "año" ===
+  // Usamos eje X numérico (años) para evitar parseos raros de fechas string
+  for (let y = BASE_YEAR; y <= CURRENT_YEAR; y++) agregar(y, 0);
+  for (const p of pacientes) {
+    const y = new Date((p as any)._creationTime).getFullYear();
+    if (y >= BASE_YEAR && y <= CURRENT_YEAR) agregar(y, 1);
+  }
+  // Orden numérico simple
+  return datos.sort(
+    (a, b) => (a.fecha as number) - (b.fecha as number)
+  );
+}, [pacientes, mesSeleccionado, modoPacientes]);
   /* ---------------------- UI ---------------------- */
   return (
     <PageWrapper
@@ -433,67 +448,74 @@ export default function GerenteDashboardPage() {
         </div>
 
         {/* 👥 Nuevos pacientes */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <div className="flex justify-between mb-4">
-            <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
-              <Users className="w-5 h-5 text-blue-600" /> Nuevos pacientes ({modoPacientes})
-            </h2>
-            <div className="flex gap-3 items-center">
-              <select
-                value={modoPacientes}
-                onChange={(e) => setModoPacientes(e.target.value as any)}
-                className="border rounded-lg px-3 py-1.5 text-sm"
-              >
-                <option value="dia">Por día</option>
-                <option value="mes">Por mes</option>
-                <option value="año">Por año</option>
-              </select>
-              <input
-                type="month"
-                value={mesSeleccionado}
-                onChange={(e) => setMesSeleccionado(e.target.value)}
-                className="border rounded-lg px-3 py-1.5 text-sm"
-              />
-            </div>
-          </div>
+<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+  <div className="flex justify-between mb-4">
+    <h2 className="text-xl font-semibold text-gray-800 flex items-center gap-2">
+      <Users className="w-5 h-5 text-blue-600" />
+      Nuevos pacientes ({modoPacientes})
+    </h2>
+    <div className="flex gap-3 items-center">
+      <select
+        value={modoPacientes}
+        onChange={(e) => setModoPacientes(e.target.value as any)}
+        className="border rounded-lg px-3 py-1.5 text-sm"
+      >
+        <option value="dia">Por día</option>
+        <option value="mes">Por mes</option>
+        <option value="año">Por año</option>
+      </select>
+      <input
+        type="month"
+        value={mesSeleccionado}
+        onChange={(e) => setMesSeleccionado(e.target.value)}
+        className="border rounded-lg px-3 py-1.5 text-sm"
+      />
+    </div>
+  </div>
 
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={pacientesAgrupados}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="fecha" tick={{ fontSize: 11 }} />
-              <YAxis allowDecimals={false} />
-              <Tooltip />
-              {mostrarPacientes && (
-                <Line
-                  type="monotone"
-                  dataKey="nuevos"
-                  stroke="#3B82F6"
-                  strokeWidth={2.5}
-                  dot={{ r: 3 }}
-                  name="Nuevos pacientes"
-                />
-              )}
-            </LineChart>
-          </ResponsiveContainer>
+  <ResponsiveContainer width="100%" height={300}>
+  <LineChart data={pacientesAgrupados}>
+    <CartesianGrid strokeDasharray="3 3" />
+    <XAxis
+      dataKey="fecha"
+      // tipo numérico si es por año; categórico para día/mes
+      type={modoPacientes === "año" ? "number" : "category"}
+      domain={modoPacientes === "año" ? ["dataMin", "dataMax"] : undefined}
+      allowDecimals={false}
+      tick={{ fontSize: 11 }}
+      tickFormatter={(v) =>
+        modoPacientes === "año" ? String(v) : (v as string)
+      }
+    />
+    <YAxis allowDecimals={false} />
+    <Tooltip />
+    <Line
+      type="monotone"
+      dataKey="nuevos"
+      stroke="#3B82F6"
+      strokeWidth={2.5}
+      dot={{ r: 3 }}
+      name="Nuevos pacientes"
+      isAnimationActive
+    />
+  </LineChart>
+</ResponsiveContainer>
 
-          <div className="flex justify-center gap-6 mt-4 text-sm">
-            <button
-              onClick={() => setMostrarPacientes(!mostrarPacientes)}
-              className="flex items-center gap-2"
-            >
-              <span
-                className="w-4 h-4 rounded-sm border"
-                style={{
-                  backgroundColor: mostrarPacientes ? "#3B82F6" : "transparent",
-                  borderColor: "#3B82F6",
-                }}
-              />
-              <span className={mostrarPacientes ? "text-gray-800" : "text-gray-400"}>
-                Nuevos pacientes
-              </span>
-            </button>
-          </div>
-        </div>
+
+
+  {/* Indicador fijo debajo del gráfico */}
+  <div className="flex justify-center mt-4 text-sm text-gray-700 items-center gap-2">
+    <span
+      className="w-4 h-4 rounded-sm border"
+      style={{
+        backgroundColor: "#3B82F6",
+        borderColor: "#3B82F6",
+      }}
+    />
+    <span className="font-medium">Nuevos pacientes</span>
+  </div>
+</div>
+
       </div>
     </PageWrapper>
   );
