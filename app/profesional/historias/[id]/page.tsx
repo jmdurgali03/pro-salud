@@ -5,280 +5,185 @@ import { useMemo, useRef, useEffect, useState } from "react";
 import { useQuery, useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import { Id } from "@/convex/_generated/dataModel";
-import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
 
-// Componentes
-import Section from "@/components/pacientes/Section";
-import ConsultasTable from "@/components/pacientes/ConsultasTable";
-import NuevaConsultaModal from "@/components/pacientes/NuevaConsultaModal";
-import NuevoDiagnosticoModal from "@/components/pacientes/NuevoDiagnosticoModal";
-import NuevoTratamientoModal from "@/components/pacientes/NuevoTratamientoModal";
-import TratamientosTable from "@/components/pacientes/TratamientosTable";
-import NuevaNotaMedicaModal from "@/components/pacientes/NuevaNotaMedicaModal";
-import NotasMedicasTable, { Nota } from "@/components/pacientes/NotasMedicasTable";
 import HeroPaciente from "@/components/pacientes/HeroPaciente";
+import Section from "@/components/pacientes/Section";
 import Panel from "@/components/pacientes/Panel";
-import { KPIGrid } from "@/components/pacientes/KPI";
-
-// Nuevos helpers UI
-import BigTabs from "@/components/pacientes//BigTabs";
+import BigTabs from "@/components/pacientes/BigTabs";
 import Pagination from "@/components/pacientes/Pagination";
 
-// Icons para los tabs
-import { LayoutGrid, Stethoscope, NotebookText, Pill } from "lucide-react";
+import IndicacionesTable from "@/components/pacientes/IndicacionesTable";
+import NuevaIndicacionModal from "@/components/pacientes/NuevaIndicacionModal";
+import DiagnosticosTable from "@/components/pacientes/DiagnosticosTable";
 
-/* -------------------- Tipos locales -------------------- */
+import MedicamentosTable, { MedRow } from "@/components/pacientes/MedicamentosTable";
+import DetalleMedicamentoModal from "@/components/pacientes/DetalleMedicamentoModal";
+import NuevoMedicamentoModal from "@/components/pacientes/NuevoMedicamentoModal";
+import NuevoDiagnosticoModal from "@/components/pacientes/NuevoDiagnosticoModal";
+
+import {
+  LayoutGrid,
+  Pill,
+  ClipboardList,
+  Stethoscope,
+  CheckCircle2,
+  AlertCircle,
+} from "lucide-react";
+
+/* ================= Tipos ================= */
 type PacienteExtendido = {
   _id: Id<"pacientes">;
-  _creationTime: number;
   nombre: string;
   apellido: string;
+  dni: string;
+  genero?: "Masculino" | "Femenino" | "Otro";
+  fechaNacimiento?: string | number;
   email?: string;
   telefono?: string;
-  dni: string;
-  fechaNacimiento?: string | number;
-  genero?: "Masculino" | "Femenino";
-  creadoEn: number;
-  actualizadoEn: number;
   obrasSocialesNombres: string[];
-};
-
-type Consulta = {
-  _id: Id<"consultas">;
-  motivo: string;
-  fecha: number;
-  profesionalId: Id<"profesionales">;
-  notas?: string;
 };
 
 type Diagnostico = {
   _id: Id<"diagnosticos">;
-  consultaId: Id<"consultas">;
   descripcion: string;
   profesionalId: Id<"profesionales">;
   estado: "Presuntivo" | "Definitivo";
-  fecha: number;
+  fecha?: number;
 };
 
-type Tratamiento = {
-  _id: Id<"tratamientos">;
-  pacienteId: Id<"pacientes">;
-  profesional: string;
-  titulo: string;
-  indicaciones: string;
-  fechaInicio: number;
-  fechaFin?: number | null;
-  estado: "Activo" | "Suspendido" | "Finalizado";
-  cronico?: boolean;
-  notas?: string;
+type Indicacion = {
+  _id: Id<"indicaciones">;
+  profesionalId: Id<"profesionales">;
+  fecha: number;
+  tipo: "Estudio" | "Procedimiento" | "Derivación" | "Control";
+  nombre: string;
+  observaciones?: string;
+  estado: "Pendiente" | "Realizada" | "Cancelada";
 };
-/* ------------------------------------------------------ */
+
+type Medicamento = MedRow;
 
 const PAGE_SIZE = 10;
-type TabKey = "resumen" | "consultas" | "notas" | "tratamientos";
+type TabKey = "resumen" | "diagnosticos" | "indicaciones" | "medicamentos";
 
+/* ================= Página ================= */
 export default function HistorialPacientePage() {
   const { id } = useParams();
   const pacienteId = id as Id<"pacientes">;
-
-  // Clerk: usuario actual -> profesional actual
   const { user } = useUser();
+
   const profesionalActual = useQuery(api.profesionales.getByClerkUser, {
     clerkUserId: user?.id || "",
   });
 
-  // Queries
   const paciente = useQuery(api.pacientes.getById, { id: pacienteId }) as PacienteExtendido | null;
-  const consultasQ = useQuery(api.consultas.listarPorPaciente, { pacienteId }) as Consulta[] | undefined;
-  const diagnosticosQ = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as Diagnostico[] | undefined;
-  const tratamientosQ = useQuery(api.tratamientos.listarPorPaciente, { pacienteId }) as Tratamiento[] | undefined;
-  const notasQ = useQuery(api.observaciones.listarPorPaciente, { pacienteId }) as Nota[] | undefined;
+  const diagnosticos = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as Diagnostico[] | undefined;
+  const indicaciones = useQuery(api.indicaciones.listarPorPaciente, { pacienteId }) as Indicacion[] | undefined;
+  const medicamentos = useQuery(api.medicamentos.listarPorPaciente, { pacienteId }) as Medicamento[] | undefined;
 
-  // (Seguimos trayendo listas si las usan en tablas)
   const profesionales = useQuery(api.profesionales.listar) ?? [];
-  const especialidades = useQuery(api.especialidades.listar) ?? [];
-
-  const espNombrePorId = useMemo(() => {
-    const m = new Map<Id<"especialidades">, string>();
-    for (const e of especialidades) m.set(e._id, e.nombre);
-    return m;
-  }, [especialidades]);
-
   const profNombrePorId = useMemo(() => {
     const m = new Map<Id<"profesionales">, string>();
     for (const p of profesionales) m.set(p._id, `${p.apellido}, ${p.nombre}`);
     return m;
   }, [profesionales]);
 
-  // Mutations
-  const crearConsulta = useMutation(api.consultas.crear);
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
-  const crearTratamiento = useMutation(api.tratamientos.crear);
-  const cambiarEstadoTrat = useMutation(api.tratamientos.cambiarEstado);
-  const crearNota = useMutation(api.observaciones.crear);
+  const crearIndicacion = useMutation(api.indicaciones.crear);
+  const crearMedicamento = useMutation(api.medicamentos.crear);
+  const cambiarEstadoMedicamento = useMutation(api.medicamentos.cambiarEstado);
 
-  // UI state
-  const [openConsulta, setOpenConsulta] = useState(false);
   const [openDx, setOpenDx] = useState(false);
-  const [openTrat, setOpenTrat] = useState(false);
-  const [openNota, setOpenNota] = useState(false);
+  const [openIndic, setOpenIndic] = useState(false);
+  const [openMed, setOpenMed] = useState(false);
 
-  // Tabs + paginación
+  // Detalle de medicamento (con edición de estado)
+  const [openMedDetalle, setOpenMedDetalle] = useState(false);
+  const [medSeleccionado, setMedSeleccionado] = useState<Medicamento | null>(null);
+  const [savingEstado, setSavingEstado] = useState(false);
+
   const [tab, setTab] = useState<TabKey>("resumen");
-  const [pageCons, setPageCons] = useState(1);
-  const [pageNotas, setPageNotas] = useState(1);
-  const [pageTrat, setPageTrat] = useState(1);
+  const [pageDx, setPageDx] = useState(1);
+  const [pageInd, setPageInd] = useState(1);
+  const [pageMed, setPageMed] = useState(1);
 
-  // Scroll al entrar
+  const [toast, setToast] = useState<{ msg: string; type: "success" | "error" } | null>(null);
+  useEffect(() => {
+    if (!toast) return;
+    const t = setTimeout(() => setToast(null), 4000);
+    return () => clearTimeout(t);
+  }, [toast]);
+
   const resumenRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
     resumenRef.current?.scrollIntoView({ block: "start" });
   }, []);
 
-  // Normalización
-  const consultas = consultasQ ?? [];
-  const diagnosticos = diagnosticosQ ?? [];
-  const tratamientos = tratamientosQ ?? [];
-  const notas = notasQ ?? [];
-
-  // Reset de página cuando cambian tamaños
-  useEffect(() => setPageCons(1), [consultas.length]);
-  useEffect(() => setPageNotas(1), [notas.length]);
-  useEffect(() => setPageTrat(1), [tratamientos.length]);
-
-  // Diagnósticos por consulta
-  const dxPorConsulta = useMemo(() => {
-    const m = new Map<string, Diagnostico[]>();
-    for (const dx of diagnosticos) {
-      const key = dx.consultaId as unknown as string;
-      if (!m.has(key)) m.set(key, []);
-      m.get(key)!.push(dx);
-    }
-    return m;
-  }, [diagnosticos]);
-
-  const hayConsultas = consultas.length > 0;
-
-  // Slices paginados
-  const paginatedConsultas = useMemo(() => {
-    const start = (pageCons - 1) * PAGE_SIZE;
-    return consultas.slice(start, start + PAGE_SIZE);
-  }, [consultas, pageCons]);
-
-  const paginatedNotas = useMemo(() => {
-    const start = (pageNotas - 1) * PAGE_SIZE;
-    return notas.slice(start, start + PAGE_SIZE);
-  }, [notas, pageNotas]);
-
-  const paginatedTratamientos = useMemo(() => {
-    const start = (pageTrat - 1) * PAGE_SIZE;
-    return tratamientos.slice(start, start + PAGE_SIZE);
-  }, [tratamientos, pageTrat]);
-
-  /* ======================== SUBMITS (forzado profesional actual) ======================== */
+  const slice = (arr: any[], page: number) => arr.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+  const paginatedDx = slice(diagnosticos ?? [], pageDx);
+  const paginatedIndic = slice(indicaciones ?? [], pageInd);
+  const paginatedMed = slice(medicamentos ?? [], pageMed);
 
   const ensureProfesional = () => {
-    if (!profesionalActual?._id) {
-      throw new Error("No se encontró el profesional vinculado a este usuario.");
-    }
+    if (!profesionalActual?._id) throw new Error("No se encontró el profesional vinculado.");
     return profesionalActual;
   };
 
-  // CONSULTA: fuerza profesionalId
-  const submitConsulta = async (data: {
-    motivo: string;
-    profesionalId?: Id<"profesionales">; // ignorado
-    notas?: string;
-  }) => {
-    const yo = ensureProfesional();
-    await crearConsulta({
-      pacienteId,
-      motivo: data.motivo,
-      notas: data.notas,
-      profesionalId: yo._id,
-    });
-    setOpenConsulta(false);
-  };
+  /* ============ Submits ============ */
+  const submitDiagnostico: (data: { descripcion: string; estado: "Presuntivo" | "Definitivo"; fecha?: number }) => Promise<void> =
+    async (data) => {
+      try {
+        const yo = ensureProfesional();
+        await crearDiagnostico({
+          pacienteId,
+          profesionalId: yo._id,
+          descripcion: data.descripcion,
+          estado: data.estado,
+          fecha: data.fecha ?? Date.now(),
+        });
+        setOpenDx(false);
+        setToast({ msg: "Diagnóstico cargado correctamente.", type: "success" });
+      } catch {
+        setToast({ msg: "Error al cargar el diagnóstico.", type: "error" });
+      }
+    };
 
-  // DIAGNÓSTICO: fuerza profesionalId
-  const submitDiagnostico = async (data: {
-    consultaId: Id<"consultas">;
-    descripcion: string;
-    profesionalId?: Id<"profesionales">; // ignorado
-    estado: "Presuntivo" | "Definitivo";
-    fecha?: number;
-  }) => {
-    const yo = ensureProfesional();
-    await crearDiagnostico({
-      pacienteId,
-      consultaId: data.consultaId,
-      descripcion: data.descripcion,
-      estado: data.estado,
-      fecha: data.fecha,
-      profesionalId: yo._id,
-    });
-    setOpenDx(false);
-  };
+  const submitIndicacion: (data: { fecha: number; tipo: Indicacion["tipo"]; nombre: string; observaciones?: string }) => Promise<void> =
+    async (data) => {
+      try {
+        const yo = ensureProfesional();
+        await crearIndicacion({
+          pacienteId,
+          profesionalId: yo._id,
+          fecha: data.fecha,
+          tipo: data.tipo,
+          nombre: data.nombre,
+          observaciones: data.observaciones,
+        });
+        setOpenIndic(false);
+        setToast({ msg: "Indicación cargada correctamente.", type: "success" });
+      } catch {
+        setToast({ msg: "Error al cargar la indicación.", type: "error" });
+      }
+    };
 
-  // TRATAMIENTO: el schema pide 'profesional' como string (no id)
-  const submitTratamiento = async (data: {
-    titulo: string;
-    profesional?: string; // ignorado
-    indicaciones: string;
-    fechaInicio?: number;
-    fechaFin?: number | null;
-    estado: "Activo" | "Suspendido" | "Finalizado";
-    cronico?: boolean;
-    notas?: string;
-  }) => {
-    const yo = ensureProfesional();
-    const profesionalStr = `${yo.apellido}, ${yo.nombre}`;
-    await crearTratamiento({
-      pacienteId,
-      titulo: data.titulo,
-      indicaciones: data.indicaciones,
-      fechaInicio: data.fechaInicio ?? Date.now(),
-      fechaFin: data.fechaFin ?? undefined,
-      estado: data.estado,
-      cronico: data.cronico,
-      notas: data.notas,
-      profesional: profesionalStr, // ✔ string
-    } as any);
-    setOpenTrat(false);
-  };
+  // Al crear un medicamento, siempre queda en "Activo"
+  const submitMedicamento: (data: Omit<Medicamento, "_id" | "profesionalId">) => Promise<void> =
+    async (data) => {
+      try {
+        const yo = ensureProfesional();
+        await crearMedicamento({ pacienteId, profesionalId: yo._id, ...data, estado: "Activo" } as any);
+        setOpenMed(false);
+        setToast({ msg: "Medicamento cargado correctamente.", type: "success" });
+      } catch {
+        setToast({ msg: "Error al cargar el medicamento.", type: "error" });
+      }
+    };
 
-  // NOTA: fuerza profesionalId
-  const submitNota = async (data: {
-    profesionalId?: Id<"profesionales">; // ignorado
-    consultaId?: Id<"consultas">;
-    fecha?: number;
-    categoria: "Evolución" | "Indicación" | "Interconsulta" | "Epicrisis" | "Administrativa";
-    visibilidad: "Equipo" | "Privada";
-    titulo?: string;
-    texto: string;
-  }) => {
-    const yo = ensureProfesional();
-    await crearNota({
-      pacienteId,
-      consultaId: data.consultaId,
-      fecha: data.fecha ?? Date.now(),
-      categoria: data.categoria,
-      visibilidad: data.visibilidad,
-      titulo: data.titulo,
-      texto: data.texto,
-      profesionalId: yo._id,
-    });
-    setOpenNota(false);
-  };
-
-  /* ========================== RENDER ========================== */
-  // Para no romper modales existentes, si necesitan 'profesionales', les pasamos SOLO el actual.
-  const profesionalesSoloActual = profesionalActual ? [profesionalActual] : [];
-
+  /* ============ Render ============ */
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* HERO */}
       <HeroPaciente
         nombre={paciente?.nombre}
         apellido={paciente?.apellido}
@@ -288,188 +193,213 @@ export default function HistorialPacientePage() {
         email={paciente?.email}
         telefono={paciente?.telefono}
         obrasSociales={paciente?.obrasSocialesNombres}
-        onNuevaConsulta={() => setOpenConsulta(true)}
-        onNuevoDiagnostico={() => setOpenDx(true)}
-        onNuevaNota={() => setOpenNota(true)}
-        onNuevoTratamiento={() => setOpenTrat(true)}
-        diagnosticoHabilitado={hayConsultas}
       />
 
-      {/* TABS GRANDES */}
       <div className="mx-auto max-w-6xl px-6 pt-4">
         <BigTabs
           value={tab}
           onChange={(t) => {
             setTab(t as TabKey);
-            setPageCons(1);
-            setPageNotas(1);
-            setPageTrat(1);
+            setPageDx(1);
+            setPageInd(1);
+            setPageMed(1);
           }}
           items={[
-            { key: "resumen", label: "Resumen", icon: LayoutGrid},
-            { key: "consultas", label: "Consultas", icon: Stethoscope },
-            { key: "notas", label: "Notas médicas", icon: NotebookText },
-            { key: "tratamientos", label: "Tratamientos", icon: Pill},
+            { key: "resumen", label: "Resumen", icon: LayoutGrid },
+            { key: "diagnosticos", label: "Diagnósticos", icon: Stethoscope },
+            { key: "indicaciones", label: "Indicaciones médicas", icon: ClipboardList },
+            { key: "medicamentos", label: "Medicamentos", icon: Pill },
           ]}
         />
       </div>
 
-      {/* CONTENIDO */}
       <div className="mx-auto max-w-6xl px-6 py-6">
         <main className="min-w-0 space-y-6">
-          {(tab === "resumen") && (
-            <section id="resumen" ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white shadow-sm">
-              <KPIGrid
-                consultas={consultas.length}
-                diagnosticos={diagnosticos.length}
-                tratamientos={tratamientos.length}
-                notas={notas.length}
-              />
+          {/* ======= RESUMEN ======= */}
+          {tab === "resumen" && (
+            <section ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <div className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                  <div className="text-sm text-gray-500">Diagnósticos</div>
+                  <div className="mt-1 text-2xl font-semibold text-gray-900">{diagnosticos?.length ?? 0}</div>
+                </div>
+                <div className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                  <div className="text-sm text-gray-500">Indicaciones</div>
+                  <div className="mt-1 text-2xl font-semibold text-gray-900">{indicaciones?.length ?? 0}</div>
+                </div>
+                <div className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
+                  <div className="text-sm text-gray-500">Medicamentos</div>
+                  <div className="mt-1 text-2xl font-semibold text-gray-900">{medicamentos?.length ?? 0}</div>
+                </div>
+              </div>
             </section>
           )}
 
-          {(tab === "resumen" || tab === "consultas") && (
+          {/* ======= DIAGNÓSTICOS ======= */}
+          {(tab === "diagnosticos" || tab === "resumen") && (
             <Section
-              id="consultas"
-              title="Consultas"
-              right={
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => setOpenConsulta(true)}
-                    className="rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-emerald-700"
-                  >
-                    Nueva consulta
-                  </button>
-                  <button
-                    onClick={() => setOpenDx(true)}
-                    disabled={!hayConsultas}
-                    title={hayConsultas ? "Crear diagnóstico" : "Primero registrá una consulta"}
-                    className={`rounded-lg px-4 py-2 text-sm font-medium border shadow-sm ${
-                      hayConsultas
-                        ? "bg-cyan-50 text-cyan-700 border-cyan-200 hover:bg-cyan-100"
-                        : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed"
-                    }`}
-                  >
-                    Nuevo diagnóstico
-                  </button>
-                </div>
-              }
-            >
-              <Panel>
-                <ConsultasTable
-                  data={paginatedConsultas}
-                  dxByConsulta={dxPorConsulta}
-                  getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
-                />
-              </Panel>
-              <Pagination
-                page={pageCons}
-                pageCount={Math.max(1, Math.ceil(consultas.length / PAGE_SIZE))}
-                onPageChange={setPageCons}
-              />
-            </Section>
-          )}
-
-          {(tab === "resumen" || tab === "notas") && (
-            <Section
-              id="notas"
-              title="Notas médicas"
+              id="diagnosticos"
+              title="Diagnósticos"
               right={
                 <button
-                  onClick={() => setOpenNota(true)}
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium shadow-sm hover:bg-gray-50"
-                  title="Registrar nota médica (evolución, indicación, etc.)"
+                  onClick={() => setOpenDx(true)}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100"
                 >
-                  Nueva nota
+                  Nuevo diagnóstico
                 </button>
               }
             >
               <Panel>
-                <NotasMedicasTable
-                  data={paginatedNotas}
-                  getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
+                <DiagnosticosTable
+                  data={(paginatedDx ?? []).map((dx) => ({
+                    _id: dx._id as unknown as string,
+                    fecha: dx.fecha ?? 0,
+                    descripcion: dx.descripcion,
+                    profesional: profNombrePorId.get(dx.profesionalId) ?? "—",
+                  }))}
                 />
               </Panel>
               <Pagination
-                page={pageNotas}
-                pageCount={Math.max(1, Math.ceil(notas.length / PAGE_SIZE))}
-                onPageChange={setPageNotas}
+                page={pageDx}
+                pageCount={Math.max(1, Math.ceil((diagnosticos?.length ?? 0) / PAGE_SIZE))}
+                onPageChange={setPageDx}
               />
             </Section>
           )}
 
-          {(tab === "resumen" || tab === "tratamientos") && (
+          {/* ======= INDICACIONES ======= */}
+          {(tab === "indicaciones" || tab === "resumen") && (
             <Section
-              id="tratamientos"
-              title="Tratamientos"
+              id="indicaciones"
+              title="Indicaciones médicas"
               right={
                 <button
-                  onClick={() => setOpenTrat(true)}
-                  className="inline-flex items-center gap-2 self-start rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-100"
+                  onClick={() => setOpenIndic(true)}
+                  className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-100"
                 >
-                  Asignar tratamiento
+                  Nueva indicación
                 </button>
               }
             >
               <Panel>
-                <TratamientosTable
-                  data={paginatedTratamientos}
-                  onChangeEstado={async ({ id, estado }) => {
-                    await cambiarEstadoTrat({ id: id as Id<"tratamientos">, estado });
+                <IndicacionesTable
+                  data={paginatedIndic as any}
+                  getProfesionalNombre={(id) => profNombrePorId.get(id as any) ?? "—"}
+                />
+              </Panel>
+              <Pagination
+                page={pageInd}
+                pageCount={Math.max(1, Math.ceil((indicaciones?.length ?? 0) / PAGE_SIZE))}
+                onPageChange={setPageInd}
+              />
+            </Section>
+          )}
+
+          {/* ======= MEDICAMENTOS ======= */}
+          {(tab === "medicamentos" || tab === "resumen") && (
+            <Section
+              id="medicamentos"
+              title="Medicamentos"
+              right={
+                <button
+                  onClick={() => setOpenMed(true)}
+                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100"
+                >
+                  Nuevo medicamento
+                </button>
+              }
+            >
+              <Panel>
+                <MedicamentosTable
+                  data={paginatedMed as any}
+                  getProfesionalNombre={(id) => profNombrePorId.get(id as any) ?? "—"}
+                  onView={(row) => {
+                    setMedSeleccionado(row);
+                    setOpenMedDetalle(true);
                   }}
                 />
               </Panel>
               <Pagination
-                page={pageTrat}
-                pageCount={Math.max(1, Math.ceil(tratamientos.length / PAGE_SIZE))}
-                onPageChange={setPageTrat}
+                page={pageMed}
+                pageCount={Math.max(1, Math.ceil((medicamentos?.length ?? 0) / PAGE_SIZE))}
+                onPageChange={setPageMed}
               />
             </Section>
           )}
         </main>
       </div>
 
-      {/* Modales */}
-      <NuevaConsultaModal
-        open={openConsulta}
-        onClose={() => setOpenConsulta(false)}
-        onSubmit={submitConsulta}
-        // Solo el profesional actual para no dar opciones
-        profesionales={profesionalActual ? [profesionalActual] : []}
-        espNombrePorId={espNombrePorId}
-        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
-      />
-
+      {/* ======= MODALES ======= */}
       <NuevoDiagnosticoModal
         open={openDx}
         onClose={() => setOpenDx(false)}
         onSubmit={submitDiagnostico}
-        // Solo el profesional actual
         profesionales={profesionalActual ? [profesionalActual] : []}
-        consultas={consultas}
-        getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
-        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
+        fixedProfesionalId={profesionalActual?._id}
       />
 
-      <NuevaNotaMedicaModal
-        open={openNota}
-        onClose={() => setOpenNota(false)}
-        onSubmit={submitNota}
-        // Solo el profesional actual
+      <NuevaIndicacionModal
+        open={openIndic}
+        onClose={() => setOpenIndic(false)}
+        onSubmit={submitIndicacion}
         profesionales={profesionalActual ? [profesionalActual] : []}
-        consultas={consultas}
-        getProfesionalNombre={(id) => profNombrePorId.get(id) ?? "—"}
-        fixedProfesionalId={profesionalActual?._id} // ⬅️ ver paso 2 (opcional)
+        fixedProfesionalId={profesionalActual?._id}
       />
 
-      <NuevoTratamientoModal
-        open={openTrat}
-        onClose={() => setOpenTrat(false)}
-        onSubmit={submitTratamiento}
-        fixedProfesionalName={
-          profesionalActual ? `${profesionalActual.apellido}, ${profesionalActual.nombre}` : undefined
-        } // ⬅️ ver paso 2 (opcional)
+      <NuevoMedicamentoModal
+        open={openMed}
+        onClose={() => setOpenMed(false)}
+        onSubmit={submitMedicamento}
+        profesionales={profesionalActual ? [profesionalActual] : []}
+        fixedProfesionalId={profesionalActual?._id}
       />
+
+      {/* Modal Detalle Medicamento (edición de estado) */}
+      <DetalleMedicamentoModal
+        open={openMedDetalle}
+        onClose={() => setOpenMedDetalle(false)}
+        med={medSeleccionado}
+        profesionalNombre={
+          medSeleccionado
+            ? profNombrePorId.get(medSeleccionado.profesionalId as any) ?? "—"
+            : "—"
+        }
+        saving={savingEstado}
+        onChangeEstado={async (estado) => {
+          if (!medSeleccionado) return;
+          try {
+            setSavingEstado(true);
+            await cambiarEstadoMedicamento({ id: medSeleccionado._id as any, estado });
+            setMedSeleccionado({ ...medSeleccionado, estado }); // reflejo local
+            setToast({ msg: "Estado actualizado.", type: "success" });
+          } catch {
+            setToast({ msg: "No se pudo actualizar el estado.", type: "error" });
+          } finally {
+            setSavingEstado(false);
+          }
+        }}
+      />
+
+      {/* ======= TOAST ======= */}
+      {toast && (
+        <div
+          className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white border ${
+            toast.type === "success"
+              ? "bg-emerald-600 border-emerald-400"
+              : "bg-red-600 border-red-400"
+          }`}
+        >
+          {toast.type === "success" ? (
+            <CheckCircle2 className="w-5 h-5 text-white" />
+          ) : (
+            <AlertCircle className="w-5 h-5 text-white" />
+          )}
+          <p className="font-medium">{toast.msg}</p>
+          <button onClick={() => setToast(null)} className="ml-2 text-lg font-bold">
+            ×
+          </button>
+        </div>
+      )}
     </div>
   );
 }

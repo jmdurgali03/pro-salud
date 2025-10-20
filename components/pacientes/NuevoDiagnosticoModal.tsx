@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Modal, {
   CancelButton,
   PrimaryButton,
@@ -9,92 +9,53 @@ import Modal, {
   textareaBase,
 } from "./Modal";
 
-type Consulta = { _id: string; fecha: number; motivo: string; profesionalId: string };
-
 function todayDateInput(): string {
   const d = new Date();
-  const pad = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
 }
+
+type Props = {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: {
+    descripcion: string;
+    estado: "Presuntivo" | "Definitivo";
+    fecha?: number;
+  }) => Promise<void> | void;
+  profesionales: any[];            // solo para mostrar fijo si querés
+  fixedProfesionalId?: string;     // bloquea el select (el modal no muestra select)
+};
 
 export default function NuevoDiagnosticoModal({
   open,
   onClose,
   onSubmit,
   profesionales,
-  consultas,
-  getProfesionalNombre,
-  fixedProfesionalId, // 👈 nuevo (opcional)
-}: {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (d: {
-    consultaId: any;
-    descripcion: string;
-    profesionalId: any;
-    estado: "Presuntivo" | "Definitivo";
-    fecha?: number;
-  }) => Promise<void> | void;
-  profesionales: any[];
-  consultas: Consulta[];
-  getProfesionalNombre: (id: any) => string;
-  fixedProfesionalId?: string; // 👈 nuevo (opcional)
-}) {
-  const [consultaId, setConsultaId] = useState<string>("");
-  const [profesionalId, setProfesionalId] = useState<string>(fixedProfesionalId ?? "");
+  fixedProfesionalId,
+}: Props) {
   const [estado, setEstado] = useState<"Presuntivo" | "Definitivo">("Presuntivo");
   const [fecha, setFecha] = useState<string>(todayDateInput());
   const [descripcion, setDescripcion] = useState("");
 
   useEffect(() => {
     if (open) {
-      setConsultaId("");
-      setDescripcion("");
       setEstado("Presuntivo");
       setFecha(todayDateInput());
-      setProfesionalId(fixedProfesionalId ?? "");
+      setDescripcion("");
     }
-  }, [open, fixedProfesionalId]);
+  }, [open]);
 
-  const canSave = consultaId && (fixedProfesionalId ?? profesionalId) && descripcion.trim().length > 2;
-
-  const profOptionsAll = useMemo(
-    () =>
-      (profesionales ?? []).map((p: any) => ({
-        id: p._id as string,
-        label: `${p.apellido}, ${p.nombre}`,
-      })),
-    [profesionales]
-  );
-
-  const profOptions = fixedProfesionalId
-    ? profOptionsAll.filter((o) => o.id === fixedProfesionalId)
-    : profOptionsAll;
-
-  const consultaOptions = useMemo(
-    () =>
-      (consultas ?? []).map((c: Consulta) => ({
-        id: c._id,
-        label:
-          `${new Intl.DateTimeFormat("es-AR", { dateStyle: "short" }).format(c.fecha)} · ` +
-          `${getProfesionalNombre(c.profesionalId)} · ${c.motivo}`,
-      })),
-    [consultas, getProfesionalNombre]
-  );
+  const canSave = descripcion.trim().length > 2;
 
   const save = async () => {
     if (!canSave) return;
-    const ms = fecha ? new Date(fecha + "T00:00").getTime() : undefined;
+    const ms = fecha ? new Date(`${fecha}T00:00`).getTime() : undefined;
     await onSubmit({
-      consultaId,
-      profesionalId: (fixedProfesionalId ?? profesionalId)!,
-      estado,
       descripcion: descripcion.trim(),
+      estado,
       fecha: ms,
     });
-    setConsultaId("");
-    setProfesionalId(fixedProfesionalId ?? "");
-    setDescripcion("");
   };
 
   return (
@@ -113,39 +74,6 @@ export default function NuevoDiagnosticoModal({
       }
     >
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <div className="sm:col-span-2">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Consulta</label>
-          <select
-            className={selectBase}
-            value={consultaId}
-            onChange={(e) => setConsultaId(e.target.value)}
-          >
-            <option value="">Seleccioná una consulta…</option>
-            {consultaOptions.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
-          <select
-            className={selectBase}
-            value={(fixedProfesionalId ?? profesionalId) as string}
-            onChange={(e) => setProfesionalId(e.target.value)}
-            disabled={!!fixedProfesionalId} // 👈 bloqueado si viene fijo
-          >
-            {!fixedProfesionalId && <option value="">Seleccioná un profesional…</option>}
-            {profOptions.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">Estado</label>
           <select
@@ -163,7 +91,6 @@ export default function NuevoDiagnosticoModal({
             Fecha <span className="text-gray-400">(dd/mm/aaaa)</span>
           </label>
           <input
-            lang="es-AR"
             type="date"
             className={inputBase}
             value={fecha}

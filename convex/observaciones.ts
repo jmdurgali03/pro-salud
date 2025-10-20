@@ -1,24 +1,18 @@
 // convex/observaciones.ts
-import { query, mutation } from "./_generated/server";
+import { mutation, query } from "./_generated/server";
 import { v } from "convex/values";
 
-export const listarPorPaciente = query({
-  args: { pacienteId: v.id("pacientes") },
-  handler: async (ctx, { pacienteId }) => {
-    return await ctx.db
-      .query("observaciones")
-      .withIndex("por_paciente", q => q.eq("pacienteId", pacienteId))
-      .order("desc")
-      .collect();
-  },
-});
-
+/**
+ * Crea una observación/nota médica.
+ * SIN consultaId (ya no existe en el schema).
+ */
 export const crear = mutation({
   args: {
     pacienteId: v.id("pacientes"),
     profesionalId: v.id("profesionales"),
-    consultaId: v.optional(v.id("consultas")),
-    fecha: v.optional(v.number()), // default now
+    fecha: v.optional(v.number()),
+
+    // Campos clínicos
     categoria: v.union(
       v.literal("Evolución"),
       v.literal("Indicación"),
@@ -32,10 +26,10 @@ export const crear = mutation({
   },
   handler: async (ctx, args) => {
     const now = Date.now();
-    const id = await ctx.db.insert("observaciones", {
+
+    await ctx.db.insert("observaciones", {
       pacienteId: args.pacienteId,
       profesionalId: args.profesionalId,
-      consultaId: args.consultaId,
       fecha: args.fecha ?? now,
       categoria: args.categoria,
       visibilidad: args.visibilidad,
@@ -44,6 +38,19 @@ export const crear = mutation({
       creadoEn: now,
       actualizadoEn: now,
     });
-    return id;
+  },
+});
+
+/**
+ * Lista observaciones por paciente (descendente por fecha).
+ */
+export const listarPorPaciente = query({
+  args: { pacienteId: v.id("pacientes") },
+  handler: async (ctx, { pacienteId }) => {
+    return await ctx.db
+      .query("observaciones")
+      .withIndex("por_paciente", (q) => q.eq("pacienteId", pacienteId))
+      .order("desc")
+      .collect();
   },
 });

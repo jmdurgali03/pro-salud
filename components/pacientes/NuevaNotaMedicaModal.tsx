@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Modal, {
   CancelButton,
   PrimaryButton,
@@ -9,6 +9,12 @@ import Modal, {
   textareaBase,
 } from "./Modal";
 
+function todayDateInput(): string {
+  const d = new Date();
+  const p = (n: number) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+}
+
 type Categoria =
   | "Evolución"
   | "Indicación"
@@ -16,128 +22,53 @@ type Categoria =
   | "Epicrisis"
   | "Administrativa";
 
-/* ======== helpers fecha/hora en formato humano ======== */
-const pad = (n: number) => String(n).padStart(2, "0");
-
-function todayDdMmYyyy(): string {
-  const d = new Date();
-  return `${pad(d.getDate())}/${pad(d.getMonth() + 1)}/${d.getFullYear()}`;
-}
-function nowHhMm(): string {
-  const d = new Date();
-  return `${pad(d.getHours())}:${pad(d.getMinutes())}`;
-}
-function parseDdMmYyyyToMs(fechaDDMMYYYY: string, hhmm: string): number | undefined {
-  const m = fechaDDMMYYYY.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
-  if (!m) return undefined;
-  const [, dd, mm, yyyy] = m;
-  const [hh = "00", mi = "00"] = (hhmm || "").split(":");
-  const d = new Date(
-    Number(yyyy),
-    Number(mm) - 1,
-    Number(dd),
-    Number(hh),
-    Number(mi)
-  );
-  if (isNaN(d.getTime())) return undefined;
-  return d.getTime();
-}
-
-export default function NuevaNotaMedicaModal({
-  open,
-  onClose,
-  onSubmit,
-  profesionales,
-  consultas,
-  getProfesionalNombre,
-  fixedProfesionalId, // opcional
-}: {
+type Props = {
   open: boolean;
   onClose: () => void;
-  onSubmit: (d: {
-    profesionalId: any;
-    consultaId?: any;
+  onSubmit: (data: {
     fecha?: number;
     categoria: Categoria;
     visibilidad: "Equipo" | "Privada";
     titulo?: string;
     texto: string;
   }) => Promise<void> | void;
-  profesionales: any[];
-  consultas: { _id: string; fecha: number; motivo: string; profesionalId: string }[];
-  getProfesionalNombre: (id: any) => string;
-  fixedProfesionalId?: string;
-}) {
-  const [profesionalId, setProfesionalId] = useState<string>(fixedProfesionalId ?? "");
+  profesionales: any[];        // solo para mantener la firma uniforme con otros modales
+  fixedProfesionalId?: string; // no se edita acá, lo forzás en el submit del page.tsx
+};
 
-  // AHORA separados para mantener dd/mm/aaaa
-  const [fechaDia, setFechaDia] = useState<string>(todayDdMmYyyy()); // dd/mm/aaaa
-  const [hora, setHora] = useState<string>(nowHhMm()); // HH:mm
-
+export default function NuevaNotaMedicaModal({
+  open,
+  onClose,
+  onSubmit,
+}: Props) {
+  const [fecha, setFecha] = useState<string>(todayDateInput());
   const [categoria, setCategoria] = useState<Categoria>("Evolución");
-  const [consultaId, setConsultaId] = useState<string>("");
   const [visibilidad, setVisibilidad] = useState<"Equipo" | "Privada">("Equipo");
   const [titulo, setTitulo] = useState("");
   const [texto, setTexto] = useState("");
 
   useEffect(() => {
     if (open) {
-      setProfesionalId(fixedProfesionalId ?? "");
-      setFechaDia(todayDdMmYyyy());
-      setHora(nowHhMm());
+      setFecha(todayDateInput());
       setCategoria("Evolución");
-      setConsultaId("");
       setVisibilidad("Equipo");
       setTitulo("");
       setTexto("");
     }
-  }, [open, fixedProfesionalId]);
+  }, [open]);
 
-  const canSave =
-    Boolean(fixedProfesionalId ?? profesionalId) &&
-    texto.trim().length > 2 &&
-    Boolean(parseDdMmYyyyToMs(fechaDia, hora));
-
-  const profOptionsAll = useMemo(
-    () =>
-      (profesionales ?? []).map((p: any) => ({
-        id: p._id as string,
-        label: `${p.apellido}, ${p.nombre}`,
-      })),
-    [profesionales]
-  );
-
-  const profOptions = fixedProfesionalId
-    ? profOptionsAll.filter((o) => o.id === fixedProfesionalId)
-    : profOptionsAll;
-
-  const consultaOptions = useMemo(
-    () =>
-      (consultas ?? []).map((c) => ({
-        id: c._id,
-        label:
-          `${new Intl.DateTimeFormat("es-AR", { dateStyle: "short" }).format(c.fecha)} · ` +
-          `${getProfesionalNombre(c.profesionalId)} · ${c.motivo}`,
-      })),
-    [consultas, getProfesionalNombre]
-  );
+  const canSave = texto.trim().length > 2;
 
   const save = async () => {
     if (!canSave) return;
-    const ms = parseDdMmYyyyToMs(fechaDia, hora);
+    const ms = fecha ? new Date(`${fecha}T00:00`).getTime() : undefined;
     await onSubmit({
-      profesionalId: (fixedProfesionalId ?? profesionalId)!,
-      consultaId: consultaId || undefined,
       fecha: ms,
       categoria,
       visibilidad,
       titulo: titulo.trim() || undefined,
       texto: texto.trim(),
     });
-    setTexto("");
-    setTitulo("");
-    setConsultaId("");
-    setProfesionalId(fixedProfesionalId ?? "");
   };
 
   return (
@@ -145,114 +76,73 @@ export default function NuevaNotaMedicaModal({
       open={open}
       onClose={onClose}
       title="Nueva nota médica"
-      size="xl"
+      size="lg"
       footer={
         <>
           <CancelButton onClick={onClose} />
           <PrimaryButton disabled={!canSave} onClick={save}>
-            Guardar nota
+            Guardar
           </PrimaryButton>
         </>
       }
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        {/* Profesional */}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Profesional</label>
-          <select
-            className={selectBase}
-            value={(fixedProfesionalId ?? profesionalId) as string}
-            onChange={(e) => setProfesionalId(e.target.value)}
-            disabled={!!fixedProfesionalId}
-          >
-            {!fixedProfesionalId && <option value="">Seleccioná un profesional…</option>}
-            {profOptions.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Fecha (dd/mm/aaaa) */}
+      <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Fecha</label>
+            <label className="label">Fecha</label>
             <input
-              type="text"
-              inputMode="numeric"
-              placeholder="dd/mm/aaaa"
+              type="date"
               className={inputBase}
-              value={fechaDia}
-              onChange={(e) => setFechaDia(e.target.value)}
+              value={fecha}
+              onChange={(e) => setFecha(e.target.value)}
             />
           </div>
           <div>
-            <label className="mb-1 block text-sm font-medium text-gray-700">Hora</label>
+            <label className="label">Categoría</label>
+            <select
+              className={selectBase}
+              value={categoria}
+              onChange={(e) => setCategoria(e.target.value as Categoria)}
+            >
+              <option>Evolución</option>
+              <option>Indicación</option>
+              <option>Interconsulta</option>
+              <option>Epicrisis</option>
+              <option>Administrativa</option>
+            </select>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <label className="label">Visibilidad</label>
+            <select
+              className={selectBase}
+              value={visibilidad}
+              onChange={(e) => setVisibilidad(e.target.value as "Equipo" | "Privada")}
+            >
+              <option>Equipo</option>
+              <option>Privada</option>
+            </select>
+          </div>
+          <div>
+            <label className="label">Título (opcional)</label>
             <input
-              type="time"
-              step={60}
               className={inputBase}
-              value={hora}
-              onChange={(e) => setHora(e.target.value)}
+              value={titulo}
+              onChange={(e) => setTitulo(e.target.value)}
+              placeholder="Motivo breve"
             />
           </div>
         </div>
 
-        {/* Categoría */}
         <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">Categoría</label>
-          <select
-            className={selectBase}
-            value={categoria}
-            onChange={(e) => setCategoria(e.target.value as Categoria)}
-          >
-            {["Evolución", "Indicación", "Interconsulta", "Epicrisis", "Administrativa"].map((c) => (
-              <option key={c} value={c}>
-                {c}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Vincular a consulta */}
-        <div>
-          <label className="mb-1 block text-sm font-medium text-gray-700">
-            Vincular a consulta <span className="text-gray-400">(opcional)</span>
-          </label>
-          <select
-            className={selectBase}
-            value={consultaId}
-            onChange={(e) => setConsultaId(e.target.value)}
-          >
-            <option value="">Sin vincular</option>
-            {consultaOptions.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        {/* Título */}
-        <div className="sm:col-span-2">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Título</label>
-          <input
-            className={inputBase}
-            placeholder="p. ej., Dolor lumbar: evolución y plan"
-            value={titulo}
-            onChange={(e) => setTitulo(e.target.value)}
-          />
-        </div>
-
-        {/* Detalle */}
-        <div className="sm:col-span-2">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Detalle</label>
+          <label className="label">Texto</label>
           <textarea
             className={textareaBase}
-            placeholder="Descripción clínica, hallazgos, indicaciones…"
             value={texto}
             onChange={(e) => setTexto(e.target.value)}
+            placeholder="Detalle de la nota..."
           />
         </div>
       </div>

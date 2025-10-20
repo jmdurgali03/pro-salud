@@ -1,0 +1,402 @@
+"use client";
+import { useEffect, useMemo, useState } from "react";
+import type { Id } from "@/convex/_generated/dataModel";
+
+/* ====== Utilidades ====== */
+const toISO = (d: Date) => d.toISOString().slice(0, 10);
+const fromISO = (s: string) => new Date(s + "T00:00:00");
+const formatDate = (iso: string) => {
+  if (!iso) return "";
+  const d = fromISO(iso);
+  return d.toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit", year: "numeric" });
+};
+const parseDDMMYYYY = (val: string) => {
+  const [day, month, year] = val.split("/").map(Number);
+  if (!day || !month || !year) return toISO(new Date());
+  const d = new Date(year, month - 1, day);
+  return toISO(d);
+};
+const addAmount = (dateISO: string, amount: number, unit: "día(s)" | "semana(s)" | "mes(es)") => {
+  const d = fromISO(dateISO);
+  if (unit === "día(s)") d.setDate(d.getDate() + amount);
+  if (unit === "semana(s)") d.setDate(d.getDate() + amount * 7);
+  if (unit === "mes(es)") d.setMonth(d.getMonth() + amount);
+  return toISO(d);
+};
+const diffAs = (startISO: string, endISO: string) => {
+  const s = fromISO(startISO);
+  const e = fromISO(endISO);
+  const ms = e.getTime() - s.getTime();
+  if (ms <= 0) return { value: 0, unit: "día(s)" as const };
+  const days = Math.round(ms / (1000 * 60 * 60 * 24));
+  if (days % 30 === 0) return { value: Math.round(days / 30), unit: "mes(es)" as const };
+  if (days % 7 === 0) return { value: Math.round(days / 7), unit: "semana(s)" as const };
+  return { value: days, unit: "día(s)" as const };
+};
+
+type Forma =
+  | "Comprimidos"
+  | "Cápsulas"
+  | "Jarabe"
+  | "Solución"
+  | "Inyectable"
+  | "Pomada"
+  | "Otro";
+
+export default function NuevoMedicamentoModal({
+  open,
+  onClose,
+  onSubmit,
+  profesionales,
+  fixedProfesionalId,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: {
+    fechaInicio: number;
+    fechaFin?: number | null;
+    estado: "Activo" | "Suspendido" | "Finalizado";
+    nombreComercial?: string;
+    droga: string;
+    forma: Forma;
+    dosis: string;
+    frecuencia: string;
+    duracion?: string;
+    via?: string;
+    indicaciones?: string;
+    cronico?: boolean;
+    notas?: string;
+  }) => Promise<void>;
+  profesionales: { _id: Id<"profesionales">; nombre: string; apellido: string }[];
+  fixedProfesionalId?: Id<"profesionales"> | undefined;
+}) {
+  const defaults = () => {
+    const today = toISO(new Date());
+    return {
+      inicio: today,
+      fin: "",
+      nombreComercial: "",
+      droga: "",
+      forma: "Comprimidos" as Forma,
+      via: "VO",
+      indicaciones: "",
+      cronico: false,
+      notas: "",
+      dosisVal: "",
+      dosisUni: "mg" as "ml" | "mg" | "g" | "gotas" | "comprimido(s)",
+      freqVal: "",
+      freqUni: "h" as "h" | "min" | "día(s)" | "semana(s)",
+      durVal: "",
+      durUni: "día(s)" as "día(s)" | "semana(s)" | "mes(es)",
+    };
+  };
+
+  const [state, setState] = useState(defaults());
+
+  /* Reset al abrir */
+  useEffect(() => {
+    if (open) setState(defaults());
+  }, [open]);
+
+  /* Si cambia Duración → recalculo Fin */
+  useEffect(() => {
+    if (state.cronico) return;
+    if (!state.inicio) return;
+    const v = parseInt(state.durVal || "", 10);
+    if (!isFinite(v) || v <= 0) return;
+    const fin = addAmount(state.inicio, v, state.durUni);
+    setState((s) => ({ ...s, fin }));
+  }, [state.durVal, state.durUni]); // eslint-disable-line
+
+  /* Si cambia Fin → recalculo Duración */
+  useEffect(() => {
+    if (!state.fin || state.cronico) return;
+    const { value, unit } = diffAs(state.inicio, state.fin);
+    if (value > 0) {
+      setState((s) => ({ ...s, durVal: String(value), durUni: unit }));
+    }
+  }, [state.fin]); // eslint-disable-line
+
+  const disabled = useMemo(() => {
+    return !state.droga.trim() || !state.inicio || !state.dosisVal || !state.freqVal;
+  }, [state]);
+
+  if (!open) return null;
+
+  const submit = async () => {
+    const composed = {
+      fechaInicio: fromISO(state.inicio).getTime(),
+      fechaFin: state.cronico || !state.fin ? null : fromISO(state.fin).getTime(),
+      estado: "Activo" as const,
+      nombreComercial: state.nombreComercial.trim() || undefined,
+      droga: state.droga.trim(),
+      forma: state.forma,
+      dosis: `${state.dosisVal} ${state.dosisUni}`.trim(),
+      frecuencia: `cada ${state.freqVal} ${state.freqUni}`.trim(),
+      duracion: state.cronico
+        ? undefined
+        : state.durVal && Number(state.durVal) > 0
+        ? `${state.durVal} ${state.durUni}`
+        : undefined,
+      via: state.via.trim() || undefined,
+      indicaciones: state.indicaciones.trim() || undefined,
+      cronico: state.cronico,
+      notas: state.notas.trim() || undefined,
+    };
+    await onSubmit(composed);
+    onClose();
+  };
+
+  const set = <K extends keyof typeof state>(k: K, v: (typeof state)[K]) =>
+    setState((s) => ({ ...s, [k]: v }));
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3">
+      <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
+        {/* Header */}
+        <div className="flex items-center justify-between border-b px-6 py-4">
+          <h3 className="text-lg font-semibold text-gray-900">Nuevo medicamento</h3>
+          <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-500 hover:bg-gray-100">✕</button>
+        </div>
+
+        {/* Body */}
+        <div className="grid gap-5 px-6 py-5">
+          {/* Fechas */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="rounded-xl border border-emerald-100 bg-emerald-50/50 p-3">
+              <label className="text-xs font-medium text-emerald-900">Inicio</label>
+              <input
+                type="text"
+                value={formatDate(state.inicio)}
+                onChange={(e) => {
+                  const iso = parseDDMMYYYY(e.target.value);
+                  // si tengo duración válida, recalc fin
+                  let fin = state.fin;
+                  const v = parseInt(state.durVal || "", 10);
+                  if (!state.cronico && isFinite(v) && v > 0) {
+                    fin = addAmount(iso, v, state.durUni);
+                  }
+                  setState((s) => ({ ...s, inicio: iso, fin }));
+                }}
+                placeholder="dd/mm/aaaa"
+                className="mt-1 w-full rounded-lg border border-emerald-200 bg-white px-3 py-2"
+              />
+            </div>
+
+            <div className="rounded-xl border border-sky-100 bg-sky-50/50 p-3">
+              <label className="text-xs font-medium text-sky-900">Fin</label>
+              <input
+                type="text"
+                value={formatDate(state.fin)}
+                onChange={(e) => {
+                  const iso = parseDDMMYYYY(e.target.value);
+                  set("fin", iso);
+                }}
+                placeholder="dd/mm/aaaa"
+                disabled={state.cronico}
+                className="mt-1 w-full rounded-lg border border-sky-200 bg-white px-3 py-2 disabled:bg-gray-100"
+              />
+              <p className="mt-1 text-[11px] text-sky-700">
+                Si completás Duración, el Fin se calcula solo. También podés editarlo acá.
+              </p>
+            </div>
+          </div>
+
+          {/* Datos principales */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="text-xs text-gray-600">Nombre comercial (opcional)</label>
+              <input
+                value={state.nombreComercial}
+                onChange={(e) => set("nombreComercial", e.target.value)}
+                placeholder="Ej: Ibuprofeno"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Droga</label>
+              <input
+                value={state.droga}
+                onChange={(e) => set("droga", e.target.value)}
+                placeholder="Ej: Ibuprofeno"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Forma</label>
+              <select
+                value={state.forma}
+                onChange={(e) => set("forma", e.target.value as Forma)}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              >
+                <option>Comprimidos</option>
+                <option>Cápsulas</option>
+                <option>Jarabe</option>
+                <option>Solución</option>
+                <option>Inyectable</option>
+                <option>Pomada</option>
+                <option>Otro</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-xs text-gray-600">Vía (opcional)</label>
+              <input
+                value={state.via}
+                onChange={(e) => set("via", e.target.value.replace(/[0-9]/g, ""))}
+                placeholder="Ej: VO, IM, IV, tópica"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
+            </div>
+          </div>
+
+          {/* Dosis / Frecuencia */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-2">
+                <label className="text-xs text-gray-600">Dosis</label>
+                <input
+                  value={state.dosisVal}
+                  onChange={(e) => set("dosisVal", e.target.value)}
+                  placeholder="Ej: 10"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600">Unidad</label>
+                <select
+                  value={state.dosisUni}
+                  onChange={(e) => set("dosisUni", e.target.value as typeof state.dosisUni)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                >
+                  <option>ml</option>
+                  <option>mg</option>
+                  <option>g</option>
+                  <option>gotas</option>
+                  <option>comprimido(s)</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-2">
+              <div className="col-span-2">
+                <label className="text-xs text-gray-600">Frecuencia (cada)</label>
+                <input
+                  value={state.freqVal}
+                  onChange={(e) => set("freqVal", e.target.value)}
+                  placeholder="Ej: 8"
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                />
+              </div>
+              <div>
+                <label className="text-xs text-gray-600">Unidad</label>
+                <select
+                  value={state.freqUni}
+                  onChange={(e) => set("freqUni", e.target.value as typeof state.freqUni)}
+                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                >
+                  <option>h</option>
+                  <option>min</option>
+                  <option>día(s)</option>
+                  <option>semana(s)</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          {/* Duración */}
+          <div className="rounded-xl border border-indigo-100 bg-indigo-50/50 p-3">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-5 sm:items-end">
+              <div className="sm:col-span-2">
+                <label className="text-xs font-medium text-indigo-900">Duración</label>
+                <input
+                  value={state.durVal}
+                  onChange={(e) => set("durVal", e.target.value)}
+                  placeholder="Ej: 7"
+                  disabled={state.cronico}
+                  className="mt-1 w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 disabled:bg-gray-100"
+                />
+              </div>
+              <div className="sm:col-span-1">
+                <label className="text-xs font-medium text-indigo-900">Unidad</label>
+                <select
+                  value={state.durUni}
+                  onChange={(e) => set("durUni", e.target.value as typeof state.durUni)}
+                  disabled={state.cronico}
+                  className="mt-1 w-full rounded-lg border border-indigo-200 bg-white px-3 py-2 disabled:bg-gray-100"
+                >
+                  <option>día(s)</option>
+                  <option>semana(s)</option>
+                  <option>mes(es)</option>
+                </select>
+              </div>
+
+              <div className="sm:col-span-2">
+                <div className="mt-1 flex items-center gap-2">
+                  <input
+                    id="cronico"
+                    type="checkbox"
+                    checked={state.cronico}
+                    onChange={(e) => {
+                      const cronico = e.target.checked;
+                      setState((s) => ({
+                        ...s,
+                        cronico,
+                        durVal: cronico ? "" : s.durVal,
+                        fin: cronico ? "" : s.fin,
+                      }));
+                    }}
+                  />
+                  <label htmlFor="cronico" className="text-sm text-gray-700">
+                    Tratamiento crónico
+                  </label>
+                </div>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Si es crónico, no se define fecha de fin.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* Indicaciones / Notas */}
+          <div>
+            <label className="text-xs text-gray-600">Indicaciones (opcional)</label>
+            <textarea
+              value={state.indicaciones}
+              onChange={(e) => set("indicaciones", e.target.value)}
+              placeholder="Cómo tomarlo/administrarlo"
+              rows={3}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs text-gray-600">Notas (opcional)</label>
+            <textarea
+              value={state.notas}
+              onChange={(e) => set("notas", e.target.value)}
+              rows={2}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+            />
+          </div>
+        </div>
+
+        {/* Footer */}
+        <div className="flex justify-end gap-3 border-t px-6 py-4">
+          <button
+            onClick={onClose}
+            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+          >
+            Cancelar
+          </button>
+          <button
+            disabled={disabled}
+            onClick={submit}
+            className="rounded-lg border border-emerald-200 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            Guardar
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
