@@ -59,38 +59,34 @@ export default function GerenteDashboardPage() {
   const esEstado = (t: any, ...estados: string[]) => estados.includes(t.estado as string);
 
   /* =============================================================== */
-  /* ========================== INDICADORES ======================== */
+  /* =================== INDICADORES GLOBALES ====================== */
   /* =============================================================== */
 
-  const indicadores = useMemo(() => {
-    const [año, mes] = fechaTurnos.split("-").map(Number);
-    const turnosMes = turnos.filter((t) => {
-      const f = new Date(t.start);
-      return f.getFullYear() === año && f.getMonth() + 1 === mes;
-    });
+  const indicadoresGlobales = useMemo(() => {
+    const total = turnos.length;
+    const confirmados = turnos.filter((t) => esEstado(t, "Confirmado", "Atendido")).length;
+    const cancelados = turnos.filter((t) => esEstado(t, "Cancelado")).length;
 
-    const total = turnosMes.length;
-    const confirmados = turnosMes.filter((t) => esEstado(t, "Confirmado", "Atendido")).length;
-    const cancelados = turnosMes.filter((t) => esEstado(t, "Cancelado")).length;
     const porcentajeConfirmados = total ? ((confirmados / total) * 100).toFixed(1) : 0;
     const porcentajeCancelados = total ? ((cancelados / total) * 100).toFixed(1) : 0;
-    const diasUnicos = new Set(turnosMes.map((t) => new Date(t.start).toDateString()));
+
+    const diasUnicos = new Set(turnos.map((t) => new Date(t.start).toDateString()));
     const promedioDia = diasUnicos.size ? Math.ceil(total / diasUnicos.size) : 0;
 
-    const conteo: Record<string, number> = {};
-    for (const t of turnosMes) {
+    const conteoEspecialidades: Record<string, number> = {};
+    for (const t of turnos) {
       const nombre = (t as any).especialidadNombre;
       if (!nombre) continue;
-      conteo[nombre] = (conteo[nombre] || 0) + 1;
+      conteoEspecialidades[nombre] = (conteoEspecialidades[nombre] || 0) + 1;
     }
 
-    const topEspecialidades = Object.entries(conteo)
+    const topEspecialidades = Object.entries(conteoEspecialidades)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 2)
-      .map(([n]) => n);
+      .map(([nombre]) => nombre);
 
     return { porcentajeConfirmados, porcentajeCancelados, promedioDia, topEspecialidades };
-  }, [turnos, fechaTurnos]);
+  }, [turnos]);
 
   /* =============================================================== */
   /* ====================== EVOLUCIÓN DE TURNOS ==================== */
@@ -192,7 +188,7 @@ export default function GerenteDashboardPage() {
   }, [turnos, especialidadSeleccionada, modoEspecialidad, fechaEspecialidad]);
 
   /* =============================================================== */
-  /* ========================= PACIENTES =========================== */
+  /* ========================= PACIENTES NUEVOS ==================== */
   /* =============================================================== */
 
   const pacientesAgrupados = useMemo(() => {
@@ -244,7 +240,45 @@ export default function GerenteDashboardPage() {
       ]}
     >
       <div className="w-full px-10 py-10 space-y-8">
-        {/* -------------------- KPIs -------------------- */}
+        {/* INDICADORES GLOBALES */}
+<div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
+  <h2 className="text-2xl font-bold text-gray-900 mb-6 flex items-center gap-2">
+    <TrendingUp className="w-6 h-6 text-indigo-600" />
+    Indicadores Generales del Centro
+  </h2>
+
+  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 text-gray-700">
+    <div className="flex flex-col items-start">
+      <span className="text-lg font-semibold text-green-600">
+        ✅ {indicadoresGlobales.porcentajeConfirmados}%
+      </span>
+      <span className="text-base text-gray-500">Confirmados</span>
+    </div>
+
+    <div className="flex flex-col items-start">
+      <span className="text-lg font-semibold text-red-600">
+        🚫 {indicadoresGlobales.porcentajeCancelados}%
+      </span>
+      <span className="text-base text-gray-500">Cancelados</span>
+    </div>
+
+    <div className="flex flex-col items-start">
+      <span className="text-lg font-semibold text-indigo-600">
+        📅 {indicadoresGlobales.promedioDia}
+      </span>
+      <span className="text-base text-gray-500">Promedio diario</span>
+    </div>
+
+    <div className="flex flex-col items-start">
+      <span className="text-lg font-semibold text-blue-800">
+        💬 {indicadoresGlobales.topEspecialidades.join(" y ") || "Sin datos"}
+      </span>
+      <span className="text-base text-gray-500">Destacadas</span>
+    </div>
+  </div>
+</div>
+
+        {/* KPIs */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <KPI icon={<Users className="w-6 h-6 text-blue-500" />} title="Pacientes activos" value={pacientes.length} />
           <KPI icon={<BriefcaseMedical className="w-6 h-6 text-green-500" />} title="Profesionales activos" value={profesionales.length} />
@@ -252,7 +286,7 @@ export default function GerenteDashboardPage() {
           <KPI icon={<Activity className="w-6 h-6 text-rose-500" />} title="Obras Sociales" value={obrasSociales.length} />
         </div>
 
-        {/* -------------------- EVOLUCIÓN DE TURNOS -------------------- */}
+        {/* EVOLUCIÓN DE TURNOS */}
         <SeccionGrafico
           titulo="Evolución de Turnos"
           icono={<CalendarDays className="w-5 h-5 text-indigo-600" />}
@@ -296,17 +330,7 @@ export default function GerenteDashboardPage() {
           </div>
         </SeccionGrafico>
 
-        {/* -------------------- INDICADORES -------------------- */}
-        <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm">
-          <ul className="space-y-2 text-sm text-gray-700">
-            <li>✅ <b>{indicadores.porcentajeConfirmados}%</b> confirmados</li>
-            <li>🚫 <b>{indicadores.porcentajeCancelados}%</b> cancelados</li>
-            <li>📅 Promedio diario: <b>{indicadores.promedioDia}</b></li>
-            <li>💬 Destacadas: <b>{indicadores.topEspecialidades.join(" y ") || "Sin datos"}</b></li>
-          </ul>
-        </div>
-
-        {/* -------------------- TURNOS POR ESPECIALIDAD -------------------- */}
+        {/* TURNOS POR ESPECIALIDAD */}
         <SeccionGrafico
           titulo="Turnos por Especialidad"
           icono={<Stethoscope className="w-5 h-5 text-blue-600" />}
@@ -336,7 +360,13 @@ export default function GerenteDashboardPage() {
                 <XAxis dataKey="fecha" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Line type="monotone" dataKey="cantidad" stroke="#0EA5E9" strokeWidth={2.5} dot={{ r: 3 }} />
+                <Line
+                  type="monotone"
+                  dataKey="cantidad"
+                  stroke="#0EA5E9"
+                  strokeWidth={2.5}
+                  dot={{ r: 3 }}
+                />
               </LineChart>
             </ResponsiveContainer>
           ) : (
@@ -346,99 +376,39 @@ export default function GerenteDashboardPage() {
           )}
         </SeccionGrafico>
 
-        {/* -------------------- DISTRIBUCIONES -------------------- */}
+        {/* TORTAS */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Obras Sociales */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <HeartPulse className="w-5 h-5 text-rose-600" /> Distribución por Obras Sociales
-            </h2>
-            {obrasPorUso && obrasPorUso.length > 0 ? (
-              <ResponsiveContainer width="100%" height={300}>
-                <PieChart>
-                  <Pie
-                    data={obrasPorUso.map((o: any) => ({
-                      name: o.nombre || "Sin nombre",
-                      value: o.valor || o.cantidad || 0,
-                    }))}
-                    dataKey="value"
-                    nameKey="name"
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={70}
-                    outerRadius={110}
-                    labelLine={false}
-                    label={(entry: any) =>
-                      `${entry.name}: ${((entry.percent || 0) * 100).toFixed(1)}%`
-                    }
-                  >
-                    {obrasPorUso.map((_: any, i: number) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
-            )}
-          </div>
-
-          {/* Género */}
-          <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-              <Users className="w-5 h-5 text-indigo-600" /> Distribución por Género
-            </h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={[
-                    {
-                      name: "Masculino",
-                      value: pacientes.filter((p: any) => p.genero === "Masculino").length,
-                    },
-                    {
-                      name: "Femenino",
-                      value: pacientes.filter((p: any) => p.genero === "Femenino").length,
-                    },
-                    {
-                      name: "Otro",
-                      value: pacientes.filter(
-                        (p: any) => !["Masculino", "Femenino"].includes(p.genero)
-                      ).length,
-                    },
-                  ]}
-                  dataKey="value"
-                  nameKey="name"
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={70}
-                  outerRadius={110}
-                  labelLine={false}
-                  label={(entry: any) =>
-                    `${entry.name}: ${((entry.percent || 0) * 100).toFixed(1)}%`
-                  }
-                >
-                  <Cell fill="#3B82F6" />
-                  <Cell fill="#EC4899" />
-                  <Cell fill="#FACC15" />
-                </Pie>
-                <Tooltip />
-                <text
-                  x="50%"
-                  y="50%"
-                  textAnchor="middle"
-                  dominantBaseline="middle"
-                  className="text-2xl font-semibold fill-gray-700"
-                >
-                  {pacientes.length}
-                </text>
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          <Torta
+            titulo="Distribución por Obras Sociales"
+            icon={<HeartPulse className="w-5 h-5 text-rose-600" />}
+            data={obrasPorUso.map((o: any) => ({
+              name: o.nombre || "Sin nombre",
+              value: o.valor || o.cantidad || 0,
+            }))}
+            colors={COLORS}
+            dataKey="value"
+            nameKey="name"
+          />
+          <Torta
+            titulo="Distribución por Género"
+            icon={<Users className="w-5 h-5 text-indigo-600" />}
+            data={[
+              { name: "Masculino", value: pacientes.filter((p: any) => p.genero === "Masculino").length },
+              { name: "Femenino", value: pacientes.filter((p: any) => p.genero === "Femenino").length },
+                            {
+                name: "Otro",
+                value: pacientes.filter(
+                  (p: any) => !["Masculino", "Femenino"].includes(p.genero)
+                ).length,
+              },
+            ]}
+            colors={["#3B82F6", "#EC4899", "#FACC15"]}
+            dataKey="value"
+            nameKey="name"
+          />
         </div>
 
-        {/* -------------------- NUEVOS PACIENTES -------------------- */}
+        {/* NUEVOS PACIENTES */}
         <SeccionGrafico
           titulo="Nuevos Pacientes"
           icono={<Users className="w-5 h-5 text-blue-600" />}
@@ -469,7 +439,7 @@ export default function GerenteDashboardPage() {
 }
 
 /* =============================================================== */
-/* ================== COMPONENTE SECCIÓN GRÁFICO ================== */
+/* ================ COMPONENTE SECCIÓN GRÁFICO =================== */
 /* =============================================================== */
 
 function SeccionGrafico({
@@ -513,6 +483,57 @@ function SeccionGrafico({
 }
 
 /* =============================================================== */
+/* ======================== COMPONENTE TORTA ====================== */
+/* =============================================================== */
+
+function Torta({ titulo, icon, data, colors, dataKey, nameKey }: any) {
+  const total = data.reduce((acc: number, item: any) => acc + item.value, 0);
+
+  return (
+    <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm flex flex-col items-center justify-center">
+      <h2 className="text-xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
+        {icon} {titulo}
+      </h2>
+      {data.length > 0 && total > 0 ? (
+        <ResponsiveContainer width="100%" height={300}>
+          <PieChart>
+            <Pie
+              data={data}
+              dataKey={dataKey}
+              nameKey={nameKey}
+              cx="50%"
+              cy="50%"
+              innerRadius={70}
+              outerRadius={110}
+              labelLine={false}
+              label={(entry: any) =>
+                `${entry.name}: ${((entry.value / total) * 100).toFixed(1)}%`
+              }
+            >
+              {data.map((_: any, i: number) => (
+                <Cell key={i} fill={colors[i % colors.length]} />
+              ))}
+            </Pie>
+            <Tooltip />
+            <text
+              x="50%"
+              y="50%"
+              textAnchor="middle"
+              dominantBaseline="middle"
+              className="text-2xl font-semibold fill-gray-700"
+            >
+              {total}
+            </text>
+          </PieChart>
+        </ResponsiveContainer>
+      ) : (
+        <p className="text-gray-500 text-center text-sm">No hay datos disponibles.</p>
+      )}
+    </div>
+  );
+}
+
+/* =============================================================== */
 /* ======================== COMPONENTE KPI ======================= */
 /* =============================================================== */
 
@@ -535,3 +556,4 @@ function KPI({
     </div>
   );
 }
+
