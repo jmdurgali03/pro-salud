@@ -7,6 +7,7 @@ import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
 import { PageWrapper } from "@/components/page-wrapper";
 import { Plus, CheckCircle2, ChevronLeft, ChevronRight, BriefcaseMedical, Search, MoreHorizontal, Eye, Edit, Trash2, AlertTriangle, Filter as FilterIcon } from "lucide-react";
+import { getObraSocialBadgeClass } from "@/components/pacientes/obra-social-badge";
 import {
   Dialog,
   DialogContent,
@@ -354,7 +355,7 @@ export default function ProfesionalesPage() {
                   <td className="p-4">
                     <div className="flex flex-wrap gap-1">
                       {getObrasSocialesNombres(prof.obrasSociales).map((os) => (
-                        <span key={os} className="px-2 py-1 text-xs rounded-full bg-purple-50 border border-purple-200 text-purple-700">
+                        <span key={os} className={getObraSocialBadgeClass(os)}>
                           {os}
                         </span>
                       ))}
