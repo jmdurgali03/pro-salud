@@ -1,12 +1,13 @@
 // convex/profesionales.ts
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { Id } from "./_generated/dataModel";
 
 const onlyDigits = (s: string) => s.replace(/\D/g, "");
 
 // ---- Tipos de respuestas
 export type CrearResp =
-  | { ok: true; id: string; usuario: string; password: string }   // 👈 ahora sí
+  | { ok: true; id: Id<"profesionales">; usuario: string; password: string } // 👈 corregido
   | { ok: false; reason: "DNI_DUP" | "MATRICULA_DUP" | "TELEFONO_DUP" | "BAD_INPUT"; message?: string };
 
 export type EditResp =

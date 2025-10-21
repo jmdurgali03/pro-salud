@@ -77,6 +77,32 @@ const mapReason = (r: string, fallback?: string) => {
 };
 
 export default function ProfesionalesPage() {
+  const [desde, setDesde] = useState<number | undefined>(undefined);
+const [hasta, setHasta] = useState<number | undefined>(undefined);
+
+const argsResumen = useMemo(
+  () => (desde && hasta ? { from: desde, to: hasta } : {}),
+  [desde, hasta]
+);
+const resumenBackend = useQuery(api.turnos.resumenProfesionales, argsResumen) ?? [];
+
+
+const resumenMapa = useMemo(() => {
+  const m = new Map<Id<"profesionales">, {
+    pendientes: number; confirmados: number; cancelados: number;
+    total: number; porcentajeConfirmados: number;
+  }>();
+  for (const r of resumenBackend) {
+    m.set(r.profesionalId as Id<"profesionales">, {
+      pendientes: r.pendientes,
+      confirmados: r.confirmados,
+      cancelados: r.cancelados,
+      total: r.total,
+      porcentajeConfirmados: r.porcentajeConfirmados,
+    });
+  }
+  return m;
+}, [resumenBackend]);
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
@@ -187,6 +213,8 @@ export default function ProfesionalesPage() {
 
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
     ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean);
+  // (Opcional) rango del día actual:
+
 
   // Filtrado y ordenamiento (ACTUALIZADO para usar los nuevos estados)
   const profesionalesFiltrados = useMemo(() => {
@@ -418,6 +446,84 @@ export default function ProfesionalesPage() {
               )}
             </tbody>
           </table>
+              {/* === NUEVO: PANEL DE GESTIÓN DE TURNOS === */}
+<div className="overflow-hidden border border-gray-200 rounded-xl shadow bg-white">
+  <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
+    <h2 className="font-semibold text-gray-800">Panel de Turnos</h2>
+    {/* (opcional) lugar para selector de fecha o filtros de turnos */}
+  </div>
+
+  <table className="w-full text-sm text-gray-700">
+    <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
+      <tr>
+        <th className="p-4 text-left">Profesional</th>
+        <th className="p-4 text-left">Especialidad</th>
+        <th className="p-4 text-center">Pendientes</th>
+        <th className="p-4 text-center">Confirmados</th>
+        <th className="p-4 text-center">Cancelados</th>
+        <th className="p-4 text-center">Total</th>
+        <th className="p-4 text-center">% Confirmados</th>
+      </tr>
+    </thead>
+    <tbody>
+      {profesionalesFiltrados.map((prof) => {
+  const resumen = resumenMapa.get(prof._id) ?? { // 👈 usar _id directamente
+    pendientes: 0, confirmados: 0, cancelados: 0, total: 0, porcentajeConfirmados: 0
+  };
+        return (
+          <tr key={prof._id.toString()} className="border-t hover:bg-gray-50 transition-all">
+            <td className="p-4 font-medium">{prof.apellido} {prof.nombre}</td>
+            <td className="p-4">{getEspecialidadNombre(prof.especialidadId)}</td>
+
+            <td className="p-4 text-center">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
+                {resumen.pendientes}
+              </span>
+            </td>
+            <td className="p-4 text-center">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                {resumen.confirmados}
+              </span>
+            </td>
+            <td className="p-4 text-center">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-700">
+                {resumen.cancelados}
+              </span>
+            </td>
+            <td className="p-4 text-center">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                {resumen.total}
+              </span>
+            </td>
+            <td className="p-4 text-center">
+              {/* badge con umbrales de color */}
+              <span
+                className={[
+                  "px-2 py-1 rounded-full text-xs font-semibold",
+                  resumen.porcentajeConfirmados >= 80
+                    ? "bg-emerald-100 text-emerald-700"
+                    : resumen.porcentajeConfirmados >= 50
+                    ? "bg-amber-100 text-amber-700"
+                    : "bg-rose-100 text-rose-700",
+                ].join(" ")}
+              >
+                {resumen.porcentajeConfirmados.toFixed(1)}%
+              </span>
+            </td>
+          </tr>
+        );
+      })}
+
+      {profesionalesFiltrados.length === 0 && (
+        <tr>
+          <td colSpan={7} className="p-6 text-center text-gray-400 italic text-sm">
+            No hay profesionales para mostrar en el panel.
+          </td>
+        </tr>
+      )}
+    </tbody>
+  </table>
+</div>
 
           {/* Paginación */}
           {totalPages > 1 && (
