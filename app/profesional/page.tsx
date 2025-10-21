@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Users,
   CircleUserIcon,
+  ChartBarBigIcon,
 } from "lucide-react";
 import { PageWrapper } from "@/components/page-wrapper";
 import { useUser } from "@clerk/nextjs";
@@ -39,6 +40,15 @@ const actions = [
     gradient: "from-green-500 to-emerald-500",
     bgLight: "bg-green-50",
     shadowColor: "shadow-green-500/20",
+  },
+  {
+    title: "Reportes",
+    description: "Visualiza métricas y estadísticas profesionales",
+    icon: ChartBarBigIcon,
+    href: "/profesional/reportes",
+    gradient: "from-amber-500 to-orange-500",
+    bgLight: "bg-amber-50",
+    shadowColor: "shadow-amber-500/20",
   },
 ];
 

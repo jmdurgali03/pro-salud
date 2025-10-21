@@ -2,13 +2,14 @@
 
 import { AppSidebar } from "@/components/sidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { Calendar, CircleUserIcon, Home, NotepadTextDashed, Users } from "lucide-react";
+import { Calendar, ChartBarBigIcon, CircleUserIcon, Home, Users } from "lucide-react";
 
 const links = [
     { href: "/profesional", label: "Inicio", icon: Home },
     { href: "/profesional/perfil", label: "Perfil", icon: CircleUserIcon },
     { href: "/profesional/cal-turnos", label: "Turnos", icon: Calendar },
     { href: "/profesional/pacientes", label: "Pacientes", icon: Users },
+    { href: "/profesional/reportes", label: "Reportes", icon: ChartBarBigIcon },
 ];
 
 export default function ProfesionalLayout({ children }: { children: React.ReactNode }) {
