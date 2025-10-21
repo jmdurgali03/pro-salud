@@ -111,9 +111,10 @@ export default function EditTurnoDialog({
     const end = new Date(start.getTime() + duracion * 60 * 1000);
 
     const ahora = new Date();
-    if (start < ahora) {
+    // Permitir cambiar estado a Finalizado/Cancelado para turnos pasados
+    if (start < ahora && !(estado === "Finalizado" || estado === "Cancelado")) {
       return setError(
-        "La fecha y hora deben ser posteriores al momento actual."
+        "Para turnos en el pasado solo se permite cambiar el estado a Finalizado o Cancelado."
       );
     }
 
