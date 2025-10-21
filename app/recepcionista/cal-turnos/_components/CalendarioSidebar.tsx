@@ -73,7 +73,9 @@ export function CalendarioSidebar({ turnos, onSelectTurno }: Props) {
                 className={`w-full text-left ${color.bg} ${color.text} ${color.border} border p-2 rounded-lg hover:opacity-90 transition text-sm font-medium`}
               >
                 <div className="truncate">
-                  {event.pacienteNombre} {event.pacienteApellido}
+                  <span className="text-black">
+                    {event.pacienteNombre} {event.pacienteApellido}
+                  </span>
                 </div>
 
                 <div className="text-xs text-gray-500 truncate">

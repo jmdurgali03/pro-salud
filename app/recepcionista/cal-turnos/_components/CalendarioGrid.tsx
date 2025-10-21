@@ -74,7 +74,9 @@ export function CalendarioGrid({
         hour12: false,
       })}`}
     >
-      {ev.pacienteNombre} {ev.pacienteApellido}
+      <span className="text-black">
+        {ev.pacienteNombre} {ev.pacienteApellido}
+      </span>
     </button>
   );
 })}

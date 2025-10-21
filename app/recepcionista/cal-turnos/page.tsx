@@ -217,6 +217,27 @@ export default function CalendarioRecepcionistaPage() {
                   />
                 )}
               </section>
+              {/* Leyenda de colores (extendida y más grande) */}
+              <div className="col-span-2 mt-4 px-6 py-4 bg-white rounded-xl border border-gray-100 shadow-sm w-full">
+                <div className="flex flex-wrap items-center justify-between gap-4 text-sm">
+                  <div className="flex items-center gap-3 min-w-[160px]">
+                    <span className="inline-block w-5 h-5 rounded bg-yellow-100 border border-yellow-400"></span>
+                    <span className="text-gray-800">Pendiente</span>
+                  </div>
+                  <div className="flex items-center gap-3 min-w-[160px]">
+                    <span className="inline-block w-5 h-5 rounded bg-red-100 border border-red-400"></span>
+                    <span className="text-gray-800">Cancelado</span>
+                  </div>
+                  <div className="flex items-center gap-3 min-w-[160px]">
+                    <span className="inline-block w-5 h-5 rounded bg-blue-100 border border-blue-400"></span>
+                    <span className="text-gray-800">Finalizado</span>
+                  </div>
+                  <div className="flex items-center gap-3 min-w-[160px]">
+                    <span className="inline-block w-5 h-5 rounded bg-green-100 border border-green-400"></span>
+                    <span className="text-gray-800">Confirmado</span>
+                  </div>
+                </div>
+              </div>
             </div>
 
 

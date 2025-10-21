@@ -121,7 +121,7 @@ export function AgendaView({
                       })}`}
                   >
                     <div className="px-2 py-1 truncate">
-                      <strong>{turno.pacienteNombre}</strong>
+                      <strong className="text-black">{turno.pacienteNombre}</strong>
                       <div className="text-[11px] text-gray-600">
                         {start.toLocaleTimeString("es-AR", {
                           hour: "2-digit",

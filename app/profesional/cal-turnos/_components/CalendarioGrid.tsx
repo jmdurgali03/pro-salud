@@ -57,7 +57,9 @@ export function CalendarioGrid({
                       className={`w-full text-left px-2 py-1 rounded border text-xs cursor-pointer truncate ${TURNO_COLOR_MAP[ev.estado]}`}
                       title={`${ev.pacienteNombre} ${ev.pacienteApellido} — ${new Date(ev.start).toLocaleTimeString("es-AR", { hour: "2-digit", minute: "2-digit", hour12: false })}`}
                     >
-                      {ev.pacienteNombre} {ev.pacienteApellido}
+                      <span className="text-black">
+                        {ev.pacienteNombre} {ev.pacienteApellido}
+                      </span>
                     </button>
                   ))}
                   {events.length > 3 && (
