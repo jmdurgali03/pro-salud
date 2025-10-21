@@ -11,6 +11,7 @@ export type ObraSocialOption = {
 };
 
 export type OrdenClave = "reciente" | "antiguo" | "alf-asc" | "alf-desc";
+export type EstadoFiltro = "todos" | "activo" | "inactivo";
 
 /* =========================
    Utilidades comunes
@@ -46,6 +47,8 @@ interface PacientesFilterPopoverProps {
     onClearObras: () => void;
     orden: OrdenClave;
     setOrden: (v: OrdenClave) => void;
+    estado: EstadoFiltro;
+    setEstado: (v: EstadoFiltro) => void;
     onApply: () => void;
     summaryCount: number;
     buttonLabel?: string;
@@ -64,6 +67,8 @@ export function PacientesFilterPopover({
     onClearObras,
     orden,
     setOrden,
+    estado,
+    setEstado,
     onApply,
     summaryCount,
     buttonLabel = "Filtros",
@@ -164,7 +169,7 @@ export function PacientesFilterPopover({
                             </div>
                         </div>
 
-                        {/* Columna 2: Orden */}
+                        {/* Columna 2: Orden y Estado */}
                         <div className="space-y-4">
                             <div>
                                 <h3 className="text-sm font-semibold text-gray-800 mb-2">Orden</h3>
@@ -188,6 +193,28 @@ export function PacientesFilterPopover({
                                     ))}
                                 </div>
                             </div>
+
+                            <div>
+                                <h3 className="text-sm font-semibold text-gray-800 mb-2">Estado</h3>
+                                <div className="grid grid-cols-1 gap-2">
+                                    {([
+                                        { key: "todos", label: "Todos" },
+                                        { key: "activo", label: "Activos" },
+                                        { key: "inactivo", label: "Inactivos" },
+                                    ] as { key: EstadoFiltro; label: string }[]).map(({ key, label }) => (
+                                        <button
+                                            key={key}
+                                            onClick={() => setEstado(key)}
+                                            className={`w-full text-left px-3 py-2 rounded-lg border transition ${estado === key
+                                                ? "bg-blue-50 border-blue-300 text-blue-700"
+                                                : "bg-white border-gray-200 hover:bg-gray-50"
+                                                }`}
+                                        >
+                                            {label}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     </div>
 
@@ -197,6 +224,7 @@ export function PacientesFilterPopover({
                                 // limpiar todo
                                 onClearObras();
                                 setOrden("reciente");
+                                setEstado("todos");
                             }}
                             className="px-3 py-2 text-sm rounded-lg border border-gray-300 hover:bg-white"
                         >

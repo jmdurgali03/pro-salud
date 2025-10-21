@@ -20,6 +20,7 @@ export const listar = query({
 
       return {
         ...p,
+        estado: (p as any).estado ?? "Activo",
         obrasSociales: obrasIds,
         obrasSocialesNombres: obrasNombres,
       };
@@ -89,6 +90,7 @@ export const crear = mutation({
 
     const pacienteId = await ctx.db.insert("pacientes", {
       ...pacienteData,
+      estado: "Activo",
       creadoEn: ahora,
       actualizadoEn: ahora,
     });
@@ -165,7 +167,19 @@ export const actualizar = mutation({
 });
 
 // =====================
-// 🔹 Eliminar paciente
+// 🔹 Cambiar estado (activar/desactivar)
+// =====================
+export const cambiarEstado = mutation({
+  args: { id: v.id("pacientes"), estado: v.union(v.literal("Activo"), v.literal("Inactivo")) },
+  handler: async (ctx, { id, estado }) => {
+    const paciente = await ctx.db.get(id);
+    if (!paciente) throw new Error("Paciente no encontrado");
+    await ctx.db.patch(id, { estado, actualizadoEn: Date.now() });
+  },
+});
+
+// =====================
+// 🔹 Eliminar paciente (compatibilidad)
 // =====================
 export const eliminar = mutation({
   args: { id: v.id("pacientes") },

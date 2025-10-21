@@ -86,7 +86,6 @@ export default function ProfesionalesPage() {
 
   const crear = useMutation(api.profesionales.crear);
   const editar = useMutation(api.profesionales.editar);
-  const eliminar = useMutation(api.profesionales.eliminar);
 
   const [q, setQ] = useState("");
   // NUEVOS ESTADOS PARA EL FILTRO POPUP
@@ -97,7 +96,8 @@ export default function ProfesionalesPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editando, setEditando] = useState<Profesional | null>(null);
   const [viendo, setViendo] = useState<Profesional | null>(null);
-  const [eliminando, setEliminando] = useState<Profesional | null>(null);
+  const [desactivando, setDesactivando] = useState<Profesional | null>(null);
+  const [activando, setActivando] = useState<Profesional | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [modalError, setModalError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -163,12 +163,21 @@ export default function ProfesionalesPage() {
     }
   };
 
-  const handleEliminar = async (id?: Id<"profesionales">) => {
+  const handleDesactivar = async (id?: Id<"profesionales">) => {
     if (!id) return;
-    const res: any = await eliminar({ id });
+    const res: any = await editar({ id, estado: "Inactivo" } as any);
     if (res?.ok) {
-      setToast("Profesional eliminado.");
-      setEliminando(null);
+      setToast("Profesional desactivado.");
+      setDesactivando(null);
+    }
+  };
+
+  const handleActivar = async (id?: Id<"profesionales">) => {
+    if (!id) return;
+    const res: any = await editar({ id, estado: "Activo" } as any);
+    if (res?.ok) {
+      setToast("Profesional activado.");
+      setActivando(null);
     }
   };
 
@@ -377,13 +386,23 @@ export default function ProfesionalesPage() {
                           <Edit className="w-4 h-4" />
                           Editar
                         </DropdownMenuItem>
-                        <DropdownMenuItem
-                          onClick={() => setEliminando(prof)}
-                          className="cursor-pointer focus:text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Eliminar
-                        </DropdownMenuItem>
+                        {prof.estado === "Activo" ? (
+                          <DropdownMenuItem
+                            onClick={() => setDesactivando(prof)}
+                            className="cursor-pointer focus:text-amber-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Desactivar
+                          </DropdownMenuItem>
+                        ) : (
+                          <DropdownMenuItem
+                            onClick={() => setActivando(prof)}
+                            className="cursor-pointer focus:text-emerald-700"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                            Activar
+                          </DropdownMenuItem>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </td>
@@ -565,21 +584,20 @@ export default function ProfesionalesPage() {
           </DialogContent>
         </Dialog>
 
-        {/* Dialog Confirmar Eliminación */}
-        <AlertDialog open={!!eliminando} onOpenChange={(open) => !open && setEliminando(null)}>
+        {/* Dialog Confirmar Desactivación */}
+        <AlertDialog open={!!desactivando} onOpenChange={(open) => !open && setDesactivando(null)}>
           <AlertDialogContent>
             <AlertDialogHeader>
               <div className="flex items-center justify-center mb-4">
-                <div className="w-12 h-12 rounded-full bg-red-100 flex items-center justify-center">
-                  <AlertTriangle className="w-6 h-6 text-red-600" />
+                <div className="w-12 h-12 rounded-full bg-amber-100 flex items-center justify-center">
+                  <AlertTriangle className="w-6 h-6 text-amber-600" />
                 </div>
               </div>
-              <AlertDialogTitle className="text-center">¿Eliminar profesional?</AlertDialogTitle>
+              <AlertDialogTitle className="text-center">¿Desactivar profesional?</AlertDialogTitle>
               <AlertDialogDescription className="text-center">
-                {eliminando && (
+                {desactivando && (
                   <>
-                    Esta acción eliminará permanentemente al profesional &quot;<strong>{eliminando.nombre} {eliminando.apellido}</strong>&quot;.
-                    Los pacientes asociados no perderán su información, pero no tendrán cobertura asignada.
+                    Esto marcará como <strong>Inactivo</strong> a "{desactivando.nombre} {desactivando.apellido}".
                   </>
                 )}
               </AlertDialogDescription>
@@ -587,14 +605,40 @@ export default function ProfesionalesPage() {
             <AlertDialogFooter className="sm:justify-center">
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => {
-                  if (eliminando) {
-                    handleEliminar(eliminando._id);
-                  }
-                }}
-                className="bg-red-600 hover:bg-red-700"
+                onClick={() => desactivando && handleDesactivar(desactivando._id)}
+                className="bg-amber-600 hover:bg-amber-700"
               >
-                Eliminar
+                Desactivar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* Dialog Confirmar Activación */}
+        <AlertDialog open={!!activando} onOpenChange={(open) => !open && setActivando(null)}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="flex items-center justify-center mb-4">
+                <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                  <CheckCircle2 className="w-6 h-6 text-emerald-600" />
+                </div>
+              </div>
+              <AlertDialogTitle className="text-center">¿Activar profesional?</AlertDialogTitle>
+              <AlertDialogDescription className="text-center">
+                {activando && (
+                  <>
+                    Esto marcará como <strong>Activo</strong> a "{activando.nombre} {activando.apellido}".
+                  </>
+                )}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter className="sm:justify-center">
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => activando && handleActivar(activando._id)}
+                className="bg-emerald-600 hover:bg-emerald-700"
+              >
+                Activar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

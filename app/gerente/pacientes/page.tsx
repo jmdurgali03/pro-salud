@@ -34,7 +34,7 @@ export default function PacientesPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebouncedValue(search, 250);
   const [seleccionado, setSeleccionado] = useState<PacienteRecord | null>(null);
-  const [modo, setModo] = useState<"editar" | "crear" | "eliminar" | "ver" | null>(null);
+  const [modo, setModo] = useState<"editar" | "crear" | "desactivar" | "activar" | "ver" | null>(null);
   const router = useRouter();
 
   const pacientesConvex = useQuery(api.pacientes.listar, {}) as PacienteRecord[] | undefined;
@@ -152,7 +152,7 @@ export default function PacientesPage() {
   // === Mutaciones ===
   const crearPaciente = useMutation(api.pacientes.crear);
   const actualizarPaciente = useMutation(api.pacientes.actualizar);
-  const eliminarPaciente = useMutation(api.pacientes.eliminar);
+  const cambiarEstadoPaciente = useMutation(api.pacientes.cambiarEstado);
 
   const closeModal = () => {
     setModo(null);
@@ -189,13 +189,23 @@ export default function PacientesPage() {
     }
   };
 
-  const handleEliminar = async (id: Id<"pacientes">) => {
+  const handleDesactivar = async (id: Id<"pacientes">) => {
     try {
-      await eliminarPaciente({ id });
+      await cambiarEstadoPaciente({ id, estado: "Inactivo" });
       closeModal();
-      setToast("Paciente eliminado correctamente.");
+      setToast("Paciente desactivado correctamente.");
     } catch {
-      setToast("Error al eliminar el paciente.");
+      setToast("Error al desactivar el paciente.");
+    }
+  };
+
+  const handleActivar = async (id: Id<"pacientes">) => {
+    try {
+      await cambiarEstadoPaciente({ id, estado: "Activo" });
+      closeModal();
+      setToast("Paciente activado correctamente.");
+    } catch {
+      setToast("Error al activar el paciente.");
     }
   };
 
@@ -264,9 +274,13 @@ export default function PacientesPage() {
               setSeleccionado(paciente);
               setModo("editar");
             }}
-            onDelete={(paciente) => {
+            onDeactivate={(paciente) => {
               setSeleccionado(paciente);
-              setModo("eliminar");
+              setModo("desactivar");
+            }}
+            onActivate={(paciente) => {
+              setSeleccionado(paciente);
+              setModo("activar");
             }}
             searchTerm={debouncedSearch}
             isLoading={isLoadingPac}
@@ -282,7 +296,7 @@ export default function PacientesPage() {
         </div>
 
         {/* Modales para crear, editar y ver */}
-        {modo && modo !== "eliminar" && (
+        {modo && modo !== "desactivar" && modo !== "activar" && (
           <ModalContainer onClose={closeModal}>
             {modo === "crear" && (
               <PacienteForm
@@ -318,31 +332,61 @@ export default function PacientesPage() {
           </ModalContainer>
         )}
 
-        {/* ✅ AlertDialog para eliminar paciente */}
-        <AlertDialog open={modo === "eliminar"} onOpenChange={(open) => !open && closeModal()}>
+        {/* ✅ AlertDialog para desactivar paciente */}
+        <AlertDialog open={modo === "desactivar"} onOpenChange={(open) => !open && closeModal()}>
           <AlertDialogContent>
             <AlertDialogHeader>
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-red-100">
-                <AlertTriangle className="h-6 w-6 text-red-600" />
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-amber-100">
+                <AlertTriangle className="h-6 w-6 text-amber-600" />
               </div>
               <AlertDialogTitle className="text-center">
-                ¿Eliminar paciente?
+                ¿Desactivar paciente?
               </AlertDialogTitle>
               <AlertDialogDescription className="text-center">
-                Esta acción eliminará permanentemente al paciente{" "}
+                Esta acción marcará como Inactivo al paciente{" "}
                 <strong>
                   "{seleccionado?.nombre} {seleccionado?.apellido}"
                 </strong>
-                . Los pacientes asociados no perderán su información, pero no tendrán cobertura asignada.
+                . No se perderá información, pero el paciente figurará como inactivo.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => seleccionado && handleEliminar(seleccionado._id)}
-                className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+                onClick={() => seleccionado && handleDesactivar(seleccionado._id)}
+                className="bg-amber-600 hover:bg-amber-700 focus:ring-amber-600"
               >
-                Eliminar
+                Desactivar
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
+        {/* ✅ AlertDialog para activar paciente */}
+        <AlertDialog open={modo === "activar"} onOpenChange={(open) => !open && closeModal()}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-100">
+                <CheckCircle2 className="h-6 w-6 text-emerald-600" />
+              </div>
+              <AlertDialogTitle className="text-center">
+                ¿Activar paciente?
+              </AlertDialogTitle>
+              <AlertDialogDescription className="text-center">
+                Esto marcará como Activo al paciente {" "}
+                <strong>
+                  "{seleccionado?.nombre} {seleccionado?.apellido}"
+                </strong>
+                .
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => seleccionado && handleActivar(seleccionado._id)}
+                className="bg-emerald-600 hover:bg-emerald-700 focus:ring-emerald-600"
+              >
+                Activar
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

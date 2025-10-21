@@ -94,6 +94,7 @@ export default defineSchema({
     dni: v.string(),
     fechaNacimiento: v.optional(v.string()),
     genero: v.union(v.literal("Masculino"), v.literal("Femenino"), v.literal("Otro")),
+    estado: v.optional(v.union(v.literal("Activo"), v.literal("Inactivo"))),
     creadoEn: v.number(),
     actualizadoEn: v.number(),
   })

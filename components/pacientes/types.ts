@@ -8,7 +8,8 @@ export type PacienteRecord = {
   email?: string;
   telefono?: string;
   fechaNacimiento?: string;
-  genero?: "Masculino" | "Femenino"; 
+  genero?: "Masculino" | "Femenino" | "Otro"; 
+  estado?: "Activo" | "Inactivo";
   obrasSociales: Id<"obrasSociales">[];
   obrasSocialesNombres?: string[];
 };

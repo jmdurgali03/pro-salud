@@ -11,7 +11,9 @@ type PacientesTableProps = {
   pacientes: PacienteRecord[];
   onView: (id: Id<"pacientes">) => void;
   onEdit: (paciente: PacienteRecord) => void;
-  onDelete: (paciente: PacienteRecord) => void;
+  onDeactivate?: (paciente: PacienteRecord) => void;
+  onActivate?: (paciente: PacienteRecord) => void;
+  onDelete?: (paciente: PacienteRecord) => void;
   searchTerm: string;
   isLoading?: boolean;
 };
@@ -20,6 +22,8 @@ export function PacientesTable({
   pacientes,
   onView,
   onEdit,
+  onDeactivate,
+  onActivate,
   onDelete,
   searchTerm,
   isLoading = false,
@@ -59,6 +63,9 @@ export function PacientesTable({
               </th>
               <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Obras Sociales
+              </th>
+              <th className="px-6 py-4 text-left text-xs font-semibold text-gray-700 uppercase tracking-wider">
+                Estado
               </th>
               <th className="px-6 py-4 text-center text-xs font-semibold text-gray-700 uppercase tracking-wider">
                 Acciones
@@ -100,19 +107,36 @@ export function PacientesTable({
                       )}
                     </div>
                   </td>
+                  <td className="px-6 py-4 align-top">
+                    {(() => {
+                      const estado = paciente.estado ?? "Activo";
+                      const isActivo = estado === "Activo";
+                      const cls = isActivo
+                        ? "bg-emerald-100 text-emerald-700 border border-emerald-200"
+                        : "bg-red-100 text-red-700 border border-red-200";
+                      return (
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ${cls}`}>
+                          {isActivo ? "Activo" : "Inactivo"}
+                        </span>
+                      );
+                    })()}
+                  </td>
                   <td className="px-6 py-4 text-center">
                     <ActionsMenu
                       onView={() => onView(paciente._id)}
                       onEdit={() => onEdit(paciente)}
-                      onDelete={() => onDelete(paciente)}
+                      onDeactivate={onDeactivate ? () => onDeactivate(paciente) : undefined}
+                      onActivate={onActivate ? () => onActivate(paciente) : undefined}
+                      onDelete={onDelete ? () => onDelete(paciente) : undefined}
+                      estado={(paciente.estado as any) ?? "Activo"}
                     />
                   </td>
                 </tr>
               ))
             ) : (
               <tr>
-                {/* Colspan ajustado a 6 (antes 5) para incluir la nueva columna */}
-                <td colSpan={6} className="px-6 py-12 text-center">
+                {/* Colspan ajustado a 7 por nueva columna Estado */}
+                <td colSpan={7} className="px-6 py-12 text-center">
                   <div className="flex flex-col items-center gap-3">
                     <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                       <Search className="text-gray-400" size={28} />
@@ -137,10 +161,13 @@ export function PacientesTable({
 type ActionsMenuProps = {
   onView: () => void;
   onEdit: () => void;
-  onDelete: () => void;
+  onDeactivate?: () => void;
+  onActivate?: () => void;
+  onDelete?: () => void;
+  estado: "Activo" | "Inactivo";
 };
 
-function ActionsMenu({ onView, onEdit, onDelete }: ActionsMenuProps) {
+function ActionsMenu({ onView, onEdit, onDeactivate, onActivate, onDelete, estado }: ActionsMenuProps) {
   const [open, setOpen] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
@@ -220,14 +247,35 @@ function ActionsMenu({ onView, onEdit, onDelete }: ActionsMenuProps) {
             <Edit2 className="w-4 h-4" />
             Editar datos
           </button>
-          {/* Agregando el botón de Eliminar que falta en tu ActionsMenu */}
-          <button
-            onClick={() => triggerAction(onDelete)}
-            className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
-          >
-            <Trash2 className="w-4 h-4" />
-            Eliminar
-          </button>
+          {/* Toggle Activar/Desactivar según estado cuando hay handlers provistos */}
+          {estado === "Activo" && onDeactivate && (
+            <button
+              onClick={() => triggerAction(onDeactivate)}
+              className="w-full px-4 py-2 text-left text-sm text-amber-700 hover:bg-amber-50 flex items-center gap-2 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Desactivar paciente
+            </button>
+          )}
+          {estado === "Inactivo" && onActivate && (
+            <button
+              onClick={() => triggerAction(onActivate)}
+              className="w-full px-4 py-2 text-left text-sm text-emerald-700 hover:bg-emerald-50 flex items-center gap-2 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Activar paciente
+            </button>
+          )}
+          {/* Fallback: si no hay toggle, mostrar Eliminar si existe */}
+          {!onDeactivate && !onActivate && onDelete && (
+            <button
+              onClick={() => triggerAction(onDelete)}
+              className="w-full px-4 py-2 text-left text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+            >
+              <Trash2 className="w-4 h-4" />
+              Eliminar
+            </button>
+          )}
         </div>
       )}
     </div>
