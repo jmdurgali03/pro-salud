@@ -84,25 +84,36 @@ const argsResumen = useMemo(
   () => (desde && hasta ? { from: desde, to: hasta } : {}),
   [desde, hasta]
 );
-const resumenBackend = useQuery(api.turnos.resumenProfesionales, argsResumen) ?? [];
+const resumenBackend = useQuery(api.turnos.resumenProfesionales, argsResumen, {
+  // Esto evita mostrar resultados anteriores si Convex está offline
+  staleWhileRevalidate: false,
+});
 
 
 const resumenMapa = useMemo(() => {
-  const m = new Map<Id<"profesionales">, {
-    pendientes: number; confirmados: number; cancelados: number;
-    total: number; porcentajeConfirmados: number;
-  }>();
+  const m = new Map();
+
+  // Si el backend no devuelve array, devolvemos mapa vacío
+  if (!Array.isArray(resumenBackend)) {
+    console.warn("⚠️ resumenBackend no es iterable:", resumenBackend);
+    return m;
+  }
+
   for (const r of resumenBackend) {
     m.set(r.profesionalId as Id<"profesionales">, {
-      pendientes: r.pendientes,
-      confirmados: r.confirmados,
-      cancelados: r.cancelados,
-      total: r.total,
-      porcentajeConfirmados: r.porcentajeConfirmados,
+      pendientes: r.pendientes ?? 0,
+      confirmados: r.confirmados ?? 0,
+      cancelados: r.cancelados ?? 0,
+      total: r.total ?? 0,
+      porcentajeConfirmados: r.porcentajeConfirmados ?? 0,
     });
   }
+
   return m;
 }, [resumenBackend]);
+
+
+
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
