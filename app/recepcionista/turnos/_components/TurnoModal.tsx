@@ -6,16 +6,10 @@ import {
   Stethoscope,
   CalendarClock,
   Clock,
-  CheckCircle2,
-  AlertCircle,
 } from "lucide-react";
-import { useState } from "react";
-import { useMutation } from "convex/react";
-import { api } from "@/convex/_generated/api";
 import type { TurnoConJoin } from "@/app/recepcionista/cal-turnos/_components/types";
 import { EstadoBadge } from "./EstadoBadge";
-
-type EstadoTurno = "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado";
+ 
 
 export function TurnoModal({
   turno,
@@ -24,33 +18,9 @@ export function TurnoModal({
   turno: TurnoConJoin;
   onClose: () => void;
 }) {
-  const actualizarEstado = useMutation(api.turnos.actualizarEstado);
-  const [nuevoEstado, setNuevoEstado] = useState<EstadoTurno>(turno.estado);
-  const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState<string | null>(null);
-  const [tipoMensaje, setTipoMensaje] = useState<"ok" | "error" | null>(null);
+  // Vista de solo lectura: sin edición de estado
 
-  const handleActualizar = async () => {
-    try {
-      setGuardando(true);
-      await actualizarEstado({
-        turnoId: turno._id,
-        estado: nuevoEstado,
-      });
-      setMensaje("✅ Estado actualizado correctamente");
-      setTipoMensaje("ok");
-      setTimeout(() => {
-        setMensaje(null);
-        onClose();
-      }, 1500);
-    } catch (err: any) {
-      console.error(err);
-      setMensaje("❌ No se pudo actualizar el estado");
-      setTipoMensaje("error");
-    } finally {
-      setGuardando(false);
-    }
-  };
+  // Sin acciones de actualización en modo ver detalles
 
   const fecha = new Date(turno.start).toLocaleDateString("es-AR", {
     day: "2-digit",
@@ -116,45 +86,7 @@ export function TurnoModal({
             <EstadoBadge estado={turno.estado} />
           </Row>
 
-          {/* CAMBIO DE ESTADO */}
-          <div className="mt-4 border-t pt-4">
-            <h4 className="font-semibold text-gray-800 mb-2">
-              Actualizar estado
-            </h4>
-            <select
-              value={nuevoEstado}
-              onChange={(e) => setNuevoEstado(e.target.value as EstadoTurno)}
-              className="border rounded-md p-2 text-sm w-full"
-            >
-              <option value="Pendiente">Pendiente</option>
-              <option value="Confirmado">Confirmado</option>
-              <option value="Cancelado">Cancelado</option>
-              <option value="Finalizado">Finalizado</option>
-            </select>
-
-            <button
-              onClick={handleActualizar}
-              disabled={guardando}
-              className={`mt-4 w-full flex items-center justify-center gap-2 text-white rounded-md py-2 transition ${guardando
-                ? "bg-gray-400 cursor-not-allowed"
-                : "bg-emerald-600 hover:bg-emerald-700"
-                }`}
-            >
-              <CheckCircle2 className="w-4 h-4" />
-              {guardando ? "Guardando..." : "Guardar cambios"}
-            </button>
-          </div>
-
-          {mensaje && (
-            <div
-              className={`mt-3 text-center text-sm rounded-md py-2 ${tipoMensaje === "ok"
-                ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                : "bg-red-50 text-red-700 border border-red-200"
-                }`}
-            >
-              {mensaje}
-            </div>
-          )}
+          {/* Se elimina edición: solo se muestra el estado actual */}
         </div>
       </div>
     </div>
