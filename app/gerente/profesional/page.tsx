@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import PanelTurnosInner from "@/components/PanelTurnosInner";
 import ProfesionalModal from "./ProfesionalModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
@@ -77,6 +79,28 @@ const mapReason = (r: string, fallback?: string) => {
 };
 
 export default function ProfesionalesPage() {
+  
+  const [desde, setDesde] = useState<number | undefined>(undefined);
+const [hasta, setHasta] = useState<number | undefined>(undefined);
+  // Rango por defecto: semana actual (Lun 00:00 a Lun siguiente 00:00)
+  useEffect(() => {
+    if (desde === undefined && hasta === undefined) {
+      const now = new Date();
+      const day = (now.getDay() + 6) % 7; // 0 = lunes
+      const start = new Date(now);
+      start.setDate(now.getDate() - day);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      setDesde(start.getTime());
+      setHasta(end.getTime());
+    }
+  }, [desde, hasta]);
+  const argsResumen = useMemo(
+  () => (desde && hasta ? { from: desde, to: hasta } : {}),
+  [desde, hasta]
+);
+console.log("NEXT_PUBLIC_CONVEX_URL =", process.env.NEXT_PUBLIC_CONVEX_URL);
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
@@ -187,6 +211,8 @@ export default function ProfesionalesPage() {
 
   const getObrasSocialesNombres = (ids: Id<"obrasSociales">[]) =>
     ids.map((id) => obrasSociales.find((os) => os._id === id)?.nombre || "").filter(Boolean);
+  // (Opcional) rango del día actual:
+
 
   // Filtrado y ordenamiento (ACTUALIZADO para usar los nuevos estados)
   const profesionalesFiltrados = useMemo(() => {
@@ -418,7 +444,22 @@ export default function ProfesionalesPage() {
               )}
             </tbody>
           </table>
-
+              <ErrorBoundary
+  fallback={
+    <div className="overflow-hidden border border-gray-200 rounded-xl shadow bg-white">
+      <div className="px-4 py-3 bg-amber-50 text-amber-800 border-b">
+        No se pudo conectar con el servidor de datos (Convex). Mostrando panel vacío.
+      </div>
+      <div className="p-4 text-sm text-gray-500">Reintentá en unos segundos o recargá.</div>
+    </div>
+  }
+>
+  <PanelTurnosInner
+    profesionalesFiltrados={profesionalesFiltrados}
+    getEspecialidadNombre={getEspecialidadNombre}
+    argsResumen={argsResumen}
+  />
+</ErrorBoundary>
           {/* Paginación */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 py-4 text-sm">
