@@ -31,7 +31,16 @@ import {
   Stethoscope,
   CheckCircle2,
   AlertCircle,
+  FileDown,
 } from "lucide-react";
+
+// ✅ NUEVOS IMPORTS (exportadores PDF)
+import {
+  exportHistoriaCompletaPDF,
+  exportDiagnosticosPDF,
+  exportIndicacionesPDF,
+  exportMedicamentosPDF,
+} from "@/components/pacientes/pdf/exporters";
 
 /* ================= Tipos ================= */
 type PacienteExtendido = {
@@ -107,9 +116,15 @@ export default function HistorialPacientePage() {
   });
 
   const paciente = useQuery(api.pacientes.getById, { id: pacienteId }) as PacienteExtendido | null;
-  const diagnosticos = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as Diagnostico[] | undefined;
-  const indicaciones = useQuery(api.indicaciones.listarPorPaciente, { pacienteId }) as Indicacion[] | undefined;
-  const medicamentos = useQuery(api.medicamentos.listarPorPaciente, { pacienteId }) as Medicamento[] | undefined;
+  const diagnosticos = useQuery(api.diagnosticos.listarPorPaciente, { pacienteId }) as
+    | Diagnostico[]
+    | undefined;
+  const indicaciones = useQuery(api.indicaciones.listarPorPaciente, { pacienteId }) as
+    | Indicacion[]
+    | undefined;
+  const medicamentos = useQuery(api.medicamentos.listarPorPaciente, { pacienteId }) as
+    | Medicamento[]
+    | undefined;
 
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const profNombrePorId = useMemo(() => {
@@ -189,7 +204,11 @@ export default function HistorialPacientePage() {
   };
 
   /* ============ Submits ============ */
-  const submitDiagnostico = async (data: { descripcion: string; estado: "Presuntivo" | "Definitivo"; fecha?: number }) => {
+  const submitDiagnostico = async (data: {
+    descripcion: string;
+    estado: "Presuntivo" | "Definitivo";
+    fecha?: number;
+  }) => {
     try {
       const yo = ensureProfesional();
       await crearDiagnostico({
@@ -319,46 +338,83 @@ export default function HistorialPacientePage() {
         obrasSociales={paciente?.obrasSocialesNombres}
       />
 
-      <div className="mx-auto max-w-6xl px-6 pt-4">
-        <BigTabs
-          value={tab}
-          onChange={(t) => {
-            setTab(t as TabKey);
-            setPageDx(1);
-            setPageInd(1);
-            setPageMed(1);
-          }}
-          items={[
-            { key: "resumen", label: "Resumen", icon: LayoutGrid },
-            { key: "diagnosticos", label: "Diagnósticos", icon: Stethoscope },
-            { key: "indicaciones", label: "Indicaciones médicas", icon: ClipboardList },
-            { key: "medicamentos", label: "Medicamentos", icon: Pill },
-          ]}
-        />
-      </div>
+     <div className="mx-auto max-w-6xl px-6 pt-4">
+  {/* Tabs a full width + botón a la derecha */}
+  <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] items-center gap-3">
+    <div className="w-full">
+      <BigTabs
+        value={tab}
+        onChange={(t) => {
+          setTab(t as TabKey);
+          setPageDx(1);
+          setPageInd(1);
+          setPageMed(1);
+        }}
+        items={[
+          { key: "resumen", label: "Resumen", icon: LayoutGrid },
+          { key: "diagnosticos", label: "Diagnósticos", icon: Stethoscope },
+          { key: "indicaciones", label: "Indicaciones médicas", icon: ClipboardList },
+          { key: "medicamentos", label: "Medicamentos", icon: Pill },
+        ]}
+      />
+    </div>
+
+    {/* Botón (queda a la derecha en md+, debajo en mobile) */}
+    <button
+      onClick={() =>
+        exportHistoriaCompletaPDF({
+          paciente,
+          diagnosticos,
+          indicaciones,
+          medicamentos,
+          getProfesionalNombre: (id: any) => profNombrePorId.get(id) ?? "—",
+          getIndicacionNombre: (id: any) => (id ? indicNombrePorId.get(id) : undefined),
+          getDiagnosticoDescripcion: (id: any) => (id ? dxDescPorId.get(id) : undefined),
+        })
+      }
+      className="justify-self-start md:justify-self-end inline-flex items-center gap-3 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-600 text-white px-5 py-2.5 text-sm sm:text-base font-semibold shadow-md hover:shadow-lg hover:from-emerald-600 hover:to-emerald-700 transition-all"
+      title="Descargar historia clínica completa en PDF"
+    >
+      <FileDown className="w-5 h-5" />
+      Descargar historia clínica
+    </button>
+  </div>
+</div>
+
+
+
 
       <div className="mx-auto max-w-6xl px-6 py-6">
         <main className="min-w-0 space-y-6">
           {/* ======= RESUMEN ======= */}
           {tab === "resumen" && (
-            <section ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
+            <section
+              ref={resumenRef}
+              className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm"
+            >
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
                 {/* Diagnósticos - Verde */}
                 <div className="flex-1 rounded-xl border border-emerald-200 bg-white px-4 py-3 shadow-sm hover:border-emerald-300 transition">
                   <div className="text-sm text-emerald-600 font-medium">Diagnósticos</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">{diagnosticos?.length ?? 0}</div>
+                  <div className="mt-1 text-2xl font-semibold text-gray-900">
+                    {diagnosticos?.length ?? 0}
+                  </div>
                 </div>
 
                 {/* Indicaciones - Celeste */}
                 <div className="flex-1 rounded-xl border border-cyan-200 bg-white px-4 py-3 shadow-sm hover:border-cyan-300 transition">
                   <div className="text-sm text-cyan-600 font-medium">Indicaciones</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">{indicaciones?.length ?? 0}</div>
+                  <div className="mt-1 text-2xl font-semibold text-gray-900">
+                    {indicaciones?.length ?? 0}
+                  </div>
                 </div>
 
                 {/* Medicamentos - Lila */}
                 <div className="flex-1 rounded-xl border border-violet-200 bg-white px-4 py-3 shadow-sm hover:border-violet-300 transition">
                   <div className="text-sm text-violet-600 font-medium">Medicamentos</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">{medicamentos?.length ?? 0}</div>
+                  <div className="mt-1 text-2xl font-semibold text-gray-900">
+                    {medicamentos?.length ?? 0}
+                  </div>
                 </div>
               </div>
             </section>
@@ -370,12 +426,28 @@ export default function HistorialPacientePage() {
               id="diagnosticos"
               title="Diagnósticos"
               right={
-                <button
-                  onClick={() => setOpenDx(true)}
-                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100"
-                >
-                  Nuevo diagnóstico
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setOpenDx(true)}
+                    className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100"
+                  >
+                    Nuevo diagnóstico
+                  </button>
+                  <button
+                    onClick={() =>
+                      exportDiagnosticosPDF({
+                        paciente,
+                        diagnosticos,
+                        getProfesionalNombre: (id: any) => profNombrePorId.get(id) ?? "—",
+                      })
+                    }
+                    className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-white px-3 py-2 text-sm font-medium text-emerald-700 hover:bg-emerald-50"
+                    title="Descargar Diagnósticos en PDF"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Descargar
+                  </button>
+                </div>
               }
             >
               <Panel>
@@ -402,12 +474,30 @@ export default function HistorialPacientePage() {
               id="indicaciones"
               title="Indicaciones médicas"
               right={
-                <button
-                  onClick={() => setOpenIndic(true)}
-                  className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-100"
-                >
-                  Nueva indicación
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setOpenIndic(true)}
+                    className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 shadow-sm hover:bg-cyan-100"
+                  >
+                    Nueva indicación
+                  </button>
+                  <button
+                    onClick={() =>
+                      exportIndicacionesPDF({
+                        paciente,
+                        indicaciones,
+                        getProfesionalNombre: (id: any) => profNombrePorId.get(id) ?? "—",
+                        getDiagnosticoDescripcion: (id: any) =>
+                          id ? dxDescPorId.get(id) : undefined,
+                      })
+                    }
+                    className="inline-flex items-center gap-2 rounded-lg border border-cyan-200 bg-white px-3 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-50"
+                    title="Descargar Indicaciones en PDF"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Descargar
+                  </button>
+                </div>
               }
             >
               <Panel>
@@ -439,12 +529,32 @@ export default function HistorialPacientePage() {
               id="medicamentos"
               title="Medicamentos"
               right={
-                <button
-                  onClick={() => setOpenMed(true)}
-                  className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 shadow-sm hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
-                >
-                  Nuevo medicamento
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setOpenMed(true)}
+                    className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 shadow-sm hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
+                  >
+                    Nuevo medicamento
+                  </button>
+                  <button
+                    onClick={() =>
+                      exportMedicamentosPDF({
+                        paciente,
+                        medicamentos,
+                        getProfesionalNombre: (id: any) => profNombrePorId.get(id) ?? "—",
+                        getIndicacionNombre: (id: any) =>
+                          id ? indicNombrePorId.get(id) : undefined,
+                        getDiagnosticoDescripcion: (id: any) =>
+                          id ? dxDescPorId.get(id) : undefined,
+                      })
+                    }
+                    className="inline-flex items-center gap-2 rounded-lg border border-purple-200 bg-white px-3 py-2 text-sm font-medium text-purple-700 hover:bg-purple-50"
+                    title="Descargar Medicamentos en PDF"
+                  >
+                    <FileDown className="w-4 h-4" />
+                    Descargar
+                  </button>
+                </div>
               }
             >
               <Panel>
@@ -563,14 +673,10 @@ export default function HistorialPacientePage() {
           medSeleccionado ? profNombrePorId.get(medSeleccionado.profesionalId as any) ?? "—" : "—"
         }
         indicacionNombre={
-          medSeleccionado?.indicacionId
-            ? (indicNombrePorId.get(medSeleccionado.indicacionId as any) ?? "—")
-            : "—"
+          medSeleccionado?.indicacionId ? (indicNombrePorId.get(medSeleccionado.indicacionId as any) ?? "—") : "—"
         }
         diagnosticoDescripcion={
-          medSeleccionado?.diagnosticoId
-            ? (dxDescPorId.get(medSeleccionado.diagnosticoId as any) ?? "—")
-            : "—"
+          medSeleccionado?.diagnosticoId ? (dxDescPorId.get(medSeleccionado.diagnosticoId as any) ?? "—") : "—"
         }
         saving={savingEstado}
         onChangeEstado={async (estado) => {
