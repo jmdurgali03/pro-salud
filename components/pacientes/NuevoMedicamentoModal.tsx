@@ -190,9 +190,14 @@ export default function NuevoMedicamentoModal({
           <h3 className="text-lg font-semibold text-gray-900">
             {mode === "edit" ? "Editar medicamento" : "Nuevo medicamento"}
           </h3>
-          <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-500 hover:bg-gray-100" aria-label="Cerrar">
+          <button
+            onClick={onClose}
+            className="rounded-lg px-3 py-1 text-purple-500 hover:bg-purple-50 hover:text-purple-700 transition"
+            aria-label="Cerrar"
+          >
             ✕
           </button>
+
         </div>
 
         {/* Body con scroll */}
@@ -380,10 +385,11 @@ export default function NuevoMedicamentoModal({
           <button
             disabled={disabled}
             onClick={submit}
-            className="rounded-lg border border-emerald-200 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
+            className="rounded-lg border border-purple-200 bg-purple-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-300 disabled:cursor-not-allowed disabled:opacity-60 transition"
           >
             {mode === "edit" ? "Guardar cambios" : "Guardar"}
           </button>
+
         </div>
       </div>
     </div>

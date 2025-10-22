@@ -18,28 +18,42 @@ export default function BigTabs({
   onChange: (v: string) => void;
   items: BigTabItem[];
 }) {
+  const colorByKey: Record<
+    string,
+    { base: string; dark: string; text: string }
+  > = {
+    resumen: { base: "emerald", dark: "green", text: "emerald" },
+    diagnosticos: { base: "emerald", dark: "teal", text: "emerald" },
+    indicaciones: { base: "cyan", dark: "sky", text: "cyan" }, // ✅ degradado celeste restaurado
+    medicamentos: { base: "violet", dark: "purple", text: "violet" },
+  };
+
   return (
     <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
       {items.map(({ key, label, icon: Icon, helper }) => {
         const active = value === key;
+        const color = colorByKey[key]?.base || "gray";
+        const dark = colorByKey[key]?.dark || color;
+        const text = colorByKey[key]?.text || color;
+
         return (
           <button
             key={key}
             onClick={() => onChange(key)}
             className={[
-              "group relative w-full rounded-2xl border px-4 py-4 text-left transition-all",
+              "group relative w-full rounded-2xl border px-4 py-4 text-left transition-all duration-200",
               "shadow-sm hover:shadow-md",
               active
-                ? "border-emerald-200 bg-emerald-50"
+                ? `border-${color}-200 bg-${color}-50`
                 : "border-gray-200 bg-white hover:bg-gray-50",
             ].join(" ")}
           >
             <div className="flex items-center gap-3">
               <div
                 className={[
-                  "grid h-10 w-10 place-items-center rounded-xl shadow-inner",
+                  "grid h-10 w-10 place-items-center rounded-xl shadow-inner transition-all duration-200",
                   active
-                    ? "bg-emerald-600 text-white"
+                    ? `bg-gradient-to-br from-${dark}-600 to-${color}-500 text-white shadow-md`
                     : "bg-gray-100 text-gray-700 group-hover:bg-gray-200",
                 ].join(" ")}
               >
@@ -48,8 +62,8 @@ export default function BigTabs({
               <div>
                 <div
                   className={[
-                    "text-base font-semibold",
-                    active ? "text-emerald-800" : "text-gray-900",
+                    "text-base font-semibold transition-colors duration-200",
+                    active ? `text-${text}-800` : "text-gray-900",
                   ].join(" ")}
                 >
                   {label}

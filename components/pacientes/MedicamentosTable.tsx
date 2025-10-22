@@ -44,6 +44,7 @@ export default function MedicamentosTable({
             <th className="px-3 py-2 text-center w-[220px]">Acción</th>
           </tr>
         </thead>
+
         <tbody className="bg-white divide-y divide-gray-100">
           {data.map((r) => (
             <tr key={r._id} className="hover:bg-gray-50">
@@ -52,11 +53,12 @@ export default function MedicamentosTable({
                 {r.nombreComercial || r.droga}
               </td>
               <td className="px-3 py-2">{getProfesionalNombre(r.profesionalId)}</td>
+
               <td className="px-3 py-2">
                 <span
                   className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ring-1 ${
                     r.estado === "Activo"
-                      ? "bg-emerald-50 text-emerald-700 ring-emerald-200"
+                      ? "bg-purple-50 text-purple-700 ring-purple-200"
                       : r.estado === "Suspendido"
                       ? "bg-amber-50 text-amber-700 ring-amber-200"
                       : "bg-gray-50 text-gray-700 ring-gray-200"
@@ -65,10 +67,11 @@ export default function MedicamentosTable({
                   {r.estado}
                 </span>
               </td>
+
               <td className="px-3 py-2 text-center space-x-2">
                 <button
                   onClick={() => onView?.(r)}
-                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
                 >
                   <span className="inline-flex h-4 w-4 items-center justify-center">
                     <Eye className="h-4 w-4 opacity-80" />
@@ -78,7 +81,7 @@ export default function MedicamentosTable({
 
                 <button
                   onClick={() => onEdit?.(r)}
-                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
                 >
                   <span className="inline-flex h-4 w-4 items-center justify-center">
                     <Pencil className="h-4 w-4 opacity-80" />
@@ -88,6 +91,7 @@ export default function MedicamentosTable({
               </td>
             </tr>
           ))}
+
           {data.length === 0 && (
             <tr>
               <td colSpan={5} className="px-3 py-8 text-center text-gray-500">

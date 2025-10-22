@@ -37,7 +37,7 @@ export default function DetalleIndicacionModal({
   }) => (
     <div
       className={`rounded-xl border px-4 py-3 ${
-        highlight ? "border-emerald-200 bg-emerald-50/60" : "border-gray-200 bg-white"
+        highlight ? "border-cyan-200 bg-cyan-50/60" : "border-gray-200 bg-white"
       }`}
     >
       <div className="text-xs text-gray-500">{label}</div>
@@ -51,18 +51,27 @@ export default function DetalleIndicacionModal({
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h3 className="text-lg font-semibold text-gray-900">Detalle de indicación</h3>
-          <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-500 hover:bg-gray-100">✕</button>
+          <button
+            onClick={onClose}
+            className="rounded-lg px-3 py-1 text-gray-500 hover:bg-gray-100"
+          >
+            ✕
+          </button>
         </div>
 
         {/* Body */}
         <div className="space-y-4 px-6 py-5">
-          <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
+          {/* Nombre con celeste */}
+          <div className="rounded-xl border border-cyan-200 bg-cyan-50/60 px-4 py-3">
             <div className="text-xs text-gray-500">Nombre</div>
-            <div className="mt-1 text-base font-semibold text-gray-900">{ind.nombre || "—"}</div>
+            <div className="mt-1 text-base font-semibold text-gray-900">
+              {ind.nombre || "—"}
+            </div>
           </div>
 
+          {/* Fecha en blanco, Tipo en gris normal */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <Item label="Fecha" highlight>{ind.fecha ? format(ind.fecha, "dd/MM/yyyy") : "—"}</Item>
+            <Item label="Fecha">{ind.fecha ? format(ind.fecha, "dd/MM/yyyy") : "—"}</Item>
             <Item label="Tipo">{ind.tipo}</Item>
           </div>
 
@@ -82,7 +91,7 @@ export default function DetalleIndicacionModal({
         <div className="flex justify-end border-t px-6 py-4">
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+            className="rounded-lg border border-cyan-200 bg-cyan-50 px-4 py-2 text-sm font-medium text-cyan-700 hover:bg-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-200"
           >
             Cerrar
           </button>

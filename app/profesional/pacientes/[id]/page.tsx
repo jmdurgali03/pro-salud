@@ -297,19 +297,25 @@ export default function HistorialPacientePage() {
           {tab === "resumen" && (
             <section ref={resumenRef} className="rounded-2xl border border-gray-200 bg-white p-4 shadow-sm">
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <div className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                  <div className="text-sm text-gray-500">Diagnósticos</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">{diagnosticos?.length ?? 0}</div>
-                </div>
-                <div className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                  <div className="text-sm text-gray-500">Indicaciones</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">{indicaciones?.length ?? 0}</div>
-                </div>
-                <div className="flex-1 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-sm">
-                  <div className="text-sm text-gray-500">Medicamentos</div>
-                  <div className="mt-1 text-2xl font-semibold text-gray-900">{medicamentos?.length ?? 0}</div>
-                </div>
-              </div>
+                    {/* Diagnósticos - Verde */}
+                    <div className="flex-1 rounded-xl border border-emerald-200 bg-white px-4 py-3 shadow-sm hover:border-emerald-300 transition">
+                      <div className="text-sm text-emerald-600 font-medium">Diagnósticos</div>
+                      <div className="mt-1 text-2xl font-semibold text-gray-900">{diagnosticos?.length ?? 0}</div>
+                    </div>
+
+                    {/* Indicaciones - Celeste */}
+                    <div className="flex-1 rounded-xl border border-cyan-200 bg-white px-4 py-3 shadow-sm hover:border-cyan-300 transition">
+                      <div className="text-sm text-cyan-600 font-medium">Indicaciones</div>
+                      <div className="mt-1 text-2xl font-semibold text-gray-900">{indicaciones?.length ?? 0}</div>
+                    </div>
+
+                    {/* Medicamentos - Lila */}
+                    <div className="flex-1 rounded-xl border border-violet-200 bg-white px-4 py-3 shadow-sm hover:border-violet-300 transition">
+                      <div className="text-sm text-violet-600 font-medium">Medicamentos</div>
+                      <div className="mt-1 text-2xl font-semibold text-gray-900">{medicamentos?.length ?? 0}</div>
+                    </div>
+                  </div>
+
             </section>
           )}
 
@@ -389,10 +395,11 @@ export default function HistorialPacientePage() {
               right={
                 <button
                   onClick={() => setOpenMed(true)}
-                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm font-medium text-emerald-700 shadow-sm hover:bg-emerald-100"
+                  className="rounded-lg border border-purple-200 bg-purple-50 px-4 py-2 text-sm font-medium text-purple-700 shadow-sm hover:bg-purple-100 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
                 >
                   Nuevo medicamento
                 </button>
+
               }
             >
               <Panel>
