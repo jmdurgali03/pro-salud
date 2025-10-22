@@ -88,7 +88,7 @@ export default function NuevoDiagnosticoModal({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            Fecha <span className="text-gray-400">(dd/mm/aaaa)</span>
+            Fecha 
           </label>
           <input
             type="date"

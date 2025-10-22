@@ -1,9 +1,16 @@
 // components/pacientes/NuevaIndicacionModal.tsx
 "use client";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
 
 type TipoIndic = "Estudio" | "Procedimiento" | "Derivación" | "Control";
+
+export type IndicInitial = {
+  fecha?: number;
+  tipo?: TipoIndic;
+  nombre?: string;
+  observaciones?: string;
+};
 
 export default function NuevaIndicacionModal({
   open,
@@ -11,6 +18,8 @@ export default function NuevaIndicacionModal({
   onSubmit,
   profesionales,
   fixedProfesionalId,
+  mode = "create",
+  initial,
 }: {
   open: boolean;
   onClose: () => void;
@@ -22,11 +31,28 @@ export default function NuevaIndicacionModal({
   }) => Promise<void>;
   profesionales: { _id: Id<"profesionales">; nombre: string; apellido: string }[];
   fixedProfesionalId?: Id<"profesionales"> | undefined;
+  mode?: "create" | "edit";
+  initial?: IndicInitial;
 }) {
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [tipo, setTipo] = useState<TipoIndic>("Estudio");
   const [nombre, setNombre] = useState("");
   const [observaciones, setObservaciones] = useState("");
+
+  useEffect(() => {
+    if (!open) return;
+    if (initial) {
+      setFecha((initial.fecha ? new Date(initial.fecha) : new Date()).toISOString().slice(0, 10));
+      setTipo(initial.tipo ?? "Estudio");
+      setNombre(initial.nombre ?? "");
+      setObservaciones(initial.observaciones ?? "");
+    } else {
+      setFecha(new Date().toISOString().slice(0, 10));
+      setTipo("Estudio");
+      setNombre("");
+      setObservaciones("");
+    }
+  }, [open, initial]);
 
   if (!open) return null;
 
@@ -46,7 +72,9 @@ export default function NuevaIndicacionModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 p-3">
       <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b px-6 py-4">
-          <h3 className="text-lg font-semibold text-gray-900">Nueva indicación</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {mode === "edit" ? "Editar indicación" : "Nueva indicación"}
+          </h3>
           <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-500 hover:bg-gray-100">✕</button>
         </div>
 
@@ -109,7 +137,7 @@ export default function NuevaIndicacionModal({
             onClick={submit}
             className="rounded-lg border border-cyan-200 bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Guardar
+            {mode === "edit" ? "Guardar cambios" : "Guardar"}
           </button>
         </div>
       </div>

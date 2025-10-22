@@ -43,12 +43,36 @@ type Forma =
   | "Pomada"
   | "Otro";
 
+export type MedInitial = {
+  fechaInicio?: number;
+  fechaFin?: number | null;
+  nombreComercial?: string;
+  droga?: string;
+  forma?: Forma | string;
+  dosis?: string;
+  frecuencia?: string;
+  duracion?: string;
+  via?: string;
+  indicaciones?: string;
+  cronico?: boolean;
+  notas?: string;
+};
+
+function parseDur(d?: string): { val: string; uni: "día(s)" | "semana(s)" | "mes(es)"} {
+  if (!d) return { val: "", uni: "día(s)" };
+  const m = d.match(/^(\d+)\s+(.+)$/);
+  const uni = (m?.[2] as any) || "día(s)";
+  return { val: m?.[1] ?? "", uni };
+}
+
 export default function NuevoMedicamentoModal({
   open,
   onClose,
   onSubmit,
   profesionales,
   fixedProfesionalId,
+  mode = "create",
+  initial,
 }: {
   open: boolean;
   onClose: () => void;
@@ -69,34 +93,36 @@ export default function NuevoMedicamentoModal({
   }) => Promise<void>;
   profesionales: { _id: Id<"profesionales">; nombre: string; apellido: string }[];
   fixedProfesionalId?: Id<"profesionales"> | undefined;
+  mode?: "create" | "edit";
+  initial?: MedInitial;
 }) {
-  const defaults = () => {
+  const defaults = (seed?: MedInitial) => {
     const today = toISO(new Date());
+    const dur = parseDur(seed?.duracion);
     return {
-      inicio: today,
-      fin: "",
-      nombreComercial: "",
-      droga: "",
-      forma: "Comprimidos" as Forma,
-      via: "VO",
-      indicaciones: "",
-      cronico: false,
-      notas: "",
-      dosisVal: "",
-      dosisUni: "mg" as "ml" | "mg" | "g" | "gotas" | "comprimido(s)",
-      freqVal: "",
-      freqUni: "h" as "h" | "min" | "día(s)" | "semana(s)",
-      durVal: "",
-      durUni: "día(s)" as "día(s)" | "semana(s)" | "mes(es)",
+      inicio: seed?.fechaInicio ? toISO(new Date(seed.fechaInicio)) : today,
+      fin: seed?.fechaFin ? toISO(new Date(seed.fechaFin)) : "",
+      nombreComercial: seed?.nombreComercial ?? "",
+      droga: seed?.droga ?? "",
+      forma: (seed?.forma as Forma) ?? ("Comprimidos" as Forma),
+      via: seed?.via ?? "VO",
+      indicaciones: seed?.indicaciones ?? "",
+      cronico: seed?.cronico ?? (!seed?.fechaFin && !!seed?.fechaInicio), // si no hay fin, consideramos crónico
+      notas: seed?.notas ?? "",
+      dosisStr: seed?.dosis ?? "",
+      freqStr: seed?.frecuencia ?? "",
+      durVal: dur.val,
+      durUni: dur.uni,
     };
   };
 
-  const [state, setState] = useState(defaults());
+  const [state, setState] = useState(defaults(initial));
 
-  /* Reset al abrir */
+  /* Reset al abrir / precargar */
   useEffect(() => {
-    if (open) setState(defaults());
-  }, [open]);
+    if (open) setState(defaults(initial));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initial?.fechaInicio, initial?.fechaFin]);
 
   /* Si cambia Duración → recalculo Fin */
   useEffect(() => {
@@ -112,13 +138,11 @@ export default function NuevoMedicamentoModal({
   useEffect(() => {
     if (!state.fin || state.cronico) return;
     const { value, unit } = diffAs(state.inicio, state.fin);
-    if (value > 0) {
-      setState((s) => ({ ...s, durVal: String(value), durUni: unit }));
-    }
+    if (value > 0) setState((s) => ({ ...s, durVal: String(value), durUni: unit }));
   }, [state.fin]); // eslint-disable-line
 
   const disabled = useMemo(() => {
-    return !state.droga.trim() || !state.inicio || !state.dosisVal || !state.freqVal;
+    return !state.droga.trim() || !state.inicio || !state.dosisStr.trim() || !state.freqStr.trim();
   }, [state]);
 
   if (!open) return null;
@@ -131,8 +155,8 @@ export default function NuevoMedicamentoModal({
       nombreComercial: state.nombreComercial.trim() || undefined,
       droga: state.droga.trim(),
       forma: state.forma,
-      dosis: `${state.dosisVal} ${state.dosisUni}`.trim(),
-      frecuencia: `cada ${state.freqVal} ${state.freqUni}`.trim(),
+      dosis: state.dosisStr.trim(),
+      frecuencia: state.freqStr.trim(),
       duracion: state.cronico
         ? undefined
         : state.durVal && Number(state.durVal) > 0
@@ -155,7 +179,9 @@ export default function NuevoMedicamentoModal({
       <div className="w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b px-6 py-4">
-          <h3 className="text-lg font-semibold text-gray-900">Nuevo medicamento</h3>
+          <h3 className="text-lg font-semibold text-gray-900">
+            {mode === "edit" ? "Editar medicamento" : "Nuevo medicamento"}
+          </h3>
           <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-500 hover:bg-gray-100">✕</button>
         </div>
 
@@ -170,12 +196,9 @@ export default function NuevoMedicamentoModal({
                 value={formatDate(state.inicio)}
                 onChange={(e) => {
                   const iso = parseDDMMYYYY(e.target.value);
-                  // si tengo duración válida, recalc fin
                   let fin = state.fin;
                   const v = parseInt(state.durVal || "", 10);
-                  if (!state.cronico && isFinite(v) && v > 0) {
-                    fin = addAmount(iso, v, state.durUni);
-                  }
+                  if (!state.cronico && isFinite(v) && v > 0) fin = addAmount(iso, v, state.durUni);
                   setState((s) => ({ ...s, inicio: iso, fin }));
                 }}
                 placeholder="dd/mm/aaaa"
@@ -188,17 +211,11 @@ export default function NuevoMedicamentoModal({
               <input
                 type="text"
                 value={formatDate(state.fin)}
-                onChange={(e) => {
-                  const iso = parseDDMMYYYY(e.target.value);
-                  set("fin", iso);
-                }}
+                onChange={(e) => set("fin", parseDDMMYYYY(e.target.value))}
                 placeholder="dd/mm/aaaa"
                 disabled={state.cronico}
                 className="mt-1 w-full rounded-lg border border-sky-200 bg-white px-3 py-2 disabled:bg-gray-100"
               />
-              <p className="mt-1 text-[11px] text-sky-700">
-                Si completás Duración, el Fin se calcula solo. También podés editarlo acá.
-              </p>
             </div>
           </div>
 
@@ -251,55 +268,23 @@ export default function NuevoMedicamentoModal({
 
           {/* Dosis / Frecuencia */}
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2">
-                <label className="text-xs text-gray-600">Dosis</label>
-                <input
-                  value={state.dosisVal}
-                  onChange={(e) => set("dosisVal", e.target.value)}
-                  placeholder="Ej: 10"
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600">Unidad</label>
-                <select
-                  value={state.dosisUni}
-                  onChange={(e) => set("dosisUni", e.target.value as typeof state.dosisUni)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                >
-                  <option>ml</option>
-                  <option>mg</option>
-                  <option>g</option>
-                  <option>gotas</option>
-                  <option>comprimido(s)</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-xs text-gray-600">Dosis</label>
+              <input
+                value={state.dosisStr}
+                onChange={(e) => set("dosisStr", e.target.value)}
+                placeholder="Ej: 400 mg"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
             </div>
-
-            <div className="grid grid-cols-3 gap-2">
-              <div className="col-span-2">
-                <label className="text-xs text-gray-600">Frecuencia (cada)</label>
-                <input
-                  value={state.freqVal}
-                  onChange={(e) => set("freqVal", e.target.value)}
-                  placeholder="Ej: 8"
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                />
-              </div>
-              <div>
-                <label className="text-xs text-gray-600">Unidad</label>
-                <select
-                  value={state.freqUni}
-                  onChange={(e) => set("freqUni", e.target.value as typeof state.freqUni)}
-                  className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
-                >
-                  <option>h</option>
-                  <option>min</option>
-                  <option>día(s)</option>
-                  <option>semana(s)</option>
-                </select>
-              </div>
+            <div>
+              <label className="text-xs text-gray-600">Frecuencia</label>
+              <input
+                value={state.freqStr}
+                onChange={(e) => set("freqStr", e.target.value)}
+                placeholder="Ej: cada 8 h"
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              />
             </div>
           </div>
 
@@ -350,9 +335,6 @@ export default function NuevoMedicamentoModal({
                     Tratamiento crónico
                   </label>
                 </div>
-                <p className="mt-1 text-[11px] text-gray-500">
-                  Si es crónico, no se define fecha de fin.
-                </p>
               </div>
             </div>
           </div>
@@ -393,7 +375,7 @@ export default function NuevoMedicamentoModal({
             onClick={submit}
             className="rounded-lg border border-emerald-200 bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-emerald-700 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            Guardar
+            {mode === "edit" ? "Guardar cambios" : "Guardar"}
           </button>
         </div>
       </div>

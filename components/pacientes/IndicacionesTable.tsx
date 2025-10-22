@@ -1,8 +1,9 @@
 "use client";
 import { format } from "date-fns";
+import { Pencil } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
 
-type Row = {
+export type IndicRow = {
   _id: Id<"indicaciones">;
   fecha: number;
   tipo: "Estudio" | "Procedimiento" | "Derivación" | "Control";
@@ -15,9 +16,11 @@ type Row = {
 export default function IndicacionesTable({
   data,
   getProfesionalNombre,
+  onEdit,                 // 👈 nuevo
 }: {
-  data: Row[];
+  data: IndicRow[];
   getProfesionalNombre: (id: Id<"profesionales">) => string;
+  onEdit?: (row: IndicRow) => void; // 👈 nuevo
 }) {
   return (
     <div className="overflow-x-auto">
@@ -29,6 +32,7 @@ export default function IndicacionesTable({
             <th className="px-3 py-2">Indicación</th>
             <th className="px-3 py-2">Profesional</th>
             <th className="px-3 py-2">Estado</th>
+            <th className="px-3 py-2">Acción</th> {/* 👈 nueva */}
           </tr>
         </thead>
         <tbody>
@@ -42,11 +46,20 @@ export default function IndicacionesTable({
               </td>
               <td className="px-3 py-2">{getProfesionalNombre(r.profesionalId)}</td>
               <td className="px-3 py-2">{r.estado}</td>
+              <td className="px-3 py-2">
+                <button
+                  onClick={() => onEdit?.(r)}
+                  className="inline-flex items-center gap-1 rounded-full border border-cyan-200 bg-cyan-50 px-3 py-1.5 text-xs font-medium text-cyan-700 shadow-sm hover:bg-cyan-100 focus:outline-none focus:ring-2 focus:ring-cyan-200"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Editar
+                </button>
+              </td>
             </tr>
           ))}
           {data.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-3 py-8 text-center text-gray-500">No hay indicaciones registradas.</td>
+              <td colSpan={6} className="px-3 py-8 text-center text-gray-500">No hay indicaciones registradas.</td>
             </tr>
           )}
         </tbody>
