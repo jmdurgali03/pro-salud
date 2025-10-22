@@ -13,9 +13,9 @@ import {
   Activity,
   BarChart3,
 } from "lucide-react";
-import domtoimage from "dom-to-image-more";
-import { jsPDF } from "jspdf";
 
+import { jsPDF } from "jspdf";
+import { generarReporteProsaludPDF } from "./_utils/pdfReport";
 // 🔹 Componentes modularizados
 import { KPI } from "./_components/KPI";
 import { Torta } from "./_components/Torta";
@@ -63,52 +63,18 @@ export default function GerenteReportesPage() {
   // ================================================================
   // EXPORTAR PDF MULTIPÁGINA (ajustada)
   // ================================================================
-  const handleExportPdf = async () => {
-    if (!dashboardRef.current) return;
-    setExportando(true);
+const handleExportPdf = async () => {
+  await generarReporteProsaludPDF({
+    turnos,
+    pacientes,
+    profesionales,
+    obrasSociales,
+    obrasPorUso,
+    especialidades,
+  });
+};
 
-    const noPrint = document.querySelectorAll(".no-print");
-    noPrint.forEach((el) => ((el as HTMLElement).style.display = "none"));
 
-    try {
-      const node = dashboardRef.current;
-      const scale = 2;
-
-      const dataUrl = await domtoimage.toPng(node, {
-        quality: 1,
-        bgcolor: "#ffffff",
-        style: { transform: "scale(1)", transformOrigin: "top left" },
-        cacheBust: true,
-        width: node.scrollWidth * scale,
-        height: node.scrollHeight * scale,
-      });
-
-      const img = new Image();
-      img.src = dataUrl;
-      await new Promise((r) => (img.onload = r));
-
-      const pdf = new jsPDF("p", "pt", "a4");
-      const pageWidth = pdf.internal.pageSize.getWidth();
-      const pageHeight = pdf.internal.pageSize.getHeight();
-
-      const imgWidth = pageWidth;
-      const imgHeight = (img.height * pageWidth) / img.width;
-
-      let y = 0;
-      while (y < imgHeight) {
-        pdf.addImage(dataUrl, "PNG", 0, -y, imgWidth, imgHeight);
-        y += pageHeight - 80; // 🔹 menor salto => menos espacio blanco
-        if (y < imgHeight) pdf.addPage();
-      }
-
-      pdf.save(`Reporte_Centro_${new Date().toLocaleDateString("es-AR")}.pdf`);
-    } catch (error) {
-      console.error("Error al generar PDF:", error);
-    } finally {
-      noPrint.forEach((el) => ((el as HTMLElement).style.display = ""));
-      setExportando(false);
-    }
-  };
 
   const COLORS = [
     "#3B82F6",
@@ -233,62 +199,74 @@ export default function GerenteReportesPage() {
             value={obrasSociales.length}
           />
         </div>
+{/* === Gráficos principales === */}
+<div className="page-break-inside-avoid print:break-inside-avoid">
+  <EvolucionTurnos turnos={turnos} profesionales={profesionales} />
+</div>
 
-        {/* === Gráficos principales === */}
-        <EvolucionTurnos turnos={turnos} profesionales={profesionales} />
+{/* === Turnos por especialidades === */}
+<div className="page-break-inside-avoid print:break-inside-avoid">
+  <TurnosPorEspecialidadesView
+    turnos={turnos}
+    especialidades={especialidades}
+  />
+</div>
 
-        {/* === Turnos por especialidades === */}
-        <TurnosPorEspecialidadesView
-          turnos={turnos}
-          especialidades={especialidades}
-        />
+{/* === Otros gráficos === */}
+<div className="page-break-inside-avoid print:break-inside-avoid">
+  <HeatmapOcupacion turnos={turnos} profesionales={profesionales} />
+</div>
 
-        {/* === Otros gráficos === */}
-        <HeatmapOcupacion turnos={turnos} profesionales={profesionales} />
-        <RankingProfesionales
-          turnos={turnos}
-          profesionales={profesionales}
-          especialidades={especialidades}
-        />
-        <PacientesNuevos pacientes={pacientes} />
+<div className="page-break-inside-avoid print:break-inside-avoid">
+  <RankingProfesionales
+    turnos={turnos}
+    profesionales={profesionales}
+    especialidades={especialidades}
+  />
+</div>
 
-        {/* === Gráficos de torta === */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 page-break-inside-avoid">
-          <Torta
-            titulo="Distribución por Obras Sociales"
-            icon={<Activity className="w-5 h-5 text-rose-600" />}
-            data={obrasPorUso.map((o: any) => ({
-              name: o.nombre || "Sin nombre",
-              value: o.valor || o.cantidad || 0,
-            }))}
-            colors={COLORS}
-            dataKey="value"
-            nameKey="name"
-          />
-          <Torta
-            titulo="Distribución por Género"
-            icon={<Users className="w-5 h-5 text-indigo-600" />}
-            data={[
-              {
-                name: "Masculino",
-                value: pacientes.filter((p: any) => p.genero === "Masculino").length,
-              },
-              {
-                name: "Femenino",
-                value: pacientes.filter((p: any) => p.genero === "Femenino").length,
-              },
-              {
-                name: "Otro",
-                value: pacientes.filter(
-                  (p: any) => !["Masculino", "Femenino"].includes(p.genero)
-                ).length,
-              },
-            ]}
-            colors={["#3B82F6", "#EC4899", "#FACC15"]}
-            dataKey="value"
-            nameKey="name"
-          />
-        </div>
+<div className="page-break-inside-avoid print:break-inside-avoid">
+  <PacientesNuevos pacientes={pacientes} />
+</div>
+
+{/* === Gráficos de torta === */}
+<div className="grid grid-cols-1 lg:grid-cols-2 gap-6 page-break-inside-avoid print:break-inside-avoid">
+  <Torta
+    titulo="Distribución por Obras Sociales"
+    icon={<Activity className="w-5 h-5 text-rose-600" />}
+    data={obrasPorUso.map((o: any) => ({
+      name: o.nombre || "Sin nombre",
+      value: o.valor || o.cantidad || 0,
+    }))}
+    colors={COLORS}
+    dataKey="value"
+    nameKey="name"
+  />
+  <Torta
+    titulo="Distribución por Género"
+    icon={<Users className="w-5 h-5 text-indigo-600" />}
+    data={[
+      {
+        name: "Masculino",
+        value: pacientes.filter((p: any) => p.genero === "Masculino").length,
+      },
+      {
+        name: "Femenino",
+        value: pacientes.filter((p: any) => p.genero === "Femenino").length,
+      },
+      {
+        name: "Otro",
+        value: pacientes.filter(
+          (p: any) => !["Masculino", "Femenino"].includes(p.genero)
+        ).length,
+      },
+    ]}
+    colors={["#3B82F6", "#EC4899", "#FACC15"]}
+    dataKey="value"
+    nameKey="name"
+  />
+</div>
+
       </div>
     </PageWrapper>
   );

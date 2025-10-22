@@ -28,29 +28,38 @@ export function TurnosPorEspecialidadesView({
 
   // 🧩 Generador de datos según modo
   const generarDatos = (turnosFiltrados: any[]) => {
-    if (modoTiempo === "dia") {
-      const fechas: Record<string, number> = {};
-      for (const t of turnosFiltrados) {
-        const f = new Date(t.start).toLocaleDateString("es-AR");
-        fechas[f] = (fechas[f] || 0) + 1;
-      }
-      return Object.entries(fechas).map(([fecha, cantidad]) => ({
-        fecha,
-        cantidad,
-      }));
-    } else {
-      const meses: Record<string, number> = {};
-      for (const t of turnosFiltrados) {
-        const f = new Date(t.start);
-        const key = `${f.getMonth() + 1}/${f.getFullYear()}`;
-        meses[key] = (meses[key] || 0) + 1;
-      }
-      return Object.entries(meses).map(([fecha, cantidad]) => ({
-        fecha,
-        cantidad,
-      }));
+  if (modoTiempo === "dia") {
+    const fechas: Record<string, number> = {};
+    for (const t of turnosFiltrados) {
+      const fecha = new Date(t.start);
+      const clave = fecha.toISOString().split("T")[0]; // formato YYYY-MM-DD ordenable
+      fechas[clave] = (fechas[clave] || 0) + 1;
     }
-  };
+
+    // 🔹 Ordenar por fecha antes de devolver
+    return Object.entries(fechas)
+      .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+      .map(([fecha, cantidad]) => ({
+        fecha: new Date(fecha).toLocaleDateString("es-AR"),
+        cantidad,
+      }));
+  } else {
+    const meses: Record<string, number> = {};
+    for (const t of turnosFiltrados) {
+      const f = new Date(t.start);
+      const key = `${f.getFullYear()}-${String(f.getMonth() + 1).padStart(2, "0")}`; // YYYY-MM
+      meses[key] = (meses[key] || 0) + 1;
+    }
+
+    return Object.entries(meses)
+      .sort(([a], [b]) => (a > b ? 1 : -1))
+      .map(([fecha, cantidad]) => {
+        const [year, month] = fecha.split("-");
+        return { fecha: `${month}/${year}`, cantidad };
+      });
+  }
+};
+
 
   const especialidadesFiltradas = especialidades.filter((e) =>
     turnos.some((t) => t.especialidadNombre === e.nombre)

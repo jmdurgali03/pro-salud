@@ -125,19 +125,35 @@ html {
   scroll-behavior: smooth;
 }
 /* 🧩 Modo de exportación para limpiar visualmente los bordes */
+/* === Modo limpio de exportación (sin sombras ni bordes) === */
+/* === MODO LIMPIO DE EXPORTACIÓN PDF === */
 .export-mode * {
-  background: none !important;
   box-shadow: none !important;
-  border-color: transparent !important;
+  border: none !important;
   outline: none !important;
 }
 
-/* Opcional: fuerza color de texto a negro para imprimir */
-.export-mode {
-  color: #000 !important;
+.export-mode button,
+.export-mode select,
+.export-mode input,
+.export-mode .no-print {
+  display: none !important;
+  visibility: hidden !important;
 }
+
+.export-mode {
+  background: #ffffff !important;
+  color: #111827 !important;
+}
+
 @media print {
   .page-break-inside-avoid {
+    break-inside: avoid;
     page-break-inside: avoid;
   }
 }
+
+  .page-break-before {
+    page-break-before: always;
+  }
+
