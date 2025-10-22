@@ -24,7 +24,7 @@ export default function IndicacionesTable({
 }: {
   data: IndicRow[];
   getProfesionalNombre: (id: Id<"profesionales">) => string;
-  getDiagnosticoDescripcion?: (id?: Id<"diagnosticos">) => string | undefined; // ✅ opcional
+  getDiagnosticoDescripcion?: (id?: Id<"diagnosticos">) => string | undefined; 
   onView?: (row: IndicRow) => void;
   onEdit?: (row: IndicRow) => void;
 }) {
@@ -36,7 +36,7 @@ export default function IndicacionesTable({
             <th className="px-3 py-2 w-[100px]">Fecha</th>
             <th className="px-3 py-2 w-[150px]">Tipo</th>
             <th className="px-3 py-2 w-[300px]">Indicación</th>
-            <th className="px-3 py-2 w-[260px]">Diagnóstico</th> {/* ✅ NUEVO */}
+            <th className="px-3 py-2 w-[260px]">Diagnóstico</th> 
             <th className="px-3 py-2 w-[200px]">Profesional</th>
             <th className="px-3 py-2 text-center w-[220px]">Acción</th>
           </tr>
