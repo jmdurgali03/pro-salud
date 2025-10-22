@@ -1,4 +1,5 @@
 "use client";
+
 import { format } from "date-fns";
 import { Eye, Pencil } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -19,16 +20,22 @@ export type MedRow = {
   cronico?: boolean;
   notas?: string;
   profesionalId: Id<"profesionales">;
+  indicacionId: Id<"indicaciones">;
+  diagnosticoId?: Id<"diagnosticos">;
 };
 
 export default function MedicamentosTable({
   data,
   getProfesionalNombre,
+  getIndicacionNombre,
+  getDiagnosticoDescripcion,
   onView,
   onEdit,
 }: {
   data: MedRow[];
   getProfesionalNombre: (id: Id<"profesionales">) => string;
+  getIndicacionNombre: (id: Id<"indicaciones">) => string;
+  getDiagnosticoDescripcion?: (id?: Id<"diagnosticos">) => string | undefined;
   onView?: (row: MedRow) => void;
   onEdit?: (row: MedRow) => void;
 }) {
@@ -39,6 +46,7 @@ export default function MedicamentosTable({
           <tr className="text-left text-gray-600 bg-gray-50">
             <th className="px-3 py-2 w-[100px]">Fecha</th>
             <th className="px-3 py-2 w-[220px]">Nombre</th>
+            <th className="px-3 py-2 w-[220px]">Indicación</th>
             <th className="px-3 py-2 w-[180px]">Profesional</th>
             <th className="px-3 py-2 w-[120px]">Estado</th>
             <th className="px-3 py-2 text-center w-[220px]">Acción</th>
@@ -52,6 +60,8 @@ export default function MedicamentosTable({
               <td className="px-3 py-2 font-medium truncate max-w-[200px]">
                 {r.nombreComercial || r.droga}
               </td>
+              <td className="px-3 py-2">{getIndicacionNombre(r.indicacionId)}</td>
+
               <td className="px-3 py-2">{getProfesionalNombre(r.profesionalId)}</td>
 
               <td className="px-3 py-2">
@@ -68,33 +78,38 @@ export default function MedicamentosTable({
                 </span>
               </td>
 
-              <td className="px-3 py-2 text-center space-x-2">
-                <button
-                  onClick={() => onView?.(r)}
-                  className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
-                >
-                  <span className="inline-flex h-4 w-4 items-center justify-center">
-                    <Eye className="h-4 w-4 opacity-80" />
-                  </span>
-                  Ver
-                </button>
+              {/* ✅ Botones lilas (alineados y con hover suave) */}
+              <td className="px-3 py-2">
+                <div className="flex justify-center gap-2">
+                  <button
+                    onClick={() => onView?.(r)}
+                    className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
+                  >
+                    <span className="inline-flex h-4 w-4 items-center justify-center">
+                      <Eye className="h-4 w-4 opacity-80" />
+                    </span>
+                    Ver
+                  </button>
 
-                <button
-                  onClick={() => onEdit?.(r)}
-                  className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
-                >
-                  <span className="inline-flex h-4 w-4 items-center justify-center">
-                    <Pencil className="h-4 w-4 opacity-80" />
-                  </span>
-                  Editar
-                </button>
+                  {onEdit && (
+                    <button
+                      onClick={() => onEdit?.(r)}
+                      className="inline-flex items-center gap-1 rounded-full border border-purple-200 bg-white px-3 py-1.5 text-xs font-medium text-purple-700 shadow-sm hover:bg-purple-50 focus:outline-none focus:ring-2 focus:ring-purple-200 transition"
+                    >
+                      <span className="inline-flex h-4 w-4 items-center justify-center">
+                        <Pencil className="h-4 w-4 opacity-80" />
+                      </span>
+                      Editar
+                    </button>
+                  )}
+                </div>
               </td>
             </tr>
           ))}
 
           {data.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
+              <td colSpan={7} className="px-3 py-8 text-center text-gray-500">
                 No hay medicamentos registrados.
               </td>
             </tr>

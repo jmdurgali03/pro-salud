@@ -1,3 +1,4 @@
+// convex/indicaciones.ts
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -16,6 +17,7 @@ export const crear = mutation({
   args: {
     pacienteId: v.id("pacientes"),
     profesionalId: v.id("profesionales"),
+    diagnosticoId: v.id("diagnosticos"), // ✅
     fecha: v.number(),
     tipo: v.union(
       v.literal("Estudio"),
@@ -31,10 +33,10 @@ export const crear = mutation({
   },
 });
 
-/** 👉 NUEVO: actualizar */
 export const actualizar = mutation({
   args: {
     id: v.id("indicaciones"),
+    diagnosticoId: v.id("diagnosticos"), // ✅
     fecha: v.number(),
     tipo: v.union(
       v.literal("Estudio"),
@@ -44,12 +46,7 @@ export const actualizar = mutation({
     ),
     nombre: v.string(),
     observaciones: v.optional(v.string()),
-    // si querés permitir cambiar el estado, añadí:
-    estado: v.optional(v.union(
-    v.literal("Pendiente"),
-    v.literal("Realizada"),
-    v.literal("Cancelada"),
-    )),
+    estado: v.optional(v.union(v.literal("Pendiente"), v.literal("Realizada"), v.literal("Cancelada"))),
   },
   handler: async (ctx, { id, ...rest }) => {
     await ctx.db.patch(id, rest);
