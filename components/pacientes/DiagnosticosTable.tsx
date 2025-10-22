@@ -10,7 +10,7 @@ type Diagnostico = {
 
 export default function DiagnosticosTable({ data }: { data: Diagnostico[] | null | undefined }) {
   return (
-    <Table headers={["Fecha", "Diagnóstico", "Médico"]}>
+    <Table headers={["Fecha", "Diagnóstico", "Profesional"]}>
       {(data ?? []).map((d) => (
         <tr key={d._id} className="text-gray-800">
           <td className="px-4 py-3">{new Date(d.fecha).toLocaleDateString()}</td>

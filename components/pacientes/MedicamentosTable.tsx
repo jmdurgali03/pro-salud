@@ -25,30 +25,32 @@ export default function MedicamentosTable({
   data,
   getProfesionalNombre,
   onView,
-  onEdit,                     // 👈 nuevo
+  onEdit,
 }: {
   data: MedRow[];
   getProfesionalNombre: (id: Id<"profesionales">) => string;
   onView?: (row: MedRow) => void;
-  onEdit?: (row: MedRow) => void; // 👈 nuevo
+  onEdit?: (row: MedRow) => void;
 }) {
   return (
     <div className="overflow-x-auto">
-      <table className="min-w-full text-sm">
+      <table className="min-w-full text-sm border-collapse">
         <thead>
           <tr className="text-left text-gray-600 bg-gray-50">
-            <th className="px-3 py-2">Fecha</th>
-            <th className="px-3 py-2">Nombre</th>
-            <th className="px-3 py-2">Profesional</th>
-            <th className="px-3 py-2">Estado</th>
-            <th className="px-3 py-2">Acción</th>
+            <th className="px-3 py-2 w-[100px]">Fecha</th>
+            <th className="px-3 py-2 w-[220px]">Nombre</th>
+            <th className="px-3 py-2 w-[180px]">Profesional</th>
+            <th className="px-3 py-2 w-[120px]">Estado</th>
+            <th className="px-3 py-2 text-center w-[220px]">Acción</th>
           </tr>
         </thead>
         <tbody className="bg-white divide-y divide-gray-100">
           {data.map((r) => (
-            <tr key={r._id}>
+            <tr key={r._id} className="hover:bg-gray-50">
               <td className="px-3 py-2">{format(r.fechaInicio, "dd/MM/yy")}</td>
-              <td className="px-3 py-2 font-medium">{r.nombreComercial || r.droga}</td>
+              <td className="px-3 py-2 font-medium truncate max-w-[200px]">
+                {r.nombreComercial || r.droga}
+              </td>
               <td className="px-3 py-2">{getProfesionalNombre(r.profesionalId)}</td>
               <td className="px-3 py-2">
                 <span
@@ -63,22 +65,24 @@ export default function MedicamentosTable({
                   {r.estado}
                 </span>
               </td>
-              <td className="px-3 py-2 space-x-2">
-               <button
-                    onClick={() => onView?.(r)}
-                    className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                  >
-                    <span className="inline-flex h-4 w-4 items-center justify-center">
-                      <Eye className="h-4 w-4 opacity-80" />
-                    </span>
-                    Ver
+              <td className="px-3 py-2 text-center space-x-2">
+                <button
+                  onClick={() => onView?.(r)}
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                >
+                  <span className="inline-flex h-4 w-4 items-center justify-center">
+                    <Eye className="h-4 w-4 opacity-80" />
+                  </span>
+                  Ver
                 </button>
 
                 <button
                   onClick={() => onEdit?.(r)}
-                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
                 >
-                  <Pencil className="h-4 w-4" />
+                  <span className="inline-flex h-4 w-4 items-center justify-center">
+                    <Pencil className="h-4 w-4 opacity-80" />
+                  </span>
                   Editar
                 </button>
               </td>
