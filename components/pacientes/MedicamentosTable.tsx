@@ -64,15 +64,16 @@ export default function MedicamentosTable({
                 </span>
               </td>
               <td className="px-3 py-2 space-x-2">
-                <button
-                  onClick={() => onView?.(r)}
-                  className="inline-flex items-center gap-1 rounded-full border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 shadow-sm hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
-                >
-                  <span className="inline-block h-4 w-4 rounded-full border border-gray-300 bg-gray-50">
-                    <Eye className="h-4 w-4 translate-x-[1px] translate-y-[1px] opacity-70" />
-                  </span>
-                  Ver
+               <button
+                    onClick={() => onView?.(r)}
+                    className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-white px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200"
+                  >
+                    <span className="inline-flex h-4 w-4 items-center justify-center">
+                      <Eye className="h-4 w-4 opacity-80" />
+                    </span>
+                    Ver
                 </button>
+
                 <button
                   onClick={() => onEdit?.(r)}
                   className="inline-flex items-center gap-1 rounded-full border border-emerald-200 bg-emerald-50 px-3 py-1.5 text-xs font-medium text-emerald-700 shadow-sm hover:bg-emerald-100 focus:outline-none focus:ring-2 focus:ring-emerald-200"

@@ -30,3 +30,28 @@ export const crear = mutation({
     await ctx.db.insert("indicaciones", { ...args, estado: "Pendiente" });
   },
 });
+
+/** 👉 NUEVO: actualizar */
+export const actualizar = mutation({
+  args: {
+    id: v.id("indicaciones"),
+    fecha: v.number(),
+    tipo: v.union(
+      v.literal("Estudio"),
+      v.literal("Procedimiento"),
+      v.literal("Derivación"),
+      v.literal("Control")
+    ),
+    nombre: v.string(),
+    observaciones: v.optional(v.string()),
+    // si querés permitir cambiar el estado, añadí:
+    estado: v.optional(v.union(
+    v.literal("Pendiente"),
+    v.literal("Realizada"),
+    v.literal("Cancelada"),
+    )),
+  },
+  handler: async (ctx, { id, ...rest }) => {
+    await ctx.db.patch(id, rest);
+  },
+});

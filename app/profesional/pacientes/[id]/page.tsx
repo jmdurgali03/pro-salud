@@ -13,8 +13,10 @@ import Panel from "@/components/pacientes/Panel";
 import BigTabs from "@/components/pacientes/BigTabs";
 import Pagination from "@/components/pacientes/Pagination";
 
-import IndicacionesTable from "@/components/pacientes/IndicacionesTable";
+import IndicacionesTable, { IndicRow } from "@/components/pacientes/IndicacionesTable";
 import NuevaIndicacionModal from "@/components/pacientes/NuevaIndicacionModal";
+import DetalleIndicacionModal from "@/components/pacientes/DetalleIndicacionModal";
+
 import DiagnosticosTable from "@/components/pacientes/DiagnosticosTable";
 
 import MedicamentosTable, { MedRow } from "@/components/pacientes/MedicamentosTable";
@@ -52,17 +54,17 @@ type Diagnostico = {
   fecha?: number;
 };
 
-type Indicacion = {
-  _id: Id<"indicaciones">;
-  profesionalId: Id<"profesionales">;
-  fecha: number;
-  tipo: "Estudio" | "Procedimiento" | "Derivación" | "Control";
-  nombre: string;
-  observaciones?: string;
-  estado: "Pendiente" | "Realizada" | "Cancelada";
-};
-
+type Indicacion = IndicRow;
 type Medicamento = MedRow;
+
+type FormaLiteral =
+  | "Comprimidos"
+  | "Cápsulas"
+  | "Jarabe"
+  | "Solución"
+  | "Inyectable"
+  | "Pomada"
+  | "Otro";
 
 const PAGE_SIZE = 10;
 type TabKey = "resumen" | "diagnosticos" | "indicaciones" | "medicamentos";
@@ -89,20 +91,36 @@ export default function HistorialPacientePage() {
     return m;
   }, [profesionales]);
 
+  // ====== mutations ======
   const crearDiagnostico = useMutation(api.diagnosticos.crear);
   const crearIndicacion = useMutation(api.indicaciones.crear);
+  const actualizarIndicacion = useMutation(api.indicaciones.actualizar);
   const crearMedicamento = useMutation(api.medicamentos.crear);
+  const actualizarMedicamento = useMutation(api.medicamentos.actualizar);
   const cambiarEstadoMedicamento = useMutation(api.medicamentos.cambiarEstado);
 
+  // ====== modales (crear) ======
   const [openDx, setOpenDx] = useState(false);
   const [openIndic, setOpenIndic] = useState(false);
   const [openMed, setOpenMed] = useState(false);
 
-  // Detalle de medicamento (con edición de estado)
+  // ====== modales (ver/editar indicación) ======
+  const [openIndicView, setOpenIndicView] = useState(false);
+  const [indicVer, setIndicVer] = useState<Indicacion | null>(null);
+
+  const [openIndicEdit, setOpenIndicEdit] = useState(false);
+  const [indicSeleccionada, setIndicSeleccionada] = useState<Indicacion | null>(null);
+
+  // ====== modales (editar medicamento) ======
+  const [openMedEdit, setOpenMedEdit] = useState(false);
+  const [medSeleccionadoEdit, setMedSeleccionadoEdit] = useState<Medicamento | null>(null);
+
+  // ====== Detalle medicamento (estado) ======
   const [openMedDetalle, setOpenMedDetalle] = useState(false);
   const [medSeleccionado, setMedSeleccionado] = useState<Medicamento | null>(null);
   const [savingEstado, setSavingEstado] = useState(false);
 
+  // ====== UI state ======
   const [tab, setTab] = useState<TabKey>("resumen");
   const [pageDx, setPageDx] = useState(1);
   const [pageInd, setPageInd] = useState(1);
@@ -131,55 +149,115 @@ export default function HistorialPacientePage() {
   };
 
   /* ============ Submits ============ */
-  const submitDiagnostico: (data: { descripcion: string; estado: "Presuntivo" | "Definitivo"; fecha?: number }) => Promise<void> =
-    async (data) => {
-      try {
-        const yo = ensureProfesional();
-        await crearDiagnostico({
-          pacienteId,
-          profesionalId: yo._id,
-          descripcion: data.descripcion,
-          estado: data.estado,
-          fecha: data.fecha ?? Date.now(),
-        });
-        setOpenDx(false);
-        setToast({ msg: "Diagnóstico cargado correctamente.", type: "success" });
-      } catch {
-        setToast({ msg: "Error al cargar el diagnóstico.", type: "error" });
-      }
-    };
+  const submitDiagnostico = async (data: { descripcion: string; estado: "Presuntivo" | "Definitivo"; fecha?: number }) => {
+    try {
+      const yo = ensureProfesional();
+      await crearDiagnostico({
+        pacienteId,
+        profesionalId: yo._id,
+        descripcion: data.descripcion,
+        estado: data.estado,
+        fecha: data.fecha ?? Date.now(),
+      });
+      setOpenDx(false);
+      setToast({ msg: "Diagnóstico cargado correctamente.", type: "success" });
+    } catch {
+      setToast({ msg: "Error al cargar el diagnóstico.", type: "error" });
+    }
+  };
 
-  const submitIndicacion: (data: { fecha: number; tipo: Indicacion["tipo"]; nombre: string; observaciones?: string }) => Promise<void> =
-    async (data) => {
-      try {
-        const yo = ensureProfesional();
-        await crearIndicacion({
-          pacienteId,
-          profesionalId: yo._id,
-          fecha: data.fecha,
-          tipo: data.tipo,
-          nombre: data.nombre,
-          observaciones: data.observaciones,
-        });
-        setOpenIndic(false);
-        setToast({ msg: "Indicación cargada correctamente.", type: "success" });
-      } catch {
-        setToast({ msg: "Error al cargar la indicación.", type: "error" });
-      }
-    };
+  const submitIndicacion = async (data: { fecha: number; tipo: Indicacion["tipo"]; nombre: string; observaciones?: string }) => {
+    try {
+      const yo = ensureProfesional();
+      await crearIndicacion({
+        pacienteId,
+        profesionalId: yo._id,
+        fecha: data.fecha,
+        tipo: data.tipo,
+        nombre: data.nombre,
+        observaciones: data.observaciones,
+      });
+      setOpenIndic(false);
+      setToast({ msg: "Indicación cargada correctamente.", type: "success" });
+    } catch {
+      setToast({ msg: "Error al cargar la indicación.", type: "error" });
+    }
+  };
 
-  // Al crear un medicamento, siempre queda en "Activo"
-  const submitMedicamento: (data: Omit<Medicamento, "_id" | "profesionalId">) => Promise<void> =
-    async (data) => {
-      try {
-        const yo = ensureProfesional();
-        await crearMedicamento({ pacienteId, profesionalId: yo._id, ...data, estado: "Activo" } as any);
-        setOpenMed(false);
-        setToast({ msg: "Medicamento cargado correctamente.", type: "success" });
-      } catch {
-        setToast({ msg: "Error al cargar el medicamento.", type: "error" });
-      }
-    };
+  const submitIndicacionEdit = async (data: { fecha: number; tipo: Indicacion["tipo"]; nombre: string; observaciones?: string }) => {
+    if (!indicSeleccionada) return;
+    try {
+      await actualizarIndicacion({ id: indicSeleccionada._id, ...data });
+      setOpenIndicEdit(false);
+      setIndicSeleccionada(null);
+      setToast({ msg: "Indicación actualizada.", type: "success" });
+    } catch {
+      setToast({ msg: "No se pudo actualizar la indicación.", type: "error" });
+    }
+  };
+
+  // CREAR MEDICAMENTO
+  const submitMedicamento = async (data: Omit<Medicamento, "_id" | "profesionalId">) => {
+    try {
+      const yo = ensureProfesional();
+
+      const payload = {
+        fechaInicio: data.fechaInicio,
+        fechaFin: data.fechaFin ?? null,
+        estado: "Activo" as const,
+        nombreComercial: data.nombreComercial ?? undefined,
+        droga: data.droga,
+        forma: (data.forma as unknown) as FormaLiteral,
+        dosis: data.dosis,
+        frecuencia: data.frecuencia,
+        duracion: data.duracion ?? undefined,
+        via: data.via ?? undefined,
+        indicaciones: data.indicaciones ?? undefined,
+        cronico: data.cronico ?? undefined,
+        notas: data.notas ?? undefined,
+      };
+
+      await crearMedicamento({
+        pacienteId,
+        profesionalId: yo._id,
+        ...payload,
+      });
+
+      setOpenMed(false);
+      setToast({ msg: "Medicamento cargado correctamente.", type: "success" });
+    } catch {
+      setToast({ msg: "Error al cargar el medicamento.", type: "error" });
+    }
+  };
+
+  // EDITAR MEDICAMENTO
+  const submitMedicamentoEdit = async (data: Omit<Medicamento, "_id" | "profesionalId">) => {
+    if (!medSeleccionadoEdit) return;
+    try {
+      const payload = {
+        fechaInicio: data.fechaInicio,
+        fechaFin: data.fechaFin ?? null,
+        nombreComercial: data.nombreComercial ?? undefined,
+        droga: data.droga,
+        forma: (data.forma as unknown) as FormaLiteral,
+        dosis: data.dosis,
+        frecuencia: data.frecuencia,
+        duracion: data.duracion ?? undefined,
+        via: data.via ?? undefined,
+        indicaciones: data.indicaciones ?? undefined,
+        cronico: data.cronico ?? undefined,
+        notas: data.notas ?? undefined,
+      };
+
+      await actualizarMedicamento({ id: medSeleccionadoEdit._id, ...payload });
+
+      setOpenMedEdit(false);
+      setMedSeleccionadoEdit(null);
+      setToast({ msg: "Medicamento actualizado.", type: "success" });
+    } catch {
+      setToast({ msg: "No se pudo actualizar el medicamento.", type: "error" });
+    }
+  };
 
   /* ============ Render ============ */
   return (
@@ -262,7 +340,7 @@ export default function HistorialPacientePage() {
               <Pagination
                 page={pageDx}
                 pageCount={Math.max(1, Math.ceil((diagnosticos?.length ?? 0) / PAGE_SIZE))}
-                onPageChange={setPageDx}
+                onPageChange={(p) => setPageDx(p)}
               />
             </Section>
           )}
@@ -285,12 +363,20 @@ export default function HistorialPacientePage() {
                 <IndicacionesTable
                   data={paginatedIndic as any}
                   getProfesionalNombre={(id) => profNombrePorId.get(id as any) ?? "—"}
+                  onView={(row) => {
+                    setIndicVer(row as any);
+                    setOpenIndicView(true);
+                  }}
+                  onEdit={(row) => {
+                    setIndicSeleccionada(row as any);
+                    setOpenIndicEdit(true);
+                  }}
                 />
               </Panel>
               <Pagination
                 page={pageInd}
                 pageCount={Math.max(1, Math.ceil((indicaciones?.length ?? 0) / PAGE_SIZE))}
-                onPageChange={setPageInd}
+                onPageChange={(p) => setPageInd(p)}
               />
             </Section>
           )}
@@ -317,19 +403,23 @@ export default function HistorialPacientePage() {
                     setMedSeleccionado(row);
                     setOpenMedDetalle(true);
                   }}
+                  onEdit={(row) => {
+                    setMedSeleccionadoEdit(row);
+                    setOpenMedEdit(true);
+                  }}
                 />
               </Panel>
               <Pagination
                 page={pageMed}
                 pageCount={Math.max(1, Math.ceil((medicamentos?.length ?? 0) / PAGE_SIZE))}
-                onPageChange={setPageMed}
+                onPageChange={(p) => setPageMed(p)}
               />
             </Section>
           )}
         </main>
       </div>
 
-      {/* ======= MODALES ======= */}
+      {/* ======= MODALES (CREAR) ======= */}
       <NuevoDiagnosticoModal
         open={openDx}
         onClose={() => setOpenDx(false)}
@@ -344,6 +434,7 @@ export default function HistorialPacientePage() {
         onSubmit={submitIndicacion}
         profesionales={profesionalActual ? [profesionalActual] : []}
         fixedProfesionalId={profesionalActual?._id}
+        mode="create"
       />
 
       <NuevoMedicamentoModal
@@ -352,41 +443,80 @@ export default function HistorialPacientePage() {
         onSubmit={submitMedicamento}
         profesionales={profesionalActual ? [profesionalActual] : []}
         fixedProfesionalId={profesionalActual?._id}
+        mode="create"
       />
 
-      {/* Modal Detalle Medicamento (edición de estado) */}
-      <DetalleMedicamentoModal
-        open={openMedDetalle}
-        onClose={() => setOpenMedDetalle(false)}
-        med={medSeleccionado}
-        profesionalNombre={
-          medSeleccionado
-            ? profNombrePorId.get(medSeleccionado.profesionalId as any) ?? "—"
-            : "—"
+      {/* ======= MODALES (VER / EDITAR) ======= */}
+    <DetalleIndicacionModal
+      open={openIndicView}
+      onClose={() => {
+        setOpenIndicView(false);
+        setIndicVer(null);
+      }}
+      ind={indicVer} // ✅ nombre correcto de la prop
+      profesionalNombre={
+        indicVer ? (profNombrePorId.get(indicVer.profesionalId as any) ?? "—") : "—"
+      }
+    />
+
+    <NuevaIndicacionModal
+      open={openIndicEdit}
+      onClose={() => {
+        setOpenIndicEdit(false);
+        setIndicSeleccionada(null);
+      }}
+      onSubmit={submitIndicacionEdit}
+      profesionales={profesionalActual ? [profesionalActual] : []}
+      fixedProfesionalId={profesionalActual?._id}
+      mode="edit"
+      initial={indicSeleccionada ?? undefined}
+    />
+
+    <NuevoMedicamentoModal
+      open={openMedEdit}
+      onClose={() => {
+        setOpenMedEdit(false);
+        setMedSeleccionadoEdit(null);
+      }}
+      onSubmit={submitMedicamentoEdit}
+      profesionales={profesionalActual ? [profesionalActual] : []}
+      fixedProfesionalId={profesionalActual?._id}
+      mode="edit"
+      initial={medSeleccionadoEdit ?? undefined}
+    />
+
+    {/* Modal Detalle Medicamento (edición de estado) */}
+    <DetalleMedicamentoModal
+      open={openMedDetalle}
+      onClose={() => setOpenMedDetalle(false)}
+      med={medSeleccionado}
+      profesionalNombre={
+        medSeleccionado
+          ? profNombrePorId.get(medSeleccionado.profesionalId as any) ?? "—"
+          : "—"
+      }
+      saving={savingEstado}
+      onChangeEstado={async (estado) => {
+        if (!medSeleccionado) return;
+        try {
+          setSavingEstado(true);
+          await cambiarEstadoMedicamento({ id: medSeleccionado._id as any, estado });
+          setMedSeleccionado({ ...medSeleccionado, estado });
+          setToast({ msg: "Estado actualizado.", type: "success" });
+        } catch {
+          setToast({ msg: "No se pudo actualizar el estado.", type: "error" });
+        } finally {
+          setSavingEstado(false);
         }
-        saving={savingEstado}
-        onChangeEstado={async (estado) => {
-          if (!medSeleccionado) return;
-          try {
-            setSavingEstado(true);
-            await cambiarEstadoMedicamento({ id: medSeleccionado._id as any, estado });
-            setMedSeleccionado({ ...medSeleccionado, estado }); // reflejo local
-            setToast({ msg: "Estado actualizado.", type: "success" });
-          } catch {
-            setToast({ msg: "No se pudo actualizar el estado.", type: "error" });
-          } finally {
-            setSavingEstado(false);
-          }
-        }}
-      />
+      }}
+    />
+
 
       {/* ======= TOAST ======= */}
       {toast && (
         <div
           className={`fixed bottom-6 right-6 z-50 flex items-center gap-3 px-5 py-3 rounded-xl shadow-lg text-white border ${
-            toast.type === "success"
-              ? "bg-emerald-600 border-emerald-400"
-              : "bg-red-600 border-red-400"
+            toast.type === "success" ? "bg-emerald-600 border-emerald-400" : "bg-red-600 border-red-400"
           }`}
         >
           {toast.type === "success" ? (

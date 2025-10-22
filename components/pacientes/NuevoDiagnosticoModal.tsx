@@ -9,23 +9,18 @@ import Modal, {
   textareaBase,
 } from "./Modal";
 
-function todayDateInput(): string {
+/* === Utilidades de fecha === */
+function todayDateDisplay(): string {
   const d = new Date();
   const p = (n: number) => String(n).padStart(2, "0");
-  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`;
+  return `${p(d.getDate())}/${p(d.getMonth() + 1)}/${d.getFullYear()}`;
 }
 
-type Props = {
-  open: boolean;
-  onClose: () => void;
-  onSubmit: (data: {
-    descripcion: string;
-    estado: "Presuntivo" | "Definitivo";
-    fecha?: number;
-  }) => Promise<void> | void;
-  profesionales: any[];            // solo para mostrar fijo si querés
-  fixedProfesionalId?: string;     // bloquea el select (el modal no muestra select)
-};
+function parseToMs(fecha: string): number | undefined {
+  const [day, month, year] = fecha.split("/").map(Number);
+  if (!day || !month || !year) return undefined;
+  return new Date(year, month - 1, day).getTime();
+}
 
 export default function NuevoDiagnosticoModal({
   open,
@@ -33,15 +28,25 @@ export default function NuevoDiagnosticoModal({
   onSubmit,
   profesionales,
   fixedProfesionalId,
-}: Props) {
+}: {
+  open: boolean;
+  onClose: () => void;
+  onSubmit: (data: {
+    descripcion: string;
+    estado: "Presuntivo" | "Definitivo";
+    fecha?: number;
+  }) => Promise<void> | void;
+  profesionales: any[];
+  fixedProfesionalId?: string;
+}) {
   const [estado, setEstado] = useState<"Presuntivo" | "Definitivo">("Presuntivo");
-  const [fecha, setFecha] = useState<string>(todayDateInput());
+  const [fecha, setFecha] = useState<string>(todayDateDisplay());
   const [descripcion, setDescripcion] = useState("");
 
   useEffect(() => {
     if (open) {
       setEstado("Presuntivo");
-      setFecha(todayDateInput());
+      setFecha(todayDateDisplay());
       setDescripcion("");
     }
   }, [open]);
@@ -50,7 +55,7 @@ export default function NuevoDiagnosticoModal({
 
   const save = async () => {
     if (!canSave) return;
-    const ms = fecha ? new Date(`${fecha}T00:00`).getTime() : undefined;
+    const ms = parseToMs(fecha);
     await onSubmit({
       descripcion: descripcion.trim(),
       estado,
@@ -88,18 +93,21 @@ export default function NuevoDiagnosticoModal({
 
         <div>
           <label className="mb-1 block text-sm font-medium text-gray-700">
-            Fecha 
+            Fecha
           </label>
           <input
-            type="date"
+            type="text"
             className={inputBase}
             value={fecha}
             onChange={(e) => setFecha(e.target.value)}
+            placeholder="dd/mm/aaaa"
           />
         </div>
 
         <div className="sm:col-span-2">
-          <label className="mb-1 block text-sm font-medium text-gray-700">Diagnóstico</label>
+          <label className="mb-1 block text-sm font-medium text-gray-700">
+            Diagnóstico
+          </label>
           <textarea
             className={textareaBase}
             placeholder="Descripción del diagnóstico…"

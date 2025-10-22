@@ -1,4 +1,3 @@
-// components/pacientes/NuevaIndicacionModal.tsx
 "use client";
 import { useEffect, useState } from "react";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -20,19 +19,16 @@ export default function NuevaIndicacionModal({
   fixedProfesionalId,
   mode = "create",
   initial,
+  readOnly = false,
 }: {
   open: boolean;
   onClose: () => void;
-  onSubmit: (data: {
-    fecha: number;
-    tipo: TipoIndic;
-    nombre: string;
-    observaciones?: string;
-  }) => Promise<void>;
+  onSubmit: (data: { fecha: number; tipo: TipoIndic; nombre: string; observaciones?: string }) => Promise<void>;
   profesionales: { _id: Id<"profesionales">; nombre: string; apellido: string }[];
   fixedProfesionalId?: Id<"profesionales"> | undefined;
   mode?: "create" | "edit";
   initial?: IndicInitial;
+  readOnly?: boolean;
 }) {
   const [fecha, setFecha] = useState(() => new Date().toISOString().slice(0, 10));
   const [tipo, setTipo] = useState<TipoIndic>("Estudio");
@@ -56,7 +52,7 @@ export default function NuevaIndicacionModal({
 
   if (!open) return null;
 
-  const disabled = !nombre.trim();
+  const disabled = readOnly || !nombre.trim();
 
   const submit = async () => {
     await onSubmit({
@@ -73,7 +69,7 @@ export default function NuevaIndicacionModal({
       <div className="w-full max-w-xl overflow-hidden rounded-2xl bg-white shadow-2xl">
         <div className="flex items-center justify-between border-b px-6 py-4">
           <h3 className="text-lg font-semibold text-gray-900">
-            {mode === "edit" ? "Editar indicación" : "Nueva indicación"}
+            {readOnly ? "Detalle de indicación" : mode === "edit" ? "Editar indicación" : "Nueva indicación"}
           </h3>
           <button onClick={onClose} className="rounded-lg px-3 py-1 text-gray-500 hover:bg-gray-100">✕</button>
         </div>
@@ -86,7 +82,8 @@ export default function NuevaIndicacionModal({
                 type="date"
                 value={fecha}
                 onChange={(e) => setFecha(e.target.value)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                disabled={readOnly}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100"
               />
             </div>
             <div>
@@ -94,7 +91,8 @@ export default function NuevaIndicacionModal({
               <select
                 value={tipo}
                 onChange={(e) => setTipo(e.target.value as TipoIndic)}
-                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+                disabled={readOnly}
+                className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100"
               >
                 <option>Estudio</option>
                 <option>Procedimiento</option>
@@ -109,18 +107,20 @@ export default function NuevaIndicacionModal({
             <input
               value={nombre}
               onChange={(e) => setNombre(e.target.value)}
+              disabled={readOnly}
               placeholder="Ej: Hemograma completo"
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100"
             />
           </div>
 
           <div>
-            <label className="text-xs text-gray-600">Observaciones (opcional)</label>
+            <label className="text-xs text-gray-600">Observaciones</label>
             <textarea
               value={observaciones}
               onChange={(e) => setObservaciones(e.target.value)}
-              rows={3}
-              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2"
+              disabled={readOnly}
+              rows={4}
+              className="mt-1 w-full rounded-lg border border-gray-300 px-3 py-2 disabled:bg-gray-100"
             />
           </div>
         </div>
@@ -130,15 +130,17 @@ export default function NuevaIndicacionModal({
             onClick={onClose}
             className="rounded-lg border border-gray-300 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
           >
-            Cancelar
+            {readOnly ? "Cerrar" : "Cancelar"}
           </button>
-          <button
-            disabled={disabled}
-            onClick={submit}
-            className="rounded-lg border border-cyan-200 bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {mode === "edit" ? "Guardar cambios" : "Guardar"}
-          </button>
+          {!readOnly && (
+            <button
+              disabled={disabled}
+              onClick={submit}
+              className="rounded-lg border border-cyan-200 bg-cyan-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-cyan-700 disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {mode === "edit" ? "Guardar cambios" : "Guardar"}
+            </button>
+          )}
         </div>
       </div>
     </div>
