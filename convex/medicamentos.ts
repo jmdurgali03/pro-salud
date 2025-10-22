@@ -1,3 +1,4 @@
+// convex/medicamentos.ts
 import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
 
@@ -12,15 +13,13 @@ export const listarPorPaciente = query({
   },
 });
 
-/* =========================
-   CREAR  (normaliza fechaFin null -> undefined)
-   ========================= */
 export const crear = mutation({
   args: {
     pacienteId: v.id("pacientes"),
     profesionalId: v.id("profesionales"),
+    indicacionId: v.id("indicaciones"),                 // ✅ requerido
+    diagnosticoId: v.optional(v.id("diagnosticos")),    // ✅ opcional
     fechaInicio: v.number(),
-    // aceptamos null desde el frontend, pero lo convertimos a undefined
     fechaFin: v.optional(v.union(v.number(), v.null())),
     estado: v.union(v.literal("Activo"), v.literal("Suspendido"), v.literal("Finalizado")),
     nombreComercial: v.optional(v.string()),
@@ -46,7 +45,6 @@ export const crear = mutation({
     const { fechaFin, ...rest } = args;
     await ctx.db.insert("medicamentos", {
       ...rest,
-      // si viene null, lo pasamos a undefined para que calce con el schema
       fechaFin: fechaFin ?? undefined,
     });
   },
@@ -62,12 +60,11 @@ export const cambiarEstado = mutation({
   },
 });
 
-/* =========================
-   ACTUALIZAR (normaliza fechaFin null -> undefined)
-   ========================= */
 export const actualizar = mutation({
   args: {
     id: v.id("medicamentos"),
+    indicacionId: v.id("indicaciones"),               // ✅ requerido
+    diagnosticoId: v.optional(v.id("diagnosticos")),  // ✅ opcional
     fechaInicio: v.number(),
     fechaFin: v.union(v.number(), v.null()),
     nombreComercial: v.optional(v.string()),
@@ -93,7 +90,6 @@ export const actualizar = mutation({
     const { id, fechaFin, ...rest } = args;
     await ctx.db.patch(id, {
       ...rest,
-      // Convex espera number | undefined según tu schema
       fechaFin: fechaFin ?? undefined,
     });
   },

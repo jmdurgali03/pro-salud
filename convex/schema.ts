@@ -152,6 +152,7 @@ export default defineSchema({
   indicaciones: defineTable({
     pacienteId: v.id("pacientes"),
     profesionalId: v.id("profesionales"),
+    diagnosticoId: v.id("diagnosticos"), // ✅ NUEVO (requerido)
     fecha: v.number(),
     tipo: v.union(
       v.literal("Estudio"),
@@ -161,27 +162,22 @@ export default defineSchema({
     ),
     nombre: v.string(),
     observaciones: v.optional(v.string()),
-    estado: v.union(
-      v.literal("Pendiente"),
-      v.literal("Realizada"),
-      v.literal("Cancelada")
-    ),
+    estado: v.union(v.literal("Pendiente"), v.literal("Realizada"), v.literal("Cancelada")),
   })
     .index("byPaciente", ["pacienteId"])
-    .index("byProfesional", ["profesionalId"]),
+    .index("byProfesional", ["profesionalId"])
+    .index("byDiagnostico", ["diagnosticoId"]), // ✅ útil
   // -------------------------
   // Medicamentos (tratamientos farmacológicos unitarios)
   // -------------------------
-  medicamentos: defineTable({
+   medicamentos: defineTable({
     pacienteId: v.id("pacientes"),
     profesionalId: v.id("profesionales"),
+    indicacionId: v.id("indicaciones"),                // ✅ NUEVO (requerido)
+    diagnosticoId: v.optional(v.id("diagnosticos")),   // ✅ NUEVO (opcional)
     fechaInicio: v.number(),
     fechaFin: v.optional(v.number()),
-    estado: v.union(
-      v.literal("Activo"),
-      v.literal("Suspendido"),
-      v.literal("Finalizado")
-    ),
+    estado: v.union(v.literal("Activo"), v.literal("Suspendido"), v.literal("Finalizado")),
     nombreComercial: v.optional(v.string()),
     droga: v.string(),
     forma: v.union(
@@ -202,7 +198,9 @@ export default defineSchema({
     notas: v.optional(v.string()),
   })
     .index("byPaciente", ["pacienteId"])
-    .index("byProfesional", ["profesionalId"]),
+    .index("byProfesional", ["profesionalId"])
+    .index("byIndicacion", ["indicacionId"])           // ✅ útil
+    .index("byDiagnostico", ["diagnosticoId"]),        // ✅ útil
 
   // (si usás tu tabla de “tratamientos” larga, la podés dejar; no interfiere)
   tratamientos: defineTable({

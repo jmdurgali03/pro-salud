@@ -1,4 +1,5 @@
 "use client";
+
 import { MedRow } from "./MedicamentosTable";
 
 const fmt = (n?: number | null) =>
@@ -17,6 +18,8 @@ export default function DetalleMedicamentoModal({
   profesionalNombre,
   onChangeEstado,
   saving = false,
+  indicacionNombre,        // ✅ NUEVO
+  diagnosticoDescripcion,  // ✅ NUEVO (opcional)
 }: {
   open: boolean;
   onClose: () => void;
@@ -24,6 +27,8 @@ export default function DetalleMedicamentoModal({
   profesionalNombre: string;
   onChangeEstado?: (estado: MedRow["estado"]) => Promise<void>;
   saving?: boolean;
+  indicacionNombre?: string;        // ✅
+  diagnosticoDescripcion?: string;  // ✅
 }) {
   if (!open || !med) return null;
   const handleChangeEstado = onChangeEstado ?? (async () => {});
@@ -102,6 +107,11 @@ export default function DetalleMedicamentoModal({
             <Info label="Duración" value={med.cronico ? "—" : med.duracion || "—"} />
             <Info label="Vía" value={med.via || "—"} />
             <Info label="Crónico" value={med.cronico ? "Sí" : "No"} />
+          </div>
+
+          {/* ✅ Indicación y Diagnóstico */}
+          <div className="mt-6 grid gap-6 sm:grid-cols-2">
+            <Info label="Indicación vinculada" value={indicacionNombre || "—"} />
           </div>
 
           {/* Indicaciones / Notas */}

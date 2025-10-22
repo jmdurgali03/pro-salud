@@ -1,4 +1,5 @@
 "use client";
+
 import { format } from "date-fns";
 import { Eye, Pencil } from "lucide-react";
 import type { Id } from "@/convex/_generated/dataModel";
@@ -11,16 +12,19 @@ export type IndicRow = {
   observaciones?: string;
   estado: "Pendiente" | "Realizada" | "Cancelada";
   profesionalId: Id<"profesionales">;
+  diagnosticoId?: Id<"diagnosticos">; // ✅ NUEVO
 };
 
 export default function IndicacionesTable({
   data,
   getProfesionalNombre,
+  getDiagnosticoDescripcion, // ✅ NUEVO
   onView,
   onEdit,
 }: {
   data: IndicRow[];
   getProfesionalNombre: (id: Id<"profesionales">) => string;
+  getDiagnosticoDescripcion?: (id?: Id<"diagnosticos">) => string | undefined; // ✅ opcional
   onView?: (row: IndicRow) => void;
   onEdit?: (row: IndicRow) => void;
 }) {
@@ -32,6 +36,7 @@ export default function IndicacionesTable({
             <th className="px-3 py-2 w-[100px]">Fecha</th>
             <th className="px-3 py-2 w-[150px]">Tipo</th>
             <th className="px-3 py-2 w-[300px]">Indicación</th>
+            <th className="px-3 py-2 w-[260px]">Diagnóstico</th> {/* ✅ NUEVO */}
             <th className="px-3 py-2 w-[200px]">Profesional</th>
             <th className="px-3 py-2 text-center w-[220px]">Acción</th>
           </tr>
@@ -42,6 +47,9 @@ export default function IndicacionesTable({
               <td className="px-3 py-2">{format(r.fecha, "dd/MM/yy")}</td>
               <td className="px-3 py-2">{r.tipo}</td>
               <td className="px-3 py-2 font-medium truncate max-w-[250px]">{r.nombre}</td>
+              <td className="px-3 py-2">
+                {getDiagnosticoDescripcion?.(r.diagnosticoId) || "—"}
+              </td>
               <td className="px-3 py-2">{getProfesionalNombre(r.profesionalId)}</td>
 
               <td className="px-3 py-2 text-center">
@@ -74,7 +82,7 @@ export default function IndicacionesTable({
 
           {data.length === 0 && (
             <tr>
-              <td colSpan={5} className="px-3 py-8 text-center text-gray-500">
+              <td colSpan={6} className="px-3 py-8 text-center text-gray-500">
                 No hay indicaciones registradas.
               </td>
             </tr>

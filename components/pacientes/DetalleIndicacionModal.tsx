@@ -11,6 +11,7 @@ export type DetalleIndicacionRow = {
   observaciones?: string;
   estado: "Pendiente" | "Realizada" | "Cancelada";
   profesionalId: Id<"profesionales">;
+  diagnosticoId?: Id<"diagnosticos">; // ✅ NUEVO
 };
 
 export default function DetalleIndicacionModal({
@@ -18,11 +19,13 @@ export default function DetalleIndicacionModal({
   onClose,
   ind,
   profesionalNombre,
+  diagnosticoDescripcion, // ✅ NUEVO (texto “amigable” del Dx)
 }: {
   open: boolean;
   onClose: () => void;
   ind: DetalleIndicacionRow | null;
   profesionalNombre: string;
+  diagnosticoDescripcion?: string; // ✅ opcional: si no lo pasás, se muestra “—”
 }) {
   if (!open || !ind) return null;
 
@@ -69,16 +72,21 @@ export default function DetalleIndicacionModal({
             </div>
           </div>
 
-          {/* Fecha en blanco, Tipo en gris normal */}
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {/* Fecha / Tipo */}
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
             <Item label="Fecha">{ind.fecha ? format(ind.fecha, "dd/MM/yyyy") : "—"}</Item>
             <Item label="Tipo">{ind.tipo}</Item>
-          </div>
-
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Item label="Médico">{profesionalNombre || "—"}</Item>
           </div>
 
+          {/* ✅ Diagnóstico */}
+          <div className="grid grid-cols-1">
+            <Item label="Diagnóstico relacionado" highlight>
+              {diagnosticoDescripcion?.trim() || "—"}
+            </Item>
+          </div>
+
+          {/* Observaciones */}
           <div className="rounded-xl border border-gray-200 bg-white px-4 py-3">
             <div className="text-xs text-gray-500">Observaciones</div>
             <div className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap text-sm text-gray-900">
