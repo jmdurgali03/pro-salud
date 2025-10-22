@@ -140,7 +140,7 @@ export default function GerenteReportesPage() {
       )}
 
       {/* Botón Exportar */}
-      
+
 
       {/* === CONTENIDO PRINCIPAL === */}
       <div
@@ -148,31 +148,31 @@ export default function GerenteReportesPage() {
         className="w-full px-6 py-6 space-y-8 page-break-inside-avoid"
       >
         {/* === TÍTULO PRINCIPAL === */}
-<div className="bg-white p-6 rounded-xl">
-  <div className="flex items-center justify-between mb-2">
-    {/* 🔹 Título con línea teal */}
-    <div className="flex items-center">
-      <div className="w-1 h-6 rounded-full bg-gradient-to-b from-teal-400 to-teal-600 mr-3" />
-      <h1 className="text-2xl font-bold text-gray-900">
-        Reporte General del Centro Médico
-      </h1>
-    </div>
+        <div className="bg-white p-6 rounded-xl">
+          <div className="flex items-center justify-between mb-2">
+            {/* 🔹 Título con línea teal */}
+            <div className="flex items-center">
+              <div className="w-1 h-6 rounded-full bg-gradient-to-b from-teal-400 to-teal-600 mr-3" />
+              <h1 className="text-2xl font-bold text-gray-900">
+                Reporte General del Centro Médico
+              </h1>
+            </div>
 
-    {/* 🔹 Botón Exportar PDF */}
-    <button
-      onClick={handleExportPdf}
-      disabled={exportando}
-      className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-md disabled:opacity-50"
-    >
-      <FileDown className="w-5 h-5" />
-      {exportando ? "Generando PDF…" : "Exportar PDF"}
-    </button>
-  </div>
+            {/* 🔹 Botón Exportar PDF */}
+            <button
+              onClick={handleExportPdf}
+              disabled={exportando}
+              className="flex items-center gap-2 px-4 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white shadow-md disabled:opacity-50"
+            >
+              <FileDown className="w-5 h-5" />
+              {exportando ? "Generando PDF…" : "Exportar PDF"}
+            </button>
+          </div>
 
-  <p className="text-gray-500 text-sm">
-    Reporte del {new Date().toLocaleDateString("es-AR")}
-  </p>
-</div>
+          <p className="text-gray-500 text-sm">
+            Reporte del {new Date().toLocaleDateString("es-AR")}
+          </p>
+        </div>
 
         {/* === Indicadores globales === */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm page-break-inside-avoid">
@@ -250,7 +250,6 @@ export default function GerenteReportesPage() {
           profesionales={profesionales}
           especialidades={especialidades}
         />
-        <EmbudoEstados turnos={turnos} />
         <PacientesNuevos pacientes={pacientes} />
 
         {/* === Gráficos de torta === */}
