@@ -1,10 +1,7 @@
 import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 
-/** ===== Tipos LITE (permisivos) =====
- *  Usamos 'any' para IDs y hacemos opcionales los campos que
- *  en tus rows pueden venir como null/undefined.
- */
+/** ===== Tipos LITE (permisivos) ===== */
 export type PacienteLite = {
   _id: any;
   nombre?: string;
@@ -32,7 +29,7 @@ export type IndicacionLite = {
   nombre: string;
   observaciones?: string;
   profesionalId: any;
-  diagnosticoId?: any; // puede venir undefined/null en tu IndicRow
+  diagnosticoId?: any; // puede venir undefined/null
 };
 
 export type MedicamentoLite = {
@@ -55,17 +52,36 @@ export type MedicamentoLite = {
   diagnosticoId?: any;
 };
 
-/* =============== util =============== */
+/* =============== utils =============== */
 const fmt = (ts?: number | string | null) => {
   if (!ts && ts !== 0) return "—";
   const d = typeof ts === "number" ? new Date(ts) : new Date(ts);
   return isNaN(d.getTime()) ? "—" : d.toLocaleDateString("es-AR");
 };
 
-const header = (doc: jsPDF, titulo: string, paciente?: PacienteLite) => {
+/* ===== Headers ===== */
+
+/** Header básico: Título (centrado) + Emitido: fecha/hora (derecha) + línea divisoria */
+const headerBasic = (doc: jsPDF, titulo: string) => {
   doc.setFontSize(16);
   doc.text(titulo, 105, 15, { align: "center" });
-  doc.setFontSize(10);
+
+  doc.setFontSize(9);
+  const emitido = new Date().toLocaleString("es-AR");
+  doc.text(`Emitido: ${emitido}`, 195, 22, { align: "right" });
+
+  doc.line(15, 26, 195, 26);
+};
+
+/** Header con datos del paciente (para PDFs por sección) */
+const headerWithPatient = (doc: jsPDF, titulo: string, paciente?: PacienteLite) => {
+  doc.setFontSize(16);
+  doc.text(titulo, 105, 15, { align: "center" });
+
+  doc.setFontSize(9);
+  const emitido = new Date().toLocaleString("es-AR");
+  doc.text(`Emitido: ${emitido}`, 195, 22, { align: "right" });
+
   if (paciente) {
     doc.text(
       `Paciente: ${paciente?.apellido ?? ""}, ${paciente?.nombre ?? ""}  |  DNI: ${
@@ -76,6 +92,7 @@ const header = (doc: jsPDF, titulo: string, paciente?: PacienteLite) => {
       { align: "center" }
     );
   }
+
   doc.line(15, 26, 195, 26);
 };
 
@@ -87,7 +104,8 @@ export function exportDiagnosticosPDF(params: {
 }) {
   const { paciente, diagnosticos = [], getProfesionalNombre } = params;
   const doc = new jsPDF();
-  header(doc, "Diagnósticos", paciente || undefined);
+
+  headerWithPatient(doc, "Diagnósticos", paciente || undefined);
 
   autoTable(doc, {
     startY: 32,
@@ -104,7 +122,8 @@ export function exportDiagnosticosPDF(params: {
   });
 
   doc.save(
-    `Diagnosticos_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "").replace(/\s+/g, "_")}.pdf`
+    `Diagnosticos_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "")
+      .replace(/\s+/g, "_")}.pdf`
   );
 }
 
@@ -116,7 +135,8 @@ export function exportIndicacionesPDF(params: {
 }) {
   const { paciente, indicaciones = [], getProfesionalNombre, getDiagnosticoDescripcion } = params;
   const doc = new jsPDF();
-  header(doc, "Indicaciones médicas", paciente || undefined);
+
+  headerWithPatient(doc, "Indicaciones médicas", paciente || undefined);
 
   autoTable(doc, {
     startY: 32,
@@ -134,7 +154,8 @@ export function exportIndicacionesPDF(params: {
   });
 
   doc.save(
-    `Indicaciones_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "").replace(/\s+/g, "_")}.pdf`
+    `Indicaciones_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "")
+      .replace(/\s+/g, "_")}.pdf`
   );
 }
 
@@ -154,12 +175,24 @@ export function exportMedicamentosPDF(params: {
   } = params;
 
   const doc = new jsPDF();
-  header(doc, "Medicamentos", paciente || undefined);
+
+  headerWithPatient(doc, "Medicamentos", paciente || undefined);
 
   autoTable(doc, {
     startY: 32,
     head: [
-      ["Inicio", "Fin", "Estado", "Nombre comercial", "Droga", "Dosis / Frec.", "Vía", "Indicación", "Dx", "Profesional"],
+      [
+        "Inicio",
+        "Fin",
+        "Estado",
+        "Nombre comercial",
+        "Droga",
+        "Dosis / Frec.",
+        "Vía",
+        "Indicación",
+        "Dx",
+        "Profesional",
+      ],
     ],
     body: medicamentos.map((m) => [
       fmt(m.fechaInicio),
@@ -180,7 +213,8 @@ export function exportMedicamentosPDF(params: {
   });
 
   doc.save(
-    `Medicamentos_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "").replace(/\s+/g, "_")}.pdf`
+    `Medicamentos_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "")
+      .replace(/\s+/g, "_")}.pdf`
   );
 }
 
@@ -204,15 +238,19 @@ export function exportHistoriaCompletaPDF(params: {
   } = params;
 
   const doc = new jsPDF();
-  header(doc, "Historia Clínica Completa", paciente || undefined);
 
-  // Datos básicos
+  // ✅ Título + fecha; SIN datos del paciente en el header.
+  headerBasic(doc, "Historia Clínica");
+
+  // Bloque de datos del paciente (único)
   doc.setFontSize(11);
   const y0 = 32;
   doc.text(`Nombre: ${(paciente?.apellido ?? "")}, ${(paciente?.nombre ?? "")}`, 15, y0);
   doc.text(`DNI: ${paciente?.dni ?? "—"}`, 15, y0 + 6);
   doc.text(
-    `OS: ${paciente?.obrasSocialesNombres?.join(", ") || "Sin OS"}   |   Tel: ${paciente?.telefono || "—"}   |   Email: ${paciente?.email || "—"}`,
+    `OS: ${paciente?.obrasSocialesNombres?.join(", ") || "Sin OS"}   |   Tel: ${
+      paciente?.telefono || "—"
+    }   |   Email: ${paciente?.email || "—"}`,
     15,
     y0 + 12
   );
@@ -286,6 +324,7 @@ export function exportHistoriaCompletaPDF(params: {
   });
 
   doc.save(
-    `HistoriaClinica_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "").replace(/\s+/g, "_")}.pdf`
+    `HistoriaClinica_${(paciente?.apellido ?? "").replace(/\s+/g, "_")}_${(paciente?.nombre ?? "")
+      .replace(/\s+/g, "_")}.pdf`
   );
 }
