@@ -11,6 +11,7 @@ import {
   BriefcaseMedical,
   CalendarDays,
   Activity,
+  BarChart3,
 } from "lucide-react";
 import domtoimage from "dom-to-image-more";
 import { jsPDF } from "jspdf";
@@ -60,7 +61,7 @@ export default function GerenteReportesPage() {
   }, [turnos]);
 
   // ================================================================
-  // EXPORTAR PDF (sin errores de color lab)
+  // EXPORTAR PDF MULTIPÁGINA (ajustada)
   // ================================================================
   const handleExportPdf = async () => {
     if (!dashboardRef.current) return;
@@ -96,11 +97,11 @@ export default function GerenteReportesPage() {
       let y = 0;
       while (y < imgHeight) {
         pdf.addImage(dataUrl, "PNG", 0, -y, imgWidth, imgHeight);
-        y += pageHeight;
+        y += pageHeight - 80; // 🔹 menor salto => menos espacio blanco
         if (y < imgHeight) pdf.addPage();
       }
 
-      pdf.save(`Reportes_${new Date().toLocaleDateString("es-AR")}.pdf`);
+      pdf.save(`Reporte_Centro_${new Date().toLocaleDateString("es-AR")}.pdf`);
     } catch (error) {
       console.error("Error al generar PDF:", error);
     } finally {
@@ -128,7 +129,7 @@ export default function GerenteReportesPage() {
         { label: "Reportes", href: "/gerente/reportes" },
       ]}
     >
-      {/* 🔹 Overlay de carga */}
+      {/* Overlay de carga */}
       {exportando && (
         <div className="fixed inset-0 flex items-center justify-center bg-black/40 z-50">
           <div className="flex items-center gap-3 bg-emerald-600 px-6 py-3 rounded-xl shadow-lg text-white animate-pulse">
@@ -138,7 +139,7 @@ export default function GerenteReportesPage() {
         </div>
       )}
 
-      {/* 🔹 Botón Exportar PDF */}
+      {/* Botón Exportar */}
       <div className="flex justify-end pr-8 pt-6 no-print">
         <button
           onClick={handleExportPdf}
@@ -150,11 +151,24 @@ export default function GerenteReportesPage() {
         </button>
       </div>
 
-      {/* 🔹 Contenedor principal */}
+      {/* === CONTENIDO PRINCIPAL === */}
       <div
         ref={dashboardRef}
-        className="w-full px-8 py-8 space-y-8 page-break-inside-avoid"
+        className="w-full px-6 py-6 space-y-8 page-break-inside-avoid"
       >
+        {/* === TÍTULO PRINCIPAL === */}
+<div className="bg-white p-6 rounded-xl shadow-sm">
+  <div className="flex items-center mb-2">
+    <div className="w-1 h-6 rounded-full bg-gradient-to-b from-teal-400 to-teal-600 mr-3" />
+    <h1 className="text-2xl font-bold text-gray-900">
+      Reporte General del Centro Médico
+    </h1>
+  </div>
+  <p className="text-gray-500 text-sm">
+    Reporte del  {new Date().toLocaleDateString("es-AR")}
+  </p>
+</div>
+
         {/* === Indicadores globales === */}
         <div className="bg-white p-6 rounded-xl border border-gray-200 shadow-sm page-break-inside-avoid">
           <h2 className="text-2xl font-bold text-gray-900 mb-2 flex items-center gap-2">
@@ -218,8 +232,11 @@ export default function GerenteReportesPage() {
         {/* === Gráficos principales === */}
         <EvolucionTurnos turnos={turnos} profesionales={profesionales} />
 
-        {/* 🔹 Turnos por especialidades */}
-        <TurnosPorEspecialidadesView turnos={turnos} especialidades={especialidades} />
+        {/* === Turnos por especialidades === */}
+        <TurnosPorEspecialidadesView
+          turnos={turnos}
+          especialidades={especialidades}
+        />
 
         {/* === Otros gráficos === */}
         <HeatmapOcupacion turnos={turnos} profesionales={profesionales} />
