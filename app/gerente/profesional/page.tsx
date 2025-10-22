@@ -2,6 +2,8 @@
 
 import { useState, useEffect, useMemo, useCallback } from "react";
 import { useQuery, useMutation } from "convex/react";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import PanelTurnosInner from "@/components/PanelTurnosInner";
 import ProfesionalModal from "./ProfesionalModal";
 import { Id } from "@/convex/_generated/dataModel";
 import { api } from "@/convex/_generated/api";
@@ -77,43 +79,28 @@ const mapReason = (r: string, fallback?: string) => {
 };
 
 export default function ProfesionalesPage() {
+  
   const [desde, setDesde] = useState<number | undefined>(undefined);
 const [hasta, setHasta] = useState<number | undefined>(undefined);
-
-const argsResumen = useMemo(
+  // Rango por defecto: semana actual (Lun 00:00 a Lun siguiente 00:00)
+  useEffect(() => {
+    if (desde === undefined && hasta === undefined) {
+      const now = new Date();
+      const day = (now.getDay() + 6) % 7; // 0 = lunes
+      const start = new Date(now);
+      start.setDate(now.getDate() - day);
+      start.setHours(0, 0, 0, 0);
+      const end = new Date(start);
+      end.setDate(start.getDate() + 7);
+      setDesde(start.getTime());
+      setHasta(end.getTime());
+    }
+  }, [desde, hasta]);
+  const argsResumen = useMemo(
   () => (desde && hasta ? { from: desde, to: hasta } : {}),
   [desde, hasta]
 );
-const resumenBackend = useQuery(api.turnos.resumenProfesionales, argsResumen, {
-  // Esto evita mostrar resultados anteriores si Convex está offline
-  staleWhileRevalidate: false,
-});
-
-
-const resumenMapa = useMemo(() => {
-  const m = new Map();
-
-  // Si el backend no devuelve array, devolvemos mapa vacío
-  if (!Array.isArray(resumenBackend)) {
-    console.warn("⚠️ resumenBackend no es iterable:", resumenBackend);
-    return m;
-  }
-
-  for (const r of resumenBackend) {
-    m.set(r.profesionalId as Id<"profesionales">, {
-      pendientes: r.pendientes ?? 0,
-      confirmados: r.confirmados ?? 0,
-      cancelados: r.cancelados ?? 0,
-      total: r.total ?? 0,
-      porcentajeConfirmados: r.porcentajeConfirmados ?? 0,
-    });
-  }
-
-  return m;
-}, [resumenBackend]);
-
-
-
+console.log("NEXT_PUBLIC_CONVEX_URL =", process.env.NEXT_PUBLIC_CONVEX_URL);
   const profesionales = useQuery(api.profesionales.listar) ?? [];
   const especialidades = useQuery(api.especialidades.listar) ?? [];
   const obrasSocialesQuery = useQuery(api.obrasSociales.listar);
@@ -457,85 +444,22 @@ const resumenMapa = useMemo(() => {
               )}
             </tbody>
           </table>
-              {/* === NUEVO: PANEL DE GESTIÓN DE TURNOS === */}
-<div className="overflow-hidden border border-gray-200 rounded-xl shadow bg-white">
-  <div className="px-4 py-3 border-b bg-gray-50 flex items-center justify-between">
-    <h2 className="font-semibold text-gray-800">Panel de Turnos</h2>
-    {/* (opcional) lugar para selector de fecha o filtros de turnos */}
-  </div>
-
-  <table className="w-full text-sm text-gray-700">
-    <thead className="bg-gray-100 text-gray-600 uppercase text-xs">
-      <tr>
-        <th className="p-4 text-left">Profesional</th>
-        <th className="p-4 text-left">Especialidad</th>
-        <th className="p-4 text-center">Pendientes</th>
-        <th className="p-4 text-center">Confirmados</th>
-        <th className="p-4 text-center">Cancelados</th>
-        <th className="p-4 text-center">Total</th>
-        <th className="p-4 text-center">% Confirmados</th>
-      </tr>
-    </thead>
-    <tbody>
-      {profesionalesFiltrados.map((prof) => {
-  const resumen = resumenMapa.get(prof._id) ?? { // 👈 usar _id directamente
-    pendientes: 0, confirmados: 0, cancelados: 0, total: 0, porcentajeConfirmados: 0
-  };
-        return (
-          <tr key={prof._id.toString()} className="border-t hover:bg-gray-50 transition-all">
-            <td className="p-4 font-medium">{prof.apellido} {prof.nombre}</td>
-            <td className="p-4">{getEspecialidadNombre(prof.especialidadId)}</td>
-
-            <td className="p-4 text-center">
-              <span className="px-2 py-1 rounded-full text-xs font-medium bg-amber-100 text-amber-700">
-                {resumen.pendientes}
-              </span>
-            </td>
-            <td className="p-4 text-center">
-              <span className="px-2 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
-                {resumen.confirmados}
-              </span>
-            </td>
-            <td className="p-4 text-center">
-              <span className="px-2 py-1 rounded-full text-xs font-medium bg-rose-100 text-rose-700">
-                {resumen.cancelados}
-              </span>
-            </td>
-            <td className="p-4 text-center">
-              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
-                {resumen.total}
-              </span>
-            </td>
-            <td className="p-4 text-center">
-              {/* badge con umbrales de color */}
-              <span
-                className={[
-                  "px-2 py-1 rounded-full text-xs font-semibold",
-                  resumen.porcentajeConfirmados >= 80
-                    ? "bg-emerald-100 text-emerald-700"
-                    : resumen.porcentajeConfirmados >= 50
-                    ? "bg-amber-100 text-amber-700"
-                    : "bg-rose-100 text-rose-700",
-                ].join(" ")}
-              >
-                {resumen.porcentajeConfirmados.toFixed(1)}%
-              </span>
-            </td>
-          </tr>
-        );
-      })}
-
-      {profesionalesFiltrados.length === 0 && (
-        <tr>
-          <td colSpan={7} className="p-6 text-center text-gray-400 italic text-sm">
-            No hay profesionales para mostrar en el panel.
-          </td>
-        </tr>
-      )}
-    </tbody>
-  </table>
-</div>
-
+              <ErrorBoundary
+  fallback={
+    <div className="overflow-hidden border border-gray-200 rounded-xl shadow bg-white">
+      <div className="px-4 py-3 bg-amber-50 text-amber-800 border-b">
+        No se pudo conectar con el servidor de datos (Convex). Mostrando panel vacío.
+      </div>
+      <div className="p-4 text-sm text-gray-500">Reintentá en unos segundos o recargá.</div>
+    </div>
+  }
+>
+  <PanelTurnosInner
+    profesionalesFiltrados={profesionalesFiltrados}
+    getEspecialidadNombre={getEspecialidadNombre}
+    argsResumen={argsResumen}
+  />
+</ErrorBoundary>
           {/* Paginación */}
           {totalPages > 1 && (
             <div className="flex justify-center items-center gap-3 py-4 text-sm">

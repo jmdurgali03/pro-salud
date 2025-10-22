@@ -618,96 +618,13 @@ export const actualizarEstado = mutation({
   },
 });
 
-type EstadoBase = "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado";
-
 export const resumenProfesionales = query({
   args: {
     from: v.optional(v.number()),
     to: v.optional(v.number()),
     profesionalIds: v.optional(v.array(v.id("profesionales"))),
   },
-  handler: async (ctx, args) => {
-    const { from, to, profesionalIds } = args;
-
-    console.log("resumenProfesionales args:", args);
-
-    type Acc = { pendientes: number; confirmados: number; cancelados: number; total: number; porcentajeConfirmados: number };
-    const acc = new Map<Id<"profesionales">, Acc>();
-
-    const touch = (id: Id<"profesionales">) => {
-      const r = acc.get(id);
-      if (r) return r;
-      const base = { pendientes: 0, confirmados: 0, cancelados: 0, total: 0, porcentajeConfirmados: 0 };
-      acc.set(id, base);
-      return base;
-    };
-
-    const add = (id: Id<"profesionales">, estado: EstadoBase) => {
-      const a = touch(id);
-      if (estado === "Pendiente") a.pendientes++;
-      else if (estado === "Confirmado") a.confirmados++;
-      else if (estado === "Cancelado") a.cancelados++;
-      if (estado !== "Finalizado") a.total++;
-    };
-
-    try {
-      // ---- Camino con rango (byStart) ----
-      if (typeof from === "number" && typeof to === "number") {
-        let rows: any[] = [];
-        try {
-          rows = await ctx.db
-            .query("turnos")
-            .withIndex("byStart", q => q.gte("start", from).lt("start", to))
-            .collect();
-        } catch (e) {
-          console.error("byStart fallback (no index/otro):", e);
-          // Fallback no indexado (temporal)
-          rows = await ctx.db.query("turnos").collect();
-          rows = rows.filter(t => t.start >= from && t.start < to);
-        }
-
-        for (const t of rows) {
-          if (profesionalIds && profesionalIds.length > 0 && !profesionalIds.includes(t.profesionalId)) continue;
-          add(t.profesionalId, t.estado as EstadoBase);
-        }
-      }
-      // ---- Camino sin rango (byEstado) ----
-      else {
-        const estados: EstadoBase[] = ["Pendiente", "Confirmado", "Cancelado"];
-        for (const est of estados) {
-          let rows: any[] = [];
-          try {
-            rows = await ctx.db
-              .query("turnos")
-              .withIndex("byEstado", q => q.eq("estado", est))
-              .collect();
-          } catch (e) {
-            console.error(`byEstado(${est}) fallback (no index/otro):`, e);
-            // Fallback no indexado (temporal)
-            rows = await ctx.db.query("turnos").collect();
-            rows = rows.filter(t => t.estado === est);
-          }
-
-          for (const t of rows) {
-            if (profesionalIds && profesionalIds.length > 0 && !profesionalIds.includes(t.profesionalId)) continue;
-            add(t.profesionalId, est);
-          }
-        }
-      }
-
-      const out = Array.from(acc.entries()).map(([profesionalId, r]) => ({
-        profesionalId,
-        pendientes: r.pendientes,
-        confirmados: r.confirmados,
-        cancelados: r.cancelados,
-        total: r.total,
-        porcentajeConfirmados: r.total > 0 ? Math.round((r.confirmados / r.total) * 1000) / 10 : 0,
-      }));
-
-      return out;
-    } catch (e) {
-      console.error("resumenProfesionales ERROR final:", e);
-      throw e;
-    }
+  handler: async (_ctx, _args) => {
+    return []; // ← smoke test: debe dejar de tirar “Server Error”
   },
 });
