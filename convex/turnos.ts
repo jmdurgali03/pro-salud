@@ -2,7 +2,6 @@ import { query, mutation } from "./_generated/server";
 import { v, ConvexError } from "convex/values";
 import { checkSolapamiento } from "./helpers/checkSolapamiento";
 import { addMinutes, isWithinInterval, parse } from "date-fns";
-import { Id } from "./_generated/dataModel";
 /* -----------------------------------------------------
    📅 Listar turnos enriquecidos por rango (para reportes)
 ----------------------------------------------------- */
@@ -615,77 +614,5 @@ export const actualizarEstado = mutation({
     });
 
     return { ok: true, nuevoEstado: estado };
-  },
-});
-
-
-
-type EstadoBase = "Pendiente" | "Confirmado" | "Cancelado" | "Finalizado";
-
-export const resumenProfesionales = query({
-  args: {
-    from: v.optional(v.number()),
-    to: v.optional(v.number()),
-    profesionalIds: v.optional(v.array(v.id("profesionales"))),
-  },
-  handler: async (ctx, args) => {
-    const { from, to, profesionalIds } = args;
-    console.log("resumenProfesionales args:", args);
-
-    type Acc = { pendientes: number; confirmados: number; cancelados: number; total: number; porcentajeConfirmados: number };
-    const acc = new Map<Id<"profesionales">, Acc>();
-    const touch = (id: Id<"profesionales">) => acc.get(id) ?? (acc.set(id, { pendientes:0, confirmados:0, cancelados:0, total:0, porcentajeConfirmados:0 }), acc.get(id)!);
-    const add  = (id: Id<"profesionales">, estado: EstadoBase) => {
-      const a = touch(id);
-      if (estado === "Pendiente") a.pendientes++;
-      else if (estado === "Confirmado") a.confirmados++;
-      else if (estado === "Cancelado") a.cancelados++;
-      if (estado !== "Finalizado") a.total++;
-    };
-
-    try {
-      // Preferimos índices, pero si fallan, caemos a full scan
-      if (typeof from === "number" && typeof to === "number") {
-        let rows;
-        try {
-          rows = await ctx.db.query("turnos").withIndex("byStart", q => q.gte("start", from).lt("start", to)).collect();
-        } catch (e) {
-          console.error("byStart fallback:", e);
-          rows = (await ctx.db.query("turnos").collect()).filter(t => t.start >= from && t.start < to);
-        }
-        for (const t of rows) {
-          if (profesionalIds?.length && !profesionalIds.includes(t.profesionalId)) continue;
-          add(t.profesionalId, t.estado as EstadoBase);
-        }
-      } else {
-        const estados: EstadoBase[] = ["Pendiente", "Confirmado", "Cancelado"];
-        for (const est of estados) {
-          let rows;
-          try {
-            rows = await ctx.db.query("turnos").withIndex("byEstado", q => q.eq("estado", est)).collect();
-          } catch (e) {
-            console.error(`byEstado(${est}) fallback:`, e);
-            rows = (await ctx.db.query("turnos").collect()).filter(t => t.estado === est);
-          }
-          for (const t of rows) {
-            if (profesionalIds?.length && !profesionalIds.includes(t.profesionalId)) continue;
-            add(t.profesionalId, est);
-          }
-        }
-      }
-    } catch (e) {
-      console.error("resumenProfesionales ERROR:", e);
-      // NO lanzamos; devolvemos vacío para no romper el cliente
-      return [];
-    }
-
-    return Array.from(acc.entries()).map(([profesionalId, r]) => ({
-      profesionalId,
-      pendientes: r.pendientes,
-      confirmados: r.confirmados,
-      cancelados: r.cancelados,
-      total: r.total,
-      porcentajeConfirmados: r.total > 0 ? Math.round((r.confirmados / r.total) * 1000) / 10 : 0,
-    }));
   },
 });
