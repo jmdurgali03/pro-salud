@@ -124,3 +124,20 @@
 html {
   scroll-behavior: smooth;
 }
+/* 🧩 Modo de exportación para limpiar visualmente los bordes */
+.export-mode * {
+  background: none !important;
+  box-shadow: none !important;
+  border-color: transparent !important;
+  outline: none !important;
+}
+
+/* Opcional: fuerza color de texto a negro para imprimir */
+.export-mode {
+  color: #000 !important;
+}
+@media print {
+  .page-break-inside-avoid {
+    page-break-inside: avoid;
+  }
+}
